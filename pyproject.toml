@@ -7,7 +7,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "Quantum Gates"
+name = "quantum-gates"
 authors = [
 	{name = "M, Grossi", email = "michele.grossi@cern.ch"},
 	{name = "G. D. Bartolomeo", email = "dibartolomeo.giov@gmail.com"},
