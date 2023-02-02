@@ -29,7 +29,7 @@ transpile the circuit for a specific quantum device.
    circ.draw('mpl')
 
 
-.. _hadamard_reverse_QFT_circ:
+.. _hadamard_reverse_qft_circ:
 
 hadamard_reverse_qft_circ
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +41,7 @@ superposition of all states, and back to the 0 state. As we know the
 ideal result, we can calculate fidelity metrics easily.
 
 
-.. _GHZ_circ:
+.. _ghz_circ:
 
 ghz_circ
 ~~~~~~~~
@@ -53,7 +53,7 @@ applying a Hadamard gate on the first qubit, and then subsequently
 applying CNOT gates with source i, target i+1, for i = 0, …, nqubit - 2.
 
 
-.. _GFT_circ:
+.. _qft_circ:
 
 qft_circ
 ~~~~~~~~

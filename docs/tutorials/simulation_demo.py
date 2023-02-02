@@ -28,9 +28,19 @@ from configuration.token import IBM_TOKEN
 
 """ Setup backend """
 
-with open("docs/tutorials/simulation_demo_configuration.json", "r") as f:
-    config = json.load(f)
-
+config = {
+    "backend": {
+        "hub": "ibm-q",
+        "group": "open",
+        "project": "main",
+        "device_name": "ibmq_manila"
+    },
+    "run": {
+        "shots": 1000,
+        "qubits_layout": [0, 1],
+        "psi0": [1, 0, 0, 0]
+    }
+}
 backend_config = config["backend"]
 backend = setup_backend(Token=IBM_TOKEN, **backend_config)
 

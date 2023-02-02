@@ -98,7 +98,17 @@ Circuits
 The simulators can be configured with a :doc:`circuits` class, such as 
 :ref:`efficient_circuit`. This class is responsible for sampling the 
 noisy gates. The class can be configured with a :doc:`gates` instance and one of 
-the :doc:`backends` that executes the statevector simulation. 
+the :doc:`backends` that executes the statevector simulation.
+
+Quantum Algorithms
+~~~~~~~~~~~~~~~~~~
+
+Four quantum algorithms are provided as functions which return the Qiskit circuit
+for a specific number of qubits, namely
+:ref:`Hadamard reverse QFT circuit <hadamard_reverse_qft_circ>`,
+:ref:`GHZ circuit<ghz_circ>`, :ref:`QFT circuit<qft_circ>`, and
+:ref:`Quantum Approximate Optimization Algorithm circuit<qaoa_circ>`.
+
 
 Legacy
 ~~~~~~
@@ -125,8 +135,8 @@ Authors
 This project has been developed thanks to the effort of the following
 people:
 
--  Giovanni Di Bartolomeo
--  Michele Vischi
+-  Giovanni Di Bartolomeo (dibartolomeo.giov@gmail.com)
+-  Michele Vischi (vischimichele@gmail.com)
 -  Francesco Cesa
 -  Michele Grossi (michele.grossi@cern.ch)
 -  Sandro Donadi
