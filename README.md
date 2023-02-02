@@ -5,7 +5,7 @@ Implementation of the Noisy Quantum Gates model, which is soon to be published. 
 
 ## Documentations
 The documentation for Noisy Quantum Gates can be accessed on the website 
-<a href="https://quantum-gates-docs.readthedocs.io/en/latest/index.html" target="_blank"> Read the Docs</a>.
+<a href="https://quantum-gates.readthedocs.io/en/latest/index.html" target="_blank"> Read the Docs</a>.
 
 
 ## How to install
@@ -121,7 +121,7 @@ plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
 
 
 # Usage
-We recommend to read the [overview](https://quantum-gates-docs.readthedocs.io/en/latest/index.html) of the documentation as a 2-minute preparation. 
+We recommend to read the [overview](https://quantum-gates.readthedocs.io/en/latest/index.html) of the documentation as a 2-minute preparation. 
 
 
 ## Imports
