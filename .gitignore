@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Editor
+.idea/
+
+# Token
+*token*.py

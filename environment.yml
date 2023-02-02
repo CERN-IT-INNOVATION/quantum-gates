@@ -1,0 +1,13 @@
+name: quantum-gates
+channels:
+  - defaults
+dependencies:
+  - python=3.9
+  - setuptools
+  - pip:
+    - numpy
+    - qiskit==0.39.2
+    - scipy
+    - matplotlib
+    - pylatexenc
+    - opt-einsum
