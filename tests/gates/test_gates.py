@@ -28,14 +28,6 @@ numerical_gates_list = [
     numerical_gates.X, numerical_gates.SX, numerical_gates.CNOT, numerical_gates.CNOT_inv
 ]
 
-# Gates with almost no noise
-numerical_gates_list = [
-    almost_noise_free_gates.X,
-    almost_noise_free_gates.SX,
-    almost_noise_free_gates.CNOT,
-    almost_noise_free_gates.CNOT_inv
-]
-
 # Args
 single_qubit_args = {
     "phi": np.pi/2,
@@ -147,26 +139,32 @@ def test_gates_noiseless_depolarizing():
         f"Found almost noiseless depolarizing {res} instead of {res_exp}."
 
 
-def test_gates_noiseless_x():
+@pytest.mark.parametrize("phi", np.linspace(0, np.pi, 10))
+def test_gates_noiseless_x(phi: float):
     # phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
     # p: single-qubit depolarizing error probability (double)
     # T1: qubit's amplitude damping time in ns (double)
     # T2: qubit's dephasing time in ns (double)
-    args = {"phi": 0.0, "p": 0.0, "T1": 1e12, "T2": 1e12}
+    args = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
     res_exp = noise_free_gates.X(**args)    # Harcoded noiseless
     res = numerical_gates.X(**args)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), f"Found almost noiseless X {res} instead of {res_exp}."
 
 
-def test_gates_noiseless_sx():
+@pytest.mark.parametrize("phi", np.linspace(0, np.pi, 10))
+def test_gates_noiseless_sx(phi):
     # For parameters see test_noiseless_x()
-    args = {"phi": 0, "p": 0.0, "T1": 1e12, "T2": 1e12}
+    args = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
     res_exp = noise_free_gates.SX(**args)    # Harcoded noiseless
     res = numerical_gates.SX(**args)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), f"Found almost noiseless SX {res} instead of {res_exp}."
 
 
-def test_gates_noiseless_cnot():
+@pytest.mark.parametrize(
+    "phi_ctr,phi_trg",
+    [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
+)
+def test_gates_noiseless_cnot(phi_ctr: float, phi_trg: float):
     # phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
     # phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
     # t_cnot: CNOT gate time in ns (double)
@@ -178,8 +176,8 @@ def test_gates_noiseless_cnot():
     # T1_trg: target qubit's amplitude damping time in ns (double)
     # T2_trg: target qubit's dephasing time in ns (double)
     args = {
-        "phi_ctr": 0.0,
-        "phi_trg": 0.0,
+        "phi_ctr": phi_ctr,
+        "phi_trg": phi_trg,
         "t_cnot": 3.3422e-07,
         "p_cnot": 0.0,
         "p_single_ctr": 0.0,
@@ -195,11 +193,15 @@ def test_gates_noiseless_cnot():
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
 
 
-def test_gates_noiseless_cnot_inv():
+@pytest.mark.parametrize(
+    "phi_ctr,phi_trg",
+    [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
+)
+def test_gates_noiseless_cnot_inv(phi_ctr: float, phi_trg: float):
     # Parameters see test_noiseless_cnot()
     args = {
-        "phi_ctr": 0.0,
-        "phi_trg": 0.0,
+        "phi_ctr": phi_ctr,
+        "phi_trg": phi_trg,
         "t_cnot": 3.3422e-07,
         "p_cnot": 0.0,
         "p_single_ctr": 0.0,
