@@ -2,10 +2,10 @@ from src.quantum_gates.utilities import DeviceParameters
 
 
 qubits_layout = [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2]
-location = "tests/helpers/device_parameters/"
+location = "tests/helpers/device_parameters/ibmq_kolkata/"
 device_param = DeviceParameters(qubits_layout=qubits_layout)
 device_param.load_from_texts(location)
-T1, T2, p, rout, p_cnot, t_cnot, tm, dt = device_param.get_as_tuple()
+T1, T2, p, rout, p_cnot, t_cnot, tm, dt, metadata = device_param.get_as_tuple()
 
 
 CNOT_args = {
