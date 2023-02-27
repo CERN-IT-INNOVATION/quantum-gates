@@ -161,6 +161,35 @@ def test_gates_noiseless_sx(phi):
 
 
 @pytest.mark.parametrize(
+    "phi,theta",
+    [(phi, theta) for phi in np.linspace(np.pi/2, np.pi, 4) for theta in np.linspace(np.pi/2, np.pi, 4)]
+)
+def test_gates_noiseless_cr(phi: float, theta: float):
+    # theta: angle of rotation on the Bloch sphere (double)
+    # phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
+    # t_cr: CR gate time in ns (double)
+    # p_cr: CR depolarizing error probability (double)
+    # T1_ctr: control qubit's amplitude damping time in ns (double)
+    # T2_ctr: control qubit's dephasing time in ns (double)
+    # T1_trg: target qubit's amplitude damping time in ns (double)
+    # T2_trg: target qubit's dephasing time in ns (double)
+    args = {
+        "theta": theta,
+        "phi": phi,
+        "t_cr": 3.3422e-07,
+        "p_cr": 0.0,
+        "T1_ctr": 1e12,
+        "T2_ctr": 1e12,
+        "T1_trg": 1e12,
+        "T2_trg": 1e12
+    }
+    res_exp = noise_free_gates.CR(**args)    # Harcoded noiseless
+    res = numerical_gates.CR(**args)         # Simulated noiseless
+    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
+        f"Found almost noiseless CR {res} instead of {res_exp}."
+
+
+@pytest.mark.parametrize(
     "phi_ctr,phi_trg",
     [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
 )

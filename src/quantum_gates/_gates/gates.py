@@ -36,6 +36,7 @@ class Gates(object):
         self.single_qubit_gate_c = SingleQubitGateFactory(self.integrator)
         self.x_c = XFactory(self.integrator)
         self.sx_c = SXFactory(self.integrator)
+        self.cr_c = CRFactory(self.integrator)
         self.cnot_c = CNOTFactory(self.integrator)
         self.cnot_inv_c = CNOTInvFactory(self.integrator)
 
@@ -53,6 +54,9 @@ class Gates(object):
 
     def SX(self, phi, p, T1, T2) -> np.array:
         return self.sx_c.construct(phi, p, T1, T2)
+
+    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.cr_c.construct(theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
 
     def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.cnot_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
@@ -175,6 +179,18 @@ class ScaledNoiseGates(object):
 
     def SX(self, phi, p, T1, T2) -> np.array:
         return self.gates.SX(phi, p * self.noise_scaling, T1 / self.noise_scaling, T2 / self.noise_scaling)
+
+    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.gates.CR(
+            theta,
+            phi,
+            t_cr,
+            p_cr * self.noise_scaling,
+            T1_ctr / self.noise_scaling,
+            T2_ctr / self.noise_scaling,
+            T1_trg / self.noise_scaling,
+            T2_trg / self.noise_scaling
+        )
 
     def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.gates.CNOT(

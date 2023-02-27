@@ -9,7 +9,7 @@ Usage:
 - Run the script with path on top level of the repository.
 
 Note:
-- The files are saved in the outputs folder. 
+- The files are saved in the outputs folder.
 """
 
 import os
