@@ -6,7 +6,7 @@ All the time duration are expressed in units of single-qubit gate time tg of IBM
 
 import numpy as np
 
-from .pulse import Pulse, standard_pulse, standard_pulse_numerical
+from .pulse import Pulse, constant_pulse, constant_pulse_numerical
 from .integrator import Integrator
 from .factories import (
     BitflipFactory,
@@ -26,7 +26,7 @@ class Gates(object):
         pulse shape each time we generate a gate.
     """
 
-    def __init__(self, pulse: Pulse=standard_pulse):
+    def __init__(self, pulse: Pulse=constant_pulse):
         self.integrator = Integrator(pulse)
 
         # Factories
@@ -156,7 +156,7 @@ class ScaledNoiseGates(object):
         value, the less noisy the gates are.
     """
 
-    def __init__(self, noise_scaling: float, pulse: Pulse=standard_pulse):
+    def __init__(self, noise_scaling: float, pulse: Pulse=constant_pulse):
         assert noise_scaling >= 1e-15, f"Too small noise scaling {noise_scaling} < 1e-15."
         self.noise_scaling = noise_scaling
         self.gates = Gates(pulse)
@@ -208,7 +208,7 @@ class ScaledNoiseGates(object):
 """ Instances """
 
 # Constant pulses
-standard_gates = Gates(pulse=standard_pulse)
-numerical_gates = Gates(pulse=standard_pulse_numerical)
+standard_gates = Gates(pulse=constant_pulse)
+numerical_gates = Gates(pulse=constant_pulse_numerical)
 noise_free_gates = NoiseFreeGates()
 almost_noise_free_gates = ScaledNoiseGates(noise_scaling=1e-15)

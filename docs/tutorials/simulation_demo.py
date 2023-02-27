@@ -19,7 +19,7 @@ from qiskit.visualization import plot_histogram
 
 # Own library
 from quantum_gates.simulators import MrAndersonSimulator
-from quantum_gates.gates import standard_gates
+from quantum_gates.gates import gates
 from quantum_gates.circuits import EfficientCircuit
 from quantum_gates.utilities import DeviceParameters
 from quantum_gates.utilities import setup_backend
@@ -57,7 +57,7 @@ circ.draw('mpl')
 
 """ Execute simulation """
 
-sim = MrAndersonSimulator(gates=standard_gates, CircuitClass=EfficientCircuit)
+sim = MrAndersonSimulator(gates=gates, CircuitClass=EfficientCircuit)
 shots = config["run"]["shots"]
 qubits_layout = config["run"]["qubits_layout"]
 psi0 = np.array(config["run"]["psi0"])
