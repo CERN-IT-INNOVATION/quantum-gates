@@ -3,7 +3,7 @@ import numpy as np
 import time
 import pickle
 
-from src.quantum_gates.pulses import Pulse, GaussianPulse, StandardPulse, StandardPulseNumerical
+from src.quantum_gates.pulses import Pulse, GaussianPulse, ConstantPulse, ConstantPulseNumerical
 
 
 def test_gaussian_pulse_init():
@@ -50,21 +50,21 @@ def test_initialization_is_faster_without_checks():
     assert time_with > time_without
 
 
-def test_standard_pulse():
-    sp = StandardPulse()
+def test_constant_pulse():
+    sp = ConstantPulse()
     pulse = sp.get_pulse()
     parametrization = sp.get_parametrization()
     pulse(0.5)
     parametrization(0.5)
 
 
-def test_pickle_standard_pulse():
-    pulse = StandardPulse()
+def test_pickle_constant_pulse():
+    pulse = ConstantPulse()
     pickle.dumps(pulse)
 
 
-def test_pickle_standard_pulse_numerical():
-    pulse = StandardPulseNumerical()
+def test_pickle_constant_pulse_numerical():
+    pulse = ConstantPulseNumerical()
     pickle.dumps(pulse)
 
 

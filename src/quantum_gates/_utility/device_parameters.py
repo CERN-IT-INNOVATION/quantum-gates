@@ -4,11 +4,14 @@ device.
 """
 
 import os
+from datetime import datetime
 import json
 import numpy as np
 
 
 class DeviceParameters(object):
+    """ Snapshot of the noise of the IBM backend. Can load and save the properties.
+    """
 
     # Filename when storing the data in text files or a single json file
     f_T1 = "T1.txt"
@@ -20,6 +23,7 @@ class DeviceParameters(object):
     f_tm = "tm.txt"
     f_dt = "dt.txt"
     f_json = "device_parameters.json"
+    f_metadata = "metadata.json"
 
     def __init__(self, qubits_layout: list):
         self.qubits_layout = qubits_layout
@@ -32,8 +36,10 @@ class DeviceParameters(object):
         self.t_cnot = None
         self.tm = None
         self.dt = None
-        self._names = ["T1", "T2", "p", "rout", "p_cnot", "t_cnot", "tm", "dt"]
-        self._f_txt = [name+".txt" for name in self._names]
+        self.metadata = None
+        self._names = ["T1", "T2", "p", "rout", "p_cnot", "t_cnot", "tm", "dt", "metadata"]
+        self._f_txt = ["T1.txt", "T2.txt", "p.txt", "rout.txt", "p_cnot.txt", "t_cnot.txt", "tm.txt", "dt.txt",
+                       "metadata.json"]
 
     def load_from_json(self, location: str):
         """ Load device parameters from single json file at the location.
@@ -58,6 +64,7 @@ class DeviceParameters(object):
         self.t_cnot = np.array(data_dict["t_cnot"])
         self.tm = np.array(data_dict["tm"])
         self.dt = np.array(data_dict["dt"])
+        self.metadata = data_dict["metadata"]
 
         # Verify
         if not self.is_complete():
@@ -91,6 +98,8 @@ class DeviceParameters(object):
             self.t_cnot = np.loadtxt(location + self.f_t_cnot)
             self.tm = np.loadtxt(location + self.f_tm)
         self.dt = np.array([np.loadtxt(location + self.f_dt)])
+        with open(location + self.f_metadata, "r") as metadata_file:
+            self.metadata = json.load(metadata_file)
 
         # Verify
         if not self.is_complete():
@@ -103,6 +112,8 @@ class DeviceParameters(object):
 
         # Load
         prop = backend.properties()
+        config = backend.configuration()
+        defaults = backend.defaults()
 
         self.T1 = [prop.t1(j) for j in self.qubits_layout]
         self.T2 = [prop.t2(j) for j in self.qubits_layout]
@@ -110,6 +121,13 @@ class DeviceParameters(object):
         self.rout = [prop.readout_error(j) for j in self.qubits_layout]
         self.dt = [backend.configuration().dt]
         self.tm = [prop.readout_length(j) for j in self.qubits_layout]
+        self.metadata = {
+            "version": datetime.today().strftime('%Y%m%d'),
+            "device": config.backend_name,
+            "qubits": config.n_qubits,
+            "qubits_layout": self.qubits_layout,
+            "config": config.to_dict()
+        }
 
         t_cnot = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
         p_cnot = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
@@ -153,6 +171,8 @@ class DeviceParameters(object):
         np.savetxt(location + self.f_t_cnot, self.t_cnot)
         np.savetxt(location + self.f_dt, self.dt)
         np.savetxt(location + self.f_tm, self.tm)
+        with open(location + self.f_metadata, 'w') as fp:
+            json.dump(self.metadata, fp, indent=4, sort_keys=False, default=default_serializer)
         print("Device parameters saved successfully.")
         return
 
@@ -167,11 +187,13 @@ class DeviceParameters(object):
         # Build dict and convert arrays to list
         device_parameter_dict = self.__dict__()
         for key in device_parameter_dict:
-            device_parameter_dict[key] = device_parameter_dict[key].tolist()
+            # Convert array to list
+            if isinstance(device_parameter_dict[key], np.ndarray):
+                device_parameter_dict[key] = device_parameter_dict[key].tolist()
 
         # Save
         with open(location + self.f_json, 'w') as fp:
-            json.dump(device_parameter_dict, fp)
+            json.dump(device_parameter_dict, fp, indent=4, sort_keys=False, default=default_serializer)
         print("Device parameters saved successfully.")
         return
 
@@ -180,7 +202,7 @@ class DeviceParameters(object):
         """
         if not self.is_complete():
             raise Exception("Exception in DeviceParameters.get_as_tuble(): At least one of the parameters is None.")
-        return self.T1, self.T2, self.p, self.rout, self.p_cnot, self.t_cnot, self.tm, self.dt
+        return self.T1, self.T2, self.p, self.rout, self.p_cnot, self.t_cnot, self.tm, self.dt, self.metadata
 
     def is_complete(self) -> bool:
         """ Returns whether all device parameters have been successfully initialized.
@@ -194,7 +216,8 @@ class DeviceParameters(object):
                 self.p_cnot is None,
                 self.t_cnot is None,
                 self.tm is None,
-                self.dt is None)):
+                self.dt is None,
+                self.metadata is None)):
             return False
 
         return True
@@ -253,15 +276,20 @@ class DeviceParameters(object):
             "p_cnot": self.p_cnot,
             "t_cnot": self.t_cnot,
             "tm": self.tm,
-            "dt": self.dt
+            "dt": self.dt,
+            "metadata": self.metadata
         }
 
     def __str__(self):
         """ Representation as str. """
-        return str(self.__dict__())
+        return json.dumps(self.__dict__(), indent=4, default=default_serializer)
 
     def __eq__(self, other):
         """ Allows us to compare instances. """
         return self.__str__() == other.__str__()
 
 
+def default_serializer(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return str(obj)

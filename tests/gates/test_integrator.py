@@ -3,7 +3,7 @@ import numpy as np
 import time
 
 from src.quantum_gates.integrators import Integrator
-from src.quantum_gates.pulses import standard_pulse, standard_pulse_numerical
+from src.quantum_gates.pulses import constant_pulse, constant_pulse_numerical
 
 
 def test_integrator_for_constant_pulses():
@@ -12,8 +12,8 @@ def test_integrator_for_constant_pulses():
     """
 
     # Create instances
-    default_integrator = Integrator(pulse=standard_pulse)
-    constant_integrator = Integrator(pulse=standard_pulse_numerical)  # Pulse is distributed evenly and thus constant
+    default_integrator = Integrator(pulse=constant_pulse)
+    constant_integrator = Integrator(pulse=constant_pulse_numerical)  # Pulse is distributed evenly and thus constant
 
     # Test
     thetas = [1e-3, 1e-1, 1e-2, np.pi/8, np.pi/4, np.pi/2, np.pi]
@@ -41,7 +41,7 @@ def test_integrator_caching():
     """
 
     # Create instances
-    constant_integrator = Integrator(pulse=standard_pulse)
+    constant_integrator = Integrator(pulse=constant_pulse)
 
     # Test
     integrands = [
