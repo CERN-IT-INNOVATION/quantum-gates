@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pickle
 
-from src.quantum_gates._legacy.gates import X, SX, CNOT, CNOT_inv
+from src.quantum_gates._legacy.gates import X, SX, Noise_Gate, CR, CNOT, CNOT_inv
 from src.quantum_gates.gates import standard_gates, noise_free_gates
 from src.quantum_gates._gates.gates import numerical_gates, almost_noise_free_gates
 from src.quantum_gates.gates import Gates
@@ -16,26 +16,45 @@ import tests.helpers.device_parameters as helper_dev_param
 
 # Gates
 # Original gates before refactoring
-original_gates_list = [X, SX, CNOT, CNOT_inv]
+original_gates_list = [X, SX, Noise_Gate, CR, CNOT, CNOT_inv]
 
 # Gates without numerical integration after refactoring
 refactored_gates_list = [
-    standard_gates.X, standard_gates.SX, standard_gates.CNOT, standard_gates.CNOT_inv
+    standard_gates.X, standard_gates.SX, standard_gates.single_qubit_gate, standard_gates.CR,
+    standard_gates.CNOT, standard_gates.CNOT_inv
 ]
 
 # Gates with numerical integration after refactoring
 numerical_gates_list = [
-    numerical_gates.X, numerical_gates.SX, numerical_gates.CNOT, numerical_gates.CNOT_inv
+    numerical_gates.X, numerical_gates.SX, numerical_gates.single_qubit_gate, numerical_gates.CR,
+    numerical_gates.CNOT, numerical_gates.CNOT_inv
 ]
 
 # Args
-single_qubit_args = {
+x_args = {
     "phi": np.pi/2,
     "p": helper_dev_param.p[0],
     "T1": helper_dev_param.T1[0],
     "T2": helper_dev_param.T2[0]
 }
-two_qubit_args = {
+single_qubit_gate_args = {
+    "theta": np.pi/2,
+    "phi": np.pi/2,
+    "p": helper_dev_param.p[0],
+    "T1": helper_dev_param.T1[0],
+    "T2": helper_dev_param.T2[0]
+}
+cr_args = {
+    "theta": np.pi/2,
+    "phi": np.pi/2,
+    "t_cr": helper_dev_param.t_cnot[0][1],
+    "p_cr": helper_dev_param.p_cnot[0][1],
+    "T1_ctr": helper_dev_param.T1[0],
+    "T2_ctr": helper_dev_param.T2[0],
+    "T1_trg": helper_dev_param.T1[1],
+    "T2_trg": helper_dev_param.T2[1]
+}
+cnot_args = {
     "phi_ctr": np.pi/2,
     "phi_trg": np.pi/2,
     "t_cnot": helper_dev_param.t_cnot[0][1],
@@ -47,7 +66,7 @@ two_qubit_args = {
     "T1_trg": helper_dev_param.T1[1],
     "T2_trg": helper_dev_param.T2[1]
 }
-args = [single_qubit_args, single_qubit_args, two_qubit_args, two_qubit_args]
+args = [x_args, x_args, single_qubit_gate_args, cr_args, cnot_args, cnot_args]
 
 
 """ Helper functions """
