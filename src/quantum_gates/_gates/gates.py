@@ -49,6 +49,9 @@ class Gates(object):
     def depolarizing(self, Dt, p) -> np.array:
         return self.depolarizing_c.construct(Dt, p)
 
+    def single_qubit_gate(self, theta, phi, p, T1, T2) -> np.array:
+        return self.single_qubit_gate_c.construct(theta, phi, p, T1, T2)
+
     def X(self, phi, p, T1, T2) -> np.array:
         return self.x_c.construct(phi, p, T1, T2)
 
@@ -81,6 +84,14 @@ class NoiseFreeGates(object):
     def depolarizing(self, Dt, p) -> np.array:
         """ Returns single qubit depolarizing in noise free regime -> identity. """
         return np.eye(2)
+
+    def single_qubit_gate(self, theta, phi, p, T1, T2):
+        """ Returns general single qubit gate in noise free regime. """
+        U = np.array(
+            [[np.cos(theta/2), - 1J * np.sin(theta/2) * np.exp(-1J * phi)],
+             [- 1J * np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
+        )
+        return U
 
     def X(self, phi, p, T1, T2) -> np.array:
         """ Returns X gate in noise free regime. """
@@ -146,14 +157,6 @@ class NoiseFreeGates(object):
              [0, 0, 1J*np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
         )
 
-    def single_qubit_gate(self, theta, phi, p, T1, T2):
-        """ Returns general single qubit gate in noise free regime. """
-        U = np.array(
-            [[np.cos(theta/2), - 1J * np.sin(theta/2) * np.exp(-1J * phi)],
-             [- 1J * np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
-        )
-        return U
-
 
 class ScaledNoiseGates(object):
     """ Version of Gates in which the noise is scaled by a certain factor noise_scale of at least 1e-15. The smaller the
@@ -173,6 +176,15 @@ class ScaledNoiseGates(object):
 
     def depolarizing(self, Dt, p) -> np.array:
         return self.gates.depolarizing(Dt, p * self.noise_scaling)
+
+    def single_qubit_gate(self, theta, phi, p, T1, T2) -> np.array:
+        return self.gates.single_qubit_gate(
+            theta,
+            phi,
+            p * self.noise_scaling,
+            T1 / self.noise_scaling,
+            T2 / self.noise_scaling
+        )
 
     def X(self, phi, p, T1, T2) -> np.array:
         return self.gates.X(phi, p * self.noise_scaling, T1 / self.noise_scaling, T2 / self.noise_scaling)
