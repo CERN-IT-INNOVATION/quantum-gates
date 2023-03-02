@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='quantum-gates',
-    version='1.0.2',
+    version='1.0.3',
     author='M. Grossi, G. D. Bartolomeo, M. Vischi, R. Wixinger',
     author_email='michele.grossi@cern.ch, dibartolomeo.giov@gmail.com, vischimichele@gmail.com, roman.wixinger@gmail.com',
     packages=['quantum_gates',
