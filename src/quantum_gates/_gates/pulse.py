@@ -9,18 +9,24 @@ import scipy.stats
 
 class Pulse(object):
     """ Parent class for pulses with basic utility.
+
+        Attributes:
+            pulse:              Waveform of the pulse as function, f: [0,1] -> R, f >= 0
+            parametrization:    Parameter integral of the waveform, F: [0,1] -> [0,1], F >= 0, monotonically increasing
+            use_lookup:         In the Integrator, should a integration result lookup be used. True if pulse is constant
     """
 
     epsilon = 1e-6
     check_n_points = 10
 
-    def __init__(self, pulse: callable, parametrization: callable, perform_checks: bool=False):
+    def __init__(self, pulse: callable, parametrization: callable, perform_checks: bool=False, use_lookup: bool=False):
         if perform_checks:
             assert self._pulse_is_valid(pulse), "Pulse was not valid"
             assert self._parametrization_is_valid(parametrization), "Parametrization was not valid"
             assert self._are_compatible(pulse, parametrization), "Pulse and parametrization are incompatible. "
         self.pulse = pulse
         self.parametrization = parametrization
+        self.use_lookup = use_lookup
 
     def get_pulse(self):
         return self.pulse
@@ -51,27 +57,25 @@ class Pulse(object):
         return True
 
 
-class StandardPulse(Pulse):
-
-    use_lookup = True  # We just lookup the result in the Integrator
+class ConstantPulse(Pulse):
 
     def __init__(self):
-        super(StandardPulse, self).__init__(
+        super(ConstantPulse, self).__init__(
             pulse=one,
             parametrization=identity,
-            perform_checks=False
+            perform_checks=False,
+            use_lookup=True
         )
 
 
-class StandardPulseNumerical(Pulse):
-
-    use_lookup = False  # We perform numerical integration in the Integrator
+class ConstantPulseNumerical(Pulse):
 
     def __init__(self):
-        super(StandardPulseNumerical, self).__init__(
+        super(ConstantPulseNumerical, self).__init__(
             pulse=one,
             parametrization=identity,
-            perform_checks=False
+            perform_checks=False,
+            use_lookup=False
         )
 
 
@@ -89,7 +93,8 @@ class GaussianPulse(Pulse):
         super(GaussianPulse, self).__init__(
             pulse=self._gaussian_pulse,
             parametrization=self._gaussian_parametrization,
-            perform_checks=perform_checks
+            perform_checks=perform_checks,
+            use_lookup=False
         )
 
     def _gaussian_pulse(self, x):
@@ -125,6 +130,6 @@ def identity(x: float):
 
 """ Instances """
 
-standard_pulse = StandardPulse()
-standard_pulse_numerical = StandardPulseNumerical()
-gaussian_pulse = GaussianPulse(loc=0.5, scale=0.3)
+constant_pulse = ConstantPulse()
+constant_pulse_numerical = ConstantPulseNumerical()
+gaussian_pulse = GaussianPulse(loc=0.5, scale=0.25)

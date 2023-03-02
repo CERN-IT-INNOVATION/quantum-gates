@@ -1,2 +1,2 @@
-from ._gates.pulse import Pulse, GaussianPulse, StandardPulse, StandardPulseNumerical
-from ._gates.pulse import standard_pulse, standard_pulse_numerical
+from ._gates.pulse import Pulse, GaussianPulse, ConstantPulse, ConstantPulseNumerical
+from ._gates.pulse import constant_pulse, constant_pulse_numerical, gaussian_pulse

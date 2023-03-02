@@ -18,11 +18,11 @@ from .utilities import (
     post_process_split
 )
 from .pulses import Pulse, GaussianPulse
-from .pulses import standard_pulse, standard_pulse_numerical
+from .pulses import constant_pulse, constant_pulse_numerical, gaussian_pulse
 
 
 __all__ = ["Gates", "NoiseFreeGates", "ScaledNoiseGates"]
-__all__ += ["standard_gates", "noise_free_gates", "legacy_gates"]
+__all__ += ["gates", "noise_free_gates", "legacy_gates"]
 __all__ += ["MrAndersonSimulator", "LegacyMrAndersonSimulator"]
 __all__ += ["EfficientBackend", "LegacyBackend"]
 __all__ += ["EfficientCircuit", "LegacyCircuit"]
@@ -41,4 +41,4 @@ __all__ += [
     "post_process_split"
 ]
 __all__ += ["Pulse", "GaussianPulse"]
-__all__ += ["standard_pulse", "standard_pulse_numerical"]
+__all__ += ["constant_pulse", "constant_pulse_numerical", "gaussian_pulse"]

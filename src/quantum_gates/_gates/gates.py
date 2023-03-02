@@ -6,7 +6,7 @@ All the time duration are expressed in units of single-qubit gate time tg of IBM
 
 import numpy as np
 
-from .pulse import Pulse, standard_pulse, standard_pulse_numerical
+from .pulse import Pulse, constant_pulse, constant_pulse_numerical
 from .integrator import Integrator
 from .factories import (
     BitflipFactory,
@@ -26,7 +26,7 @@ class Gates(object):
         pulse shape each time we generate a gate.
     """
 
-    def __init__(self, pulse: Pulse=standard_pulse):
+    def __init__(self, pulse: Pulse=constant_pulse):
         self.integrator = Integrator(pulse)
 
         # Factories
@@ -36,6 +36,7 @@ class Gates(object):
         self.single_qubit_gate_c = SingleQubitGateFactory(self.integrator)
         self.x_c = XFactory(self.integrator)
         self.sx_c = SXFactory(self.integrator)
+        self.cr_c = CRFactory(self.integrator)
         self.cnot_c = CNOTFactory(self.integrator)
         self.cnot_inv_c = CNOTInvFactory(self.integrator)
 
@@ -48,11 +49,17 @@ class Gates(object):
     def depolarizing(self, Dt, p) -> np.array:
         return self.depolarizing_c.construct(Dt, p)
 
+    def single_qubit_gate(self, theta, phi, p, T1, T2) -> np.array:
+        return self.single_qubit_gate_c.construct(theta, phi, p, T1, T2)
+
     def X(self, phi, p, T1, T2) -> np.array:
         return self.x_c.construct(phi, p, T1, T2)
 
     def SX(self, phi, p, T1, T2) -> np.array:
         return self.sx_c.construct(phi, p, T1, T2)
+
+    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.cr_c.construct(theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
 
     def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.cnot_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
@@ -77,6 +84,14 @@ class NoiseFreeGates(object):
     def depolarizing(self, Dt, p) -> np.array:
         """ Returns single qubit depolarizing in noise free regime -> identity. """
         return np.eye(2)
+
+    def single_qubit_gate(self, theta, phi, p, T1, T2):
+        """ Returns general single qubit gate in noise free regime. """
+        U = np.array(
+            [[np.cos(theta/2), - 1J * np.sin(theta/2) * np.exp(-1J * phi)],
+             [- 1J * np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
+        )
+        return U
 
     def X(self, phi, p, T1, T2) -> np.array:
         """ Returns X gate in noise free regime. """
@@ -142,21 +157,13 @@ class NoiseFreeGates(object):
              [0, 0, 1J*np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
         )
 
-    def single_qubit_gate(self, theta, phi, p, T1, T2):
-        """ Returns general single qubit gate in noise free regime. """
-        U = np.array(
-            [[np.cos(theta/2), - 1J * np.sin(theta/2) * np.exp(-1J * phi)],
-             [- 1J * np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
-        )
-        return U
-
 
 class ScaledNoiseGates(object):
     """ Version of Gates in which the noise is scaled by a certain factor noise_scale of at least 1e-15. The smaller the
         value, the less noisy the gates are.
     """
 
-    def __init__(self, noise_scaling: float, pulse: Pulse=standard_pulse):
+    def __init__(self, noise_scaling: float, pulse: Pulse=constant_pulse):
         assert noise_scaling >= 1e-15, f"Too small noise scaling {noise_scaling} < 1e-15."
         self.noise_scaling = noise_scaling
         self.gates = Gates(pulse)
@@ -170,11 +177,32 @@ class ScaledNoiseGates(object):
     def depolarizing(self, Dt, p) -> np.array:
         return self.gates.depolarizing(Dt, p * self.noise_scaling)
 
+    def single_qubit_gate(self, theta, phi, p, T1, T2) -> np.array:
+        return self.gates.single_qubit_gate(
+            theta,
+            phi,
+            p * self.noise_scaling,
+            T1 / self.noise_scaling,
+            T2 / self.noise_scaling
+        )
+
     def X(self, phi, p, T1, T2) -> np.array:
         return self.gates.X(phi, p * self.noise_scaling, T1 / self.noise_scaling, T2 / self.noise_scaling)
 
     def SX(self, phi, p, T1, T2) -> np.array:
         return self.gates.SX(phi, p * self.noise_scaling, T1 / self.noise_scaling, T2 / self.noise_scaling)
+
+    def CR(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.gates.CR(
+            theta,
+            phi,
+            t_cr,
+            p_cr * self.noise_scaling,
+            T1_ctr / self.noise_scaling,
+            T2_ctr / self.noise_scaling,
+            T1_trg / self.noise_scaling,
+            T2_trg / self.noise_scaling
+        )
 
     def CNOT(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.gates.CNOT(
@@ -208,7 +236,7 @@ class ScaledNoiseGates(object):
 """ Instances """
 
 # Constant pulses
-standard_gates = Gates(pulse=standard_pulse)
-numerical_gates = Gates(pulse=standard_pulse_numerical)
+standard_gates = Gates(pulse=constant_pulse)
+numerical_gates = Gates(pulse=constant_pulse_numerical)
 noise_free_gates = NoiseFreeGates()
 almost_noise_free_gates = ScaledNoiseGates(noise_scaling=1e-15)
