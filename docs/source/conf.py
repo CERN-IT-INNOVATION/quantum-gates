@@ -7,7 +7,6 @@ copyright = '2023, Di Bartolomeo, Vischi, Grossi, Wixinger'
 author = 'Di Bartolomeo, Vischi, Grossi, Wixinger'
 
 release = '1.0'
-version = '1.0.2'
 
 # -- General configuration
 
@@ -22,7 +21,11 @@ extensions = [
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
     'sphinx': ('https://www.sphinx-doc.org/en/master/', None),
+    'numpy': ('https://numpy.org/doc/stable', None),
+    'pandas': ('https://pandas.pydata.org/pandas-docs/stable', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
 }
+
 intersphinx_disabled_domains = ['std']
 
 templates_path = ['_templates']
