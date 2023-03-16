@@ -7,15 +7,24 @@ copyright = '2023, Di Bartolomeo, Vischi, Grossi, Wixinger'
 author = 'Di Bartolomeo, Vischi, Grossi, Wixinger'
 
 release = '1.0'
+version = '1.0.3'
+
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join('../../src')))
 
 # -- General configuration
 
 extensions = [
+    'sphinx.ext.napoleon',
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.todo',
+    'sphinx.ext.linkcode',
 ]
 
 intersphinx_mapping = {
@@ -26,9 +35,17 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/stable', None),
 }
 
+autosummary_generate = True
+autodoc_member_order = 'bysource'
+autodoc_typehints = "both"
+autodoc_typehints_format = "short"
+napoleon_include_private_with_doc = True
+napoleon_google_docstring = True
+
 intersphinx_disabled_domains = ['std']
 
 templates_path = ['_templates']
+exclude_patterns = []
 
 # -- Options for HTML output
 
@@ -36,3 +53,41 @@ html_theme = 'sphinx_rtd_theme'
 
 # -- Options for EPUB output
 epub_show_urls = 'footnote'
+
+
+def autodoc_process_signature(app, what, name, obj, options, signature, return_annotation):
+    # Do something
+    return signature, return_annotation
+
+
+def setup(app):
+    app.connect("autodoc-process-signature", autodoc_process_signature)
+
+
+def linkcode_resolve(domain, info):
+    """Adds a [source] button to the docs.
+    """
+    if domain != 'py':
+        return None
+    if not info['module']:
+        return None
+    filename = info['module'].replace('.', '/')
+
+    source_lookup = {
+        "quantum_gates/backends": "quantum_gates/_simulation/backends",
+        "quantum_gates/gates": "quantum_gates/_gates/gates",
+        "quantum_gates/circuits": "quantum_gates/_simulation/circuits",
+        "quantum_gates/factories": "quantum_gates/_gates/factories",
+        "quantum_gates/integrators": "quantum_gates/_gates/integrators",
+        "quantum_gates/metrics": "quantum_gates/_utility/simulations_utility",
+        "quantum_gates/pulses": "quantum_gates/_gates/pulses",
+        "quantum_gates/quantum_algorithms": "quantum_gates/_utility/quantum_algorithms",
+        "quantum_gates/simulators": "quantum_gates/_simulation/simulators",
+        "quantum_gates/utilities": "quantum_gates/_utility/simulations_utility",
+    }
+
+    # Replace filename if the source is hidden
+    if filename in source_lookup:
+        filename = source_lookup[filename]
+
+    return f"https://github.com/CERN-IT-INNOVATION/quantum-gates/tree/main/src/{filename}.py"
