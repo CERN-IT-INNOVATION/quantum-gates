@@ -61,7 +61,7 @@ Factories
 ~~~~~~~~~
 
 To produce :doc:`gates <gates>`, we use :doc:`factories <factories>`, such as the
-:ref:`cnotfactory`. One can combine factories into a custom :doc:`gates <gates>` 
+CNOTFactory. One can combine factories into a custom :doc:`gates <gates>`
 class. The factories have a construct() method, with a well documented 
 signature. 
 
@@ -89,14 +89,14 @@ Backends
 ~~~~~~~~
 
 For the computation, we provide :doc:`backends <backends>` out of the box, 
-such as the :ref:`efficient_backend` that uses optimized tensor contractions
+such as the EfficientBackend that uses optimized tensor contractions
 to simulate 20+ qubits with the statevector method.
 
 Circuits
 ~~~~~~~~
 
 The simulators can be configured with a :doc:`circuits` class, such as 
-:ref:`efficient_circuit`. This class is responsible for sampling the 
+EfficientCircuit. This class is responsible for sampling the
 noisy gates. The class can be configured with a :doc:`gates` instance and one of 
 the :doc:`backends` that executes the statevector simulation.
 

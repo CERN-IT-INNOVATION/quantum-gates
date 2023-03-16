@@ -1,8 +1,8 @@
-"""
+"""Perform the classical computation of the quantum circuits.
+
 The Backend classes evaluate the noisy quantum circuits as tensor contractions. By finding more efficient
 contraction ordering, we can optimize the time and space complexity of the algorithm.
 
-Note:
 The scaling for the QFT circuit with a trivial implementation is:
 - Time complexity: O((2**n)**3 * n**2)
 - Space complexity: O((2**n)**2)
@@ -21,19 +21,38 @@ import string
 
 
 class StandardBackend(object):
-    """ Class for evaluating the circuits represented as tensor contractions in an trivial manner.
+    """Evaluates the circuits represented as tensor contractions in an trivial manner.
 
-        Note:
-        - In this backend the computations are performed exactly as in the original Circuit class. It serves as a
-          reference for the speed of the computations.
+    In this backend the computations are performed exactly as in the original Circuit class. It serves as a reference
+    for the speed of the computations.
+
+    Note:
+        The StandardBackend iteratively builds the matrices and directly applies them to the statevector. As the memory
+        requirements for the matrix grow as O((2\ :sup:`n)`\ 2), this approach only scales up to 13 qubits on a normal
+        machine.
+
+    Args:
+        nqubit (int): Number of qubits.
+
+    Attributes:
+        nqubit (int): Number of qubits.
     """
 
     def __init__(self, nqubit):
         self.nqubit = nqubit
 
     def statevector(self, mp_list: list[list], psi0: np.array) -> np.array:
-        """ Takes a list of matrix products, each represented as list. Matrix products with lower index are earlier in
-            the circuit / are more on the left in the circuit diagram.
+        """Propagates a statevector psi0 with a matrix product represented as list.
+
+        Takes a list of matrix products, each represented as list. Matrix products with lower index are earlier in
+        the circuit / are more on the left in the circuit diagram.
+
+        Args:
+            mp_list (list[list]): List of matrix products, each represented lists of matrices.
+            psi0 (np.array): The statevector.
+
+        Returns:
+            The propagated statevector.
         """
         depth = len(mp_list)
         # Case: No gates have been applied
@@ -48,13 +67,53 @@ class StandardBackend(object):
 
 
 class EfficientBackend(object):
+    """Evaluates the quantum circuit represented as list of list of matrices with efficient tensor contractions.
+
+    The EfficientBackend is optimized for general circuits and offers a significant speedup in the higher qubit regime,
+    scaling to 20+ qubits.
+
+    Note:
+        Always use this version for the backend for simulating many qubits, it is way faster.
+
+    Example:
+        .. code:: python
+
+            from quantum_gates.backend import EfficientBackend
+
+            backend = EfficientBackend(nqubit=2)
+
+            H, CNOT, identity = ...
+            mp_list = [[H, np.eye(2)], [CNOT]]
+
+            psi0 = np.array([1, 0, 0, 0])
+            psi1 = backend.statevector(mp_list, psi0)  # Gives [1, 0, 0, 1] / sqrt(2)
+
+    Args:
+        nqubit (int): Number of qubits in the circuit.
+        min_chunk_size (int): The matrices are grouped in chunks of at least this size, we recommend a value of 3.
+        optimal_chunk_size (int): The backend aims at achieving an optimal chunk size of this value, normally 4.
+
+    Attributes:
+        nqubit (int): Number of qubits in the circuit.
+        min_chunk_size (int): The matrices are grouped in chunks of at least this size, we recommend a value of 3.
+        optimal_chunk_size (int): The backend aims at achieving an optimal chunk size of this value, normally 4.
+    """
 
     def __init__(self, nqubit: int, min_chunk_size: int=3, optimal_chunk_size: int=4):
         self.nqubit = nqubit
         self.min_chunk_size = min_chunk_size
         self.optimal_chunk_size = optimal_chunk_size
 
-    def statevector(self, mp_list: list, psi0: np.array):
+    def statevector(self, mp_list: list, psi0: np.array) -> np.array:
+        """Propagates a statevector based on a list of matrix products.
+
+        Args:
+             mp_list (list[list]): List of list that contain numpy arrays.
+             psi0 (np.array): Statevector to be propagated.
+
+        Returns:
+            The propagated statevector.
+        """
         assert len(mp_list) > 0, f"Expected non empty matrix product list, but found {mp_list}."
         psi1 = copy.deepcopy(psi0)
 
@@ -71,14 +130,18 @@ class EfficientBackend(object):
             return self._statevector_medium_qubit_regime(mp_list, psi1)
 
     def _statevector_low_qubit_regime(self, mp_list: list, psi: np.array):
-        """ In the low qubit regime (nqubit < 4), we just generate the expanded matrix product and apply it to psi.
+        """Propagator for the low qubit regime.
+
+        In the low qubit regime (nqubit < 4), we just generate the expanded matrix product and apply it to psi.
         """
         for mp in mp_list:
             psi = ft.reduce(np.kron, mp) @ psi
         return psi
 
     def _statevector_medium_qubit_regime(self, mp_list: list, psi: np.array):
-        """ In the medium regime (4 <= nqubit < 8), we just generate the expanded matrix product and apply it to psi.
+        """Propagator for the medium qubit regime.
+
+        In the medium regime (4 <= nqubit < 8), we just generate the expanded matrix product and apply it to psi.
         """
         for mp in mp_list:
             split_index = self.nqubit // 2
@@ -88,7 +151,9 @@ class EfficientBackend(object):
         return psi
 
     def _statevector_high_qubit_regime(self, mp_list: list, psi: np.array):
-        """ In the high regime (8 <= nqubit), we split the matrix product into chunks of more or less equal size.
+        """Propagator for the high qubit regime.
+
+        In the high regime (8 <= nqubit), we split the matrix product into chunks of more or less equal size.
         """
 
         for mp in mp_list:
@@ -97,9 +162,17 @@ class EfficientBackend(object):
             psi = self._opt_einsum_many_matrices(a_list, psi)
         return psi
 
-    def _opt_einsum_many_matrices(self, mp: list, psi: np.array):
-        """ For mp = [a1,..., an], calculates (a1⊗..⊗an)(psi) einsum. a1, ..., an are square matrices and psi is a vector
-            with the same length as the dimension of a1 tensor ... tensor an from mp = [a1,..., an].
+    def _opt_einsum_many_matrices(self, mp: list, psi: np.array) -> np.array:
+        """Performs the contractions of a matrix product with psi in an optimized way.
+
+        For mp = [a1,..., an], calculates (a1⊗..⊗an)(psi) einsum. a1, ..., an are square matrices and psi is a vector
+        with the same length as the dimension of a1 tensor ... tensor an from mp = [a1,..., an].
+
+        Todo:
+            Add example code from notebook.
+
+        Returns:
+            The contracted psi, representing the updated statevector.
         """
 
         nr_of_matrices = len(mp)
@@ -117,11 +190,16 @@ class EfficientBackend(object):
         return oe.contract(contract_string, *mp,  psi_many_leggs).reshape(psi.shape)
 
     def _chunk_list(self, l: list, min_chunk_size: int, optimal_chunk_size: int) -> list:
-        """ Converts a list into a list of list, each representing a chunk. Assumes that we have at least enough items to
-            create two chunks of optimal size. Joins the last chunk with the second last in case it does not reach the
-            minimum chunk size.
+        """ Converts a list into a list of list, each representing a chunk.
 
-            Example: l = [1, 2, 3, 4, 5, 6, 7], min_chunk_size = 2, optimal_chunK_size = 3 returns [[1,2,3], [1,2,3,4]].
+        Assumes that we have at least enough items to create two chunks of optimal size. Joins the last chunk with the
+        second last in case it does not reach the minimum chunk size.
+
+        Example:
+            l = [1, 2, 3, 4, 5, 6, 7], min_chunk_size = 2, optimal_chunK_size = 3 returns [[1,2,3], [1,2,3,4]].
+
+        Returns:
+            The produced list of list.
         """
         assert len(l) >= 2 * optimal_chunk_size, \
             f"Inserted l with length {len(l)} but expected at least length {2 * optimal_chunk_size}."
@@ -137,13 +215,20 @@ class EfficientBackend(object):
 
 
 class BackendForOnes(object):
-    """ This backend is optimized for the H inv QFT circuit, which contains between 25 - 90% identities. It performs
-        the contraction in chunks and ignores the legs that are contracted with ones.
+    """Version of the backend which is optimized for circuits that contain many identities.
+
+    This backend was build for the H inv QFT circuit, which contains between 25 - 90% identities. It performs
+    the contraction in chunks and ignores the legs that are contracted with ones.
+
+    Note:
+        This backend is experimental and should be used with caution.
+
+    Todo:
+        Finish development and perform optimization.
     """
 
     def __init__(self, nqubit: int):
         self.nqubit = nqubit
-
         self.identity = np.eye(2)
         self.low_qubit_regime = 6  # Up to this qubit number we are in this regime
 

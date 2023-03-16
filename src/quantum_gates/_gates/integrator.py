@@ -1,6 +1,7 @@
-"""
-Class for evaluation the integrals in the noisy gates for different pulse shapes. Because many of the integrals
-are evaluated many times with the same parameters, we can apply caching to speed things up.
+""" Evaluates the integrals coming up in the Noisy gates approach for different pulse waveforms.
+
+Because many of the integrals are evaluated many times with the same parameters, we can apply caching to speed things
+up.
 """
 
 import numpy as np
@@ -10,8 +11,14 @@ from .pulse import Pulse
 
 
 class Integrator(object):
-    """ Class used in the definition of the NoisyGates, which calculates the integrals for a specific
-        pulse parametrization.
+    """Calculates the integrals for a specific pulse parametrization.
+
+    Args:
+        pulse (Pulse): Object specifying the pulse waveform and parametrization.
+
+    Attributes:
+        pulse_parametrization (callable): Function F: [0,1] -> [0,1] representing the parametrization of the pulse.
+        use_lookup (bool): Tells whether or not the lookup table of the analytical solution should be used.
     """
 
     _INTEGRAL_LOOKUP = {
@@ -44,8 +51,17 @@ class Integrator(object):
 
     def integrate(self, integrand: str, theta: float, a: float) -> float:
         """ Evaluates the integrand provided as string from zero to a based on the implicit pulse shape scaled by theta.
-            If the pulse (pulse_parametrization) is None, we assume that the pulse height is constant. In this case,
-            we do not perform numerical calculation but just lookup the result.
+
+        If the pulse (pulse_parametrization) is None, we assume that the pulse height is constant. In this case, we do
+        not perform numerical calculation but just lookup the result.
+
+        Args:
+            integrand (str): Name of the integrand.
+            theta (str): Upper limit of the integration. Total area of the pulse waveform.
+            a (str): Scaling parameter.
+
+        Returns:
+            Integration result as float.
         """
 
         # Caching
@@ -70,15 +86,31 @@ class Integrator(object):
         return y
 
     def _analytical_integration(self, integrand_str: str, theta: float, a: float) -> float:
-        """ Lookups up the result of the integration for the case that the parametrization is None. This is when the
-            pulse height is constant.
+        """Lookups up the result of the integration for the case that the parametrization is None.
+
+        Note:
+            This method can/should only be used when the pulse height is constant. Otherwise, the result would be wrong.
+
+        Args:
+            integrand_str (str): Name of the integrand.
+            theta (float): Upper limit of the integration. Total area of the pulse waveform.
+            a (float): Scaling parameter.
         """
         integral = self._RESULT_LOOKUP[integrand_str]
         return integral(theta, a)
 
     def _numerical_integration(self, integrand_name: str, theta: float, a: float) -> float:
-        """ Looks up the integrand as function and performs numerical integration from 0 to theta with the
-            parametrization specified in the class instance.
+        """Looks up the integrand as function and performs numerical integration from 0 to theta.
+
+        Uses the the parametrization specified in the class instance.
+
+        Args:
+            integrand_name (str): Name of the integrand.
+            theta (float): Upper limit of the integration. Total area of the pulse waveform.
+            a (float): Scaling parameter.
+
+        Returns:
+            Result of the integration as float.
         """
         integrand = self._INTEGRAL_LOOKUP[integrand_name]
 

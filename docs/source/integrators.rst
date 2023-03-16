@@ -7,23 +7,12 @@ used to implement the gates. The integration is separated into this
 class to allow for multiple integration methods, unit testing, and
 caching.
 
-.. _integrators_theory:
-
-
-Theory
-------
-
-Coming soon.
-
-.. _integrators_classes:
 
 Classes
 -------
 
-
-.. _integrator:
-
-Integrator
-~~~~~~~~~~
-
-Coming soon.
+.. automodule:: quantum_gates.integrators
+   :members:
+   :imported-members:
+   :undoc-members:
+   :show-inheritance:

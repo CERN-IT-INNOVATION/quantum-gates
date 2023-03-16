@@ -1,6 +1,3 @@
-"""
-This module implements the base class to perform noisy quantum simulations with noisy gates approach
-"""
 import numpy as np
 from numpy import array, absolute, mean
 
@@ -9,8 +6,10 @@ from .._utility.device_parameters import DeviceParameters
 
 
 class MrAndersonSimulator():
-    """ Class 'MR_ANDERSON' can be used to simulate a noisy quantum circuit by extracting information on the structure
-        of the circuit from a qiskit QuantumCircuit.
+    """Simulates a quantum circuit with the Noisy quantum gates approach.
+
+    Note:
+        This version is only meant for unit testing and the documentation
     """
 
     def run(self, qiskit_circ,
@@ -19,19 +18,23 @@ class MrAndersonSimulator():
             psi0: np.array,
             shots: int,
             device_param: DeviceParameters):
-        """
-            Takes as input a qiskit circuit on a given backend with a given qubits layout
-            and runs noisy quantum gates.
+        """Performs a run of the simulator.
+
+        Takes as input a qiskit circuit on a given backend with a given qubits layout  and runs noisy quantum gates.
+
+        Args:
+            qiskit_circ: qiskit circuit (QuantumCircuit)
+            backend: IMBQ backend (backend)
+            qubits_layout: qubits layout with linear topology (list)
+            psi0: initial state (array)
+            shots: number of realizations (int)
+            device_param: object that contains the measured noise (DeviceParameters)
+
+        Returns:
+            vector of probabilities and density matrix
+
+        Note:
             Qubits layout must have a linear topology.
-            Args:
-                qiskit_circ: qiskit circuit (QuantumCircuit)
-                backend: IMBQ backend (backend)
-                qubits_layout: qubits layout with linear topology (list)
-                psi0: initial state (array)
-                shots: number of realizations (int)
-                device_param: object that contains the measured noise (DeviceParameters)
-            Returns:
-                  vector of probabilities and density matrix
         """
         # Prepare variables
         nqubit = len(qubits_layout)

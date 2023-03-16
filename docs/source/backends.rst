@@ -49,11 +49,15 @@ library computes the contractions for us.
 Classes
 -------
 
-All classes have the same public interface, but they are optimized for
-different purposes.
+.. automodule:: quantum_gates.backends
+   :members:
+   :imported-members:
+   :undoc-members:
+   :show-inheritance:
+
 
 Usage
-~~~~~
+-----
 
 We apply the GHZ algorithm on the two-qubit zero state as an example.
 
@@ -86,39 +90,6 @@ the dimension of psi.
    mp_list3 = [[np.eye(2), np.eye(2)], [H, H]] # Gates for 1 + 1 = 2 qubits -> fine.
 
 
-.. _standard_backend:
-
-StandardBackend
-~~~~~~~~~~~~~~~
-
-The StandardBackend iteratively builds the matrices and directly applies
-them to the statevector. As the memory requirements for the matrix grow
-as O((2\ :sup:`n)`\ 2), this approach only scales up to 13 qubits on a
-normal machine.
-
-
-.. _efficient_backend:
-
-EfficientBackend
-~~~~~~~~~~~~~~~~
-
-The EfficientBackend is optimized for general circuits and offers a
-significant speedup in the higher qubit regime, scaling to 20+ qubits.
-
-
-.. _backend_for_ones:
-
-BackendForOnes
-~~~~~~~~~~~~~~
-
-This backend is optimized for circuits which have a high qubit number
-and contain much more identity gates than non-trivial gates. We leverage
-that trivial gates can be collected and do not have to be contracted, as
-they do not change the result.
-
-Note: A best practice is to benchmark the speed of this backend against
-the EfficientBackend, as the regime in which this backend is better is
-quite narrow.
 
 
 .. _backends_possible_extensions:
