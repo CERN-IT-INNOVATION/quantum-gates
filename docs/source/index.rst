@@ -1,5 +1,5 @@
 Welcome to the Quantum Gates documentation
-======================================
+==========================================
 
 **Quantum Gates** is a Python library for simulating the noisy behaviour of 
 real quantum devices. The noise is incorporated directly into the gates, 
@@ -89,7 +89,7 @@ Backends
 ~~~~~~~~
 
 For the computation, we provide :doc:`backends <backends>` out of the box, 
-such as the :ref:`efficientbackend` that uses optimized tensor contractions 
+such as the :ref:`efficient_backend` that uses optimized tensor contractions
 to simulate 20+ qubits with the statevector method.
 
 Circuits
@@ -114,11 +114,10 @@ Legacy
 ~~~~~~
 
 We also provide the :doc:`legacy <legacy>` implementations of the 
-:ref:`gates <legacy_gates>`, :ref:`simulator <legacymrandersonsimulator>` 
-and :ref:`circuit <legacycircuit>` classes. They can be used for unit testing.
+gates, simulator and circuit classes. They can be used for unit testing.
 
 Utility
-~~~~~~
+~~~~~~~
 
 In performing quantum simulation, there are many steps that are
 performed repeatedly, such as :ref:`setup the IBM backend <setup_backend>`, 
@@ -129,8 +128,81 @@ powerful machine. For this reason, the most frequently used functions are
 part of the :doc:`utilities <utilities>`.
 
 
+Structure
+---------
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Gates
+
+   gates
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Factories
+
+   factories
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Pulses
+
+   pulses
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Integrators
+
+   integrators
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Simulators
+
+   simulators
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Backends
+
+   backends
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Circuits
+
+   circuits
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Quantum Algorithm
+
+   quantum_algorithms
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Legacy
+
+   legacy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Utilities
+
+   utilities
+
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+
 Authors
-=======
+-------
 
 This project has been developed thanks to the effort of the following
 people:

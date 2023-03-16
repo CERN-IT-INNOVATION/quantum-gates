@@ -719,9 +719,6 @@ def CNOT_inv(phi_ctr: float, phi_trg: float, t_cnot: float, p_cnot: float, p_sin
 
 
 class LegacyGates(object):
-    """ Collection of the legacy gates.
-    """
-
     relaxation = staticmethod(relaxation)
     bitflip = staticmethod(bitflip)
     depolarizing = staticmethod(depolarizing)
