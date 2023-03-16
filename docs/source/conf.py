@@ -74,15 +74,15 @@ def linkcode_resolve(domain, info):
     filename = info['module'].replace('.', '/')
 
     source_lookup = {
-        "quantum_gates/backends": "quantum_gates/_simulation/backends",
+        "quantum_gates/backends": "quantum_gates/_simulation/backend",
         "quantum_gates/gates": "quantum_gates/_gates/gates",
-        "quantum_gates/circuits": "quantum_gates/_simulation/circuits",
+        "quantum_gates/circuits": "quantum_gates/_simulation/circuit",
         "quantum_gates/factories": "quantum_gates/_gates/factories",
-        "quantum_gates/integrators": "quantum_gates/_gates/integrators",
+        "quantum_gates/integrators": "quantum_gates/_gates/integrator",
         "quantum_gates/metrics": "quantum_gates/_utility/simulations_utility",
-        "quantum_gates/pulses": "quantum_gates/_gates/pulses",
+        "quantum_gates/pulses": "quantum_gates/_gates/pulse",
         "quantum_gates/quantum_algorithms": "quantum_gates/_utility/quantum_algorithms",
-        "quantum_gates/simulators": "quantum_gates/_simulation/simulators",
+        "quantum_gates/simulators": "quantum_gates/_simulation/simulator",
         "quantum_gates/utilities": "quantum_gates/_utility/simulations_utility",
     }
 
