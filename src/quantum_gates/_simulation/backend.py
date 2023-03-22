@@ -23,16 +23,15 @@ import string
 class StandardBackend(object):
     """Evaluates the circuits represented as tensor contractions in an trivial manner.
 
-    In this backend the computations are performed exactly as in the original Circuit class. It serves as a reference
     for the speed of the computations.
+
+    Args:
+        nqubit (int): Number of qubits.
 
     Note:
         The StandardBackend iteratively builds the matrices and directly applies them to the statevector. As the memory
         requirements for the matrix grow as O((2\ :sup:`n)`\ 2), this approach only scales up to 13 qubits on a normal
         machine.
-
-    Args:
-        nqubit (int): Number of qubits.
 
     Attributes:
         nqubit (int): Number of qubits.
@@ -72,6 +71,11 @@ class EfficientBackend(object):
     The EfficientBackend is optimized for general circuits and offers a significant speedup in the higher qubit regime,
     scaling to 20+ qubits.
 
+    Args:
+        nqubit (int): Number of qubits in the circuit.
+        min_chunk_size (int): The matrices are grouped in chunks of at least this size, we recommend a value of 3.
+        optimal_chunk_size (int): The backend aims at achieving an optimal chunk size of this value, normally 4.
+
     Note:
         Always use this version for the backend for simulating many qubits, it is way faster.
 
@@ -87,11 +91,6 @@ class EfficientBackend(object):
 
             psi0 = np.array([1, 0, 0, 0])
             psi1 = backend.statevector(mp_list, psi0)  # Gives [1, 0, 0, 1] / sqrt(2)
-
-    Args:
-        nqubit (int): Number of qubits in the circuit.
-        min_chunk_size (int): The matrices are grouped in chunks of at least this size, we recommend a value of 3.
-        optimal_chunk_size (int): The backend aims at achieving an optimal chunk size of this value, normally 4.
 
     Attributes:
         nqubit (int): Number of qubits in the circuit.

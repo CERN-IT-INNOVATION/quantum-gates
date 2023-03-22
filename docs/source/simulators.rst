@@ -1,15 +1,6 @@
 Simulators
 ==========
 
-The MrAndersonSimulator is a statevector simulator for the noisy quantum
-gates approach.
-
-
-.. _mrandersonsimulator:
-
-MrAndersonSimulator
--------------------
-
 We refer to the `demo <../tutorials/simulation_demo.py>`__ for a usage
 sample of the simulator. The simulator has three attributes. While the
 `gates <./gates.md>`__ attribute implicitely specifies the pulse shape,

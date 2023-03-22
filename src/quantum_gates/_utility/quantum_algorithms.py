@@ -6,8 +6,16 @@ from qiskit.quantum_info.operators import Operator
 
 
 def hadamard_reverse_qft_circ(n_qubits: int):
-    """ Generates the Qiskit circuit applying Hadamard gates on all the qubits and the inverse Quantum Fourier
-        transform.
+    """ Generates the Qiskit circuit applying Hadamard gates on all qubits and the inverse Quantum Fourier transform.
+
+    A useful property of the circuit is that it maps the all 0 state to the equal superposition of all states, and
+    back to the 0 state. As we know the ideal result, we can calculate fidelity metrics easily.
+
+    Args:
+        n_qubits (int): Number of qubits.
+
+    Returns:
+        The Qiskit circuit before transpilation for a specific machine.
     """
 
     qft = QuantumCircuit(n_qubits, n_qubits)
@@ -38,9 +46,20 @@ def hadamard_reverse_qft_circ(n_qubits: int):
     return qft
 
 
-def ghz_circ(n_qubits: int, backend):
-    """ Generates the GHZ circuit for n qubits. The circuit first applies a Hadamard on the first qubit, and then
-        iteratively applies CNOT gates with qubit i as control and i+1 as target, i = 0, ..., n_qubits - 2.
+def ghz_circ(n_qubits: int):
+    """ Generates the GHZ circuit for n qubits.
+
+    The circuit first applies a Hadamard on the first qubit, and then iteratively applies CNOT gates with qubit i as
+    control and i+1 as target, i = 0, ..., n_qubits - 2.
+
+    Overall, the circuit generates the Greenberger–Horne–Zeilinger (GHZ) state from the zero state. The GHZ state
+    is maximally entangled.
+
+    Args:
+        n_qubits (int): Number of qubits.
+
+    Returns:
+        The Qiskit circuit before transpilation for a specific machine.
     """
 
     ghz = QuantumCircuit(n_qubits, n_qubits)
@@ -56,6 +75,12 @@ def ghz_circ(n_qubits: int, backend):
 
 def qft_circ(n_qubits: int):
     """ Generates the Quantum Fourier Transform circuit.
+
+    Args:
+        n_qubits (int): Number of qubits.
+
+    Returns:
+        The Qiskit circuit before transpilation for a specific machine.
     """
 
     qft = QuantumCircuit(n_qubits, n_qubits)
@@ -79,6 +104,13 @@ def qft_circ(n_qubits: int):
 
 def qaoa_circ(G, theta: float):
     """ Generates a Quantum Approximate Optimization Algorithm circuit.
+
+    Args:
+        G: NetworkX graph.
+        theta (float): Angle to be optimized.
+
+    Returns:
+        The Qiskit circuit before transpilation for a specific machine.
     """
 
     # Parameters

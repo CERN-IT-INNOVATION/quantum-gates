@@ -110,12 +110,12 @@ class SingleQubitGateFactory(object):
 
     This is the 2 order approximated solution, a non-unitary matrix.
 
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
     Note:
         The pulse shape / parametrization is hidden in the integrator, such that we can use caching of integration
         result to speedup the code.
-
-    Args:
-        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
 
     Attributes:
         integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
@@ -322,11 +322,11 @@ class SingleQubitGateFactory(object):
 class XFactory(object):
     """Factory for the X gate.
 
-    Note:
-        The dependence on the pulse is hidden in the integrator.
-
     Args:
         integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Note:
+        The dependence on the pulse is hidden in the integrator.
 
     Attributes:
         integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
@@ -358,11 +358,11 @@ class XFactory(object):
 class SXFactory(object):
     """Factory for the SX gate.
 
-    Note:
-        The dependence on the pulse is hidden in the integrator.
-
     Args:
         integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Note:
+        The dependence on the pulse is hidden in the integrator.
 
     Attributes:
         integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.

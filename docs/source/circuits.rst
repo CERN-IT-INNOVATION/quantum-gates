@@ -3,7 +3,7 @@ Circuits
 
 Quantum circuit can be constructed easily when we have a circuit object
 to which we can apply gates by simply calling method like
-circuit.H(i=0). This functionality is provided in the Circuit classes,
+circuit.H(i=0). This functionality is provided in the LegacyCircuit classes,
 and packed together with the knowledge on how to sample the noisy gates
 as stochastic matrices from a specific gate set.
 

@@ -10,7 +10,23 @@ import numpy as np
 
 
 class DeviceParameters(object):
-    """ Snapshot of the noise of the IBM backend. Can load and save the properties.
+    """Snapshot of the noise of the IBM backend. Can load and save the properties.
+
+    Args:
+        qubits_layout (list[int]): Layout of the qubits.
+
+    Attributes:
+        qubits_layout (list[int]): Layout of the qubits.
+        nr_of_qubits (int): Number of qubits to be used.
+        T1 (np.array): T1 time.
+        T2 (np.array): T2 time.
+        p (np.array): To be added.
+        rout (np.array): To be added.
+        p_cnot (np.array): Error probabilites in the CNOT gate.
+        p_cnot (np.array): Gate time to implement controlled not operations in the CNOT gate.
+        tm (np.array): To be added.
+        dt (np.array): To be added.
+        
     """
 
     # Filename when storing the data in text files or a single json file

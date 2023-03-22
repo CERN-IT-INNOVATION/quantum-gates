@@ -12,6 +12,10 @@ from .backend import StandardBackend, EfficientBackend, BackendForOnes
 class Circuit(object):
     """ Class that allows to define custom noisy quantum circuit and apply it on a given initial quantum state.
 
+    Args:
+        nqubit (int): number of qubits
+        depth (int): depth of the circuit
+
     Example:
         .. code:: python
 
@@ -27,10 +31,6 @@ class Circuit(object):
 
             # Evaluate the statevector
             psi1 = circuit.statevector(psi0=np.array([1, 0, 0, 0]))  # Gives [0, 0, 1, 0]
-
-    Args:
-        nqubit (int): number of qubits
-        depth (int): depth of the circuit
 
     Attributes:
         nqubit (int): Number of qubits.
@@ -277,6 +277,11 @@ class AlternativeCircuit(object):
     In this version, we provide a backend for the evaluation of the tensor contractions that are performed in the
     creation of the propagator.
 
+    Args:
+        nqubit (int): Number of qubits.
+        gates (int): Gateset from which the noisy quantum gates should be sampled.
+        backendClass (Union[StandardBackend, EfficientBackend]): Backend for performing the computations.
+
     Example:
         .. code:: python
 
@@ -289,11 +294,6 @@ class AlternativeCircuit(object):
                 gates=standard_gates,
                 BackendClass=EfficientBackend
             )
-
-    Args:
-        nqubit (int): Number of qubits.
-        gates (int): Gateset from which the noisy quantum gates should be sampled.
-        backendClass (Union[StandardBackend, EfficientBackend]): Backend for performing the computations.
 
     Attributes:
         nqubit (int): Number of qubits.

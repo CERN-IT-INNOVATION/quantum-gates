@@ -18,6 +18,11 @@ class MrAndersonSimulator(object):
     the usage of the simulator instead. This can be done with the function
     src.utility.simulation_utility.perform_parallel_simulation.
 
+    Args:
+        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
+        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
+        parallel (bool): Whether or not the shots should be run in parallel. False by default.
+
     Note:
         At the moment, we only support a linear topology.
 
@@ -40,11 +45,6 @@ class MrAndersonSimulator(object):
                    shots=1000,
                    device_param=...,
                    nqubit=2)
-
-    Args:
-        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
-        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
-        parallel (bool): Whether or not the shots should be run in parallel. False by default.
 
     Attributes:
         gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.

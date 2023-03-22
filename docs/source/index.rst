@@ -69,7 +69,7 @@ Pulses
 ~~~~~~
 
 When constructing a set of quantum gates with the Gates class, one can
-specify a :ref:`pulse` instance. This pulse describes the shape of the RF pulses 
+specify a Pulse instance. This pulse describes the shape of the RF pulses
 used to implement the gates.
 
 Integrators
@@ -81,7 +81,7 @@ pulse shapes. This is handled by the :doc:`integrator <integrators>`.
 Simulators
 ~~~~~~~~~~
 
-The :doc:`MrAndersonSimulator <simulators>` can be used to simulate 
+The :doc:`LegacyMrAndersonSimulator <simulators>` can be used to simulate
 a quantum circuit transpiled with Qiskit with a specific 
 :doc:`noisy gate set <gates>`.
 
@@ -104,10 +104,12 @@ Quantum Algorithms
 ~~~~~~~~~~~~~~~~~~
 
 Four quantum algorithms are provided as functions which return the Qiskit circuit
-for a specific number of qubits, namely
-:ref:`Hadamard reverse QFT circuit <hadamard_reverse_qft_circ>`,
-:ref:`GHZ circuit<ghz_circ>`, :ref:`QFT circuit<qft_circ>`, and
-:ref:`Quantum Approximate Optimization Algorithm circuit<qaoa_circ>`.
+for a specific number of qubits
+
+* Hadamard reverse QFT circuit
+* GHZ circuit
+* QFT circuit
+* Quantum Approximate Optimization Algorithm circuit
 
 
 Legacy
@@ -119,13 +121,10 @@ gates, simulator and circuit classes. They can be used for unit testing.
 Utility
 ~~~~~~~
 
-In performing quantum simulation, there are many steps that are
-performed repeatedly, such as :ref:`setup the IBM backend <setup_backend>`, 
-loading the noise information as :ref:`DeviceParameters <deviceparameters>`, 
-:ref:`transpiling the quantum circuits <create_qc_list>`, and executing the 
-:ref:`simulation in parallel <multiprocessing_parallel_simulation>` on a 
-powerful machine. For this reason, the most frequently used functions are 
-part of the :doc:`utilities <utilities>`.
+In performing quantum simulation, there are many steps that are performed repeatedly, such as setup the IBM backend with
+setup_backend(), loading the noise information as DeviceParameters, transpiling the quantum circuits with
+create_qc_list(), and executing the simulation in parallel  with multiprocessing_parallel_simulation() on a
+powerful machine. For this reason, the most frequently used functions are part of the utilities.
 
 
 Structure
@@ -138,56 +137,56 @@ Structure
    gates
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Factories
 
    factories
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Pulses
 
    pulses
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Integrators
 
    integrators
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Simulators
 
    simulators
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Backends
 
    backends
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Circuits
 
    circuits
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Quantum Algorithm
 
    quantum_algorithms
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Legacy
 
    legacy
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Utilities
 
    utilities
