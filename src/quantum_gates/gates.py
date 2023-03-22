@@ -8,7 +8,6 @@ Attributes:
     numerical_gates (Gates): Gates produced with constant pulses, but the integrations are performed numerically.
     noise_free_gates (NoiseFreeGates): Gates in the noise free case, based on solving the equations analytically.
     almost_noise_free_gates (ScaledNoiseGates): Gates in the noise free case, but based on scaling the noise down.
-    legacy_gates (LegacyGates): Original version of the gates used for unit testing.
 """
 
 from ._gates.gates import Gates, NoiseFreeGates, ScaledNoiseGates

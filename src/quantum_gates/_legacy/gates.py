@@ -1,9 +1,3 @@
-"""
-This module contains all the noisy quantum gates functions
-
-All the time duration are expressed in units of single-qubit gate time tg of IBM's devices.
-"""
-
 from numpy import array, exp, sqrt, matmul, pi, sin, cos, kron
 from numpy.random import normal, multivariate_normal
 from scipy.linalg import expm
@@ -12,17 +6,16 @@ import numpy as np
 
 
 def bitflip(tm: float, rout: float) -> np.array:
-    """
-    NOISE GATE FOR BITFLIP (exact solution, unitary matrix)
+    """Noise gate for bitflip (exact solution, unitary matrix).
     
     This function implements the bitflip error on measurements 
     
     Args: 
-        tm: measurement time in ns
-        rout: readout error
+        tm (float): Measurement time in ns
+        rout (float): Readout error
         
     Returns:
-          bitflip noise gate
+          Bitflip noise gate.
     """
     tg = 35 * 10**(-9)
     Dtm = tm / tg
@@ -36,17 +29,16 @@ def bitflip(tm: float, rout: float) -> np.array:
 
 
 def depolarizing(Dt: float, p: float) -> np.array:
-    """
-    NOISE GATE FOR DEPOLARIZATION (2 order approximated solution, unitary matrix)
+    """Noise gate for depolarization (2 order approximated solution, unitary matrix).
     
     This function implements the single-qubit depolarizing error on idle qubits
     
     Args: 
-        Dt: idle time in ns
-        p: single-qubit depolarizing error probability
+        Dt (float): Idle time in ns.
+        p (float): Single-qubit depolarizing error probability.
         
     Returns:
-          depolarizing noise gate
+          Depolarizing noise gate.
     """
     tg = 35 * 10**(-9)
     Dt = Dt / tg
@@ -65,18 +57,17 @@ def depolarizing(Dt: float, p: float) -> np.array:
 
 
 def relaxation(Dt: float, T1: float, T2: float) -> np.array:
-    """
-    NOISE GATE FOR AMPLITUDE AND PHASE DAMPING (exact solution, non-unitary matrix)
+    """ Noise gate for amplitude and phase damping (exact solution, non-unitary matrix).
     
     This function implements the single-qubit relaxation error on idle qubits
     
     Args: 
-        Dt: idle time in ns
-        T1: qubit's amplitude damping time in ns
-        T2: qubit's dephasing time in ns
+        Dt (float): Idle time in ns.
+        T1 (float): Qubit's amplitude damping time in ns.
+        T2 (float): Qubit's dephasing time in ns.
         
     Returns:
-          amplitude and phase damping noise gate
+          Amplitude and phase damping noise gate
     """
     # Constants
     tg = 35 * 10**(-9)
@@ -108,21 +99,20 @@ def relaxation(Dt: float, T1: float, T2: float) -> np.array:
 
 
 def Noise_Gate(theta: float, phi: float, p: float, T1: float, T2: float) -> np.array:
-    """
-    NOISY QUANTUM GATE FOR GENERAL SINGLE-QUBIT GATES OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
+    """Noise gate for general single-qubit gate of IBM's devices (2 order approximated solution, non-unitary matrix).
     
     This function implements the single-qubit noisy quantum gate with depolarizing and 
     relaxation errors during the unitary evolution.
     
     Args: 
-        theta: angle of rotation on the Bloch sphere
-        phi: phase of the drive defining axis of rotation on the Bloch sphere
-        p: single-qubit depolarizing error probability
-        T1: qubit's amplitude damping time in ns
-        T2: qubit's dephasing time in ns
+        theta (float): Angle of rotation on the Bloch sphere.
+        phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+        p (float): Single-qubit depolarizing error probability.
+        T1 (float): Qubit's amplitude damping time in ns.
+        T2 (float): Qubit's dephasing time in ns.
         
     Returns:
-          general single-qubit noisy quantum gate
+          General single-qubit noisy quantum gate.
     """
     tg = 35 * 10**(-9)
     
@@ -287,17 +277,16 @@ def Noise_Gate(theta: float, phi: float, p: float, T1: float, T2: float) -> np.a
 
 
 def X(phi: float, p: float, T1: float, T2: float) -> np.array:
-    """
-    NOISY QUANTUM GATE FOR X SINGLE-QUBIT GATES OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
+    """Noisy X single qubit gate IBM's devices (2 order approximated solution, non-unitary matrix).
     
     This function implements the X single-qubit noisy quantum gate with depolarizing and 
     relaxation errors during the unitary evolution.
     
     Args: 
-        phi: phase of the drive defining axis of rotation on the Bloch sphere
-        p: single-qubit depolarizing error probability
-        T1: qubit's amplitude damping time in ns
-        T2: qubit's dephasing time in ns
+        phi (float): phase of the drive defining axis of rotation on the Bloch sphere
+        p (float): single-qubit depolarizing error probability
+        T1 (float): qubit's amplitude damping time in ns
+        T2 (float): qubit's dephasing time in ns
         
     Returns:
           X single-qubit noisy quantum gate
@@ -315,10 +304,10 @@ def SX(phi: float, p: float, T1: float, T2: float) -> np.array:
     relaxation errors during the unitary evolution.
     
     Args: 
-        phi: phase of the drive defining axis of rotation on the Bloch sphere
-        p: single-qubit depolarizing error probability
-        T1: qubit's amplitude damping time in ns
-        T2: qubit's dephasing time in ns
+        phi (float): phase of the drive defining axis of rotation on the Bloch sphere
+        p (float): single-qubit depolarizing error probability
+        T1 (float): qubit's amplitude damping time in ns
+        T2 (float): qubit's dephasing time in ns
         
     Returns:
           SX single-qubit noisy quantum gate
@@ -336,14 +325,14 @@ def CR(theta: float, phi: float, t_cr: float, p_cr: float, T1_ctr: float, T2_ctr
     relaxation errors on both qubits during the unitary evolution.
     
     Args:
-        theta: angle of rotation on the Bloch sphere
-        phi: phase of the drive defining axis of rotation on the Bloch sphere
-        t_cr: CR gate time in ns
-        p_cr: CR depolarizing error probability
-        T1_ctr: control qubit's amplitude damping time in ns
-        T2_ctr: control qubit's dephasing time in ns
-        T1_trg: target qubit's amplitude damping time in ns
-        T2_trg: target qubit's dephasing time in ns
+        theta (float): angle of rotation on the Bloch sphere
+        phi (float): phase of the drive defining axis of rotation on the Bloch sphere
+        t_cr (float): CR gate time in ns
+        p_cr (float): CR depolarizing error probability
+        T1_ctr (float): control qubit's amplitude damping time in ns
+        T2_ctr (float): control qubit's dephasing time in ns
+        T1_trg (float): target qubit's amplitude damping time in ns
+        T2_trg (float): target qubit's dephasing time in ns
         
     Returns:
           CR two-qubit noisy quantum gate
@@ -646,16 +635,16 @@ def CNOT(phi_ctr: float, phi_trg: float, t_cnot: float, p_cnot: float, p_single_
     relaxation errors on both qubits during the unitary evolution.
     
     Args:
-        phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere
-        phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere
-        t_cnot: CNOT gate time in ns
-        p_cnot: CNOT depolarizing error probability
-        p_single_ctr: control qubit depolarizing error probability
-        p_single_trg: target qubit depolarizing error probability
-        T1_ctr: control qubit's amplitude damping time in ns
-        T2_ctr: control qubit's dephasing time in ns
-        T1_trg: target qubit's amplitude damping time in ns
-        T2_trg: target qubit's dephasing time in ns
+        phi_ctr (float): Control qubit phase of the drive defining axis of rotation on the Bloch sphere
+        phi_trg (float): Target qubit phase of the drive defining axis of rotation on the Bloch sphere
+        t_cnot (float): CNOT gate time in ns
+        p_cnot (float): CNOT depolarizing error probability
+        p_single_ctr (float): Control qubit depolarizing error probability
+        p_single_trg (float): Target qubit depolarizing error probability
+        T1_ctr (float): Control qubit's amplitude damping time in ns
+        T2_ctr (float): Control qubit's dephasing time in ns
+        T1_trg (float): Target qubit's amplitude damping time in ns
+        T2_trg (float): Target qubit's dephasing time in ns
         
     Returns:
           CNOT two-qubit noisy quantum gate
@@ -685,19 +674,19 @@ def CNOT_inv(phi_ctr: float, phi_trg: float, t_cnot: float, p_cnot: float, p_sin
     relaxation errors on both qubits during the unitary evolution.
     
     Args:
-        phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere
-        phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere
-        t_cnot: reverse CNOT gate time in ns
-        p_cnot: reverse CNOT depolarizing error probability
-        p_single_ctr: control qubit depolarizing error probability
-        p_single_trg: target qubit depolarizing error probability
-        T1_ctr: control qubit's amplitude damping time in ns
-        T2_ctr: control qubit's dephasing time in ns
-        T1_trg: target qubit's amplitude damping time in ns
-        T2_trg: target qubit's dephasing time in ns
+        phi_ctr (float): control qubit phase of the drive defining axis of rotation on the Bloch sphere
+        phi_trg (float): target qubit phase of the drive defining axis of rotation on the Bloch sphere
+        t_cnot (float): reverse CNOT gate time in ns
+        p_cnot (float): reverse CNOT depolarizing error probability
+        p_single_ctr (float): control qubit depolarizing error probability
+        p_single_trg (float): target qubit depolarizing error probability
+        T1_ctr (float): control qubit's amplitude damping time in ns
+        T2_ctr (float): control qubit's dephasing time in ns
+        T1_trg (float): target qubit's amplitude damping time in ns
+        T2_trg (float): target qubit's dephasing time in ns
         
     Returns:
-           reverse CNOT two-qubit noisy quantum gate
+           Reverse CNOT two-qubit noisy quantum gate
     """
     tg = 35*10**(-9)
     
@@ -719,10 +708,23 @@ def CNOT_inv(phi_ctr: float, phi_trg: float, t_cnot: float, p_cnot: float, p_sin
 
 
 class LegacyGates(object):
+    """ Gateset with all legacy gate implementations.
+
+    Attributes:
+        relaxation
+        bitflip
+        depolarizing
+        X
+        SX
+        CR
+        CNOT
+        CNOT_inv
+    """
     relaxation = staticmethod(relaxation)
     bitflip = staticmethod(bitflip)
     depolarizing = staticmethod(depolarizing)
     X = staticmethod(X)
     SX = staticmethod(SX)
+    CR = staticmethod(CR)
     CNOT = staticmethod(CNOT)
     CNOT_inv = staticmethod(CNOT_inv)
