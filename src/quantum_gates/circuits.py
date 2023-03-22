@@ -1,2 +1,2 @@
-from ._simulation.circuit import EfficientCircuit
-from ._simulation.circuit import Circuit as LegacyCircuit
+from ._simulation.circuit import EfficientCircuit, AlternativeCircuit
+from ._legacy.circuit import LegacyCircuit

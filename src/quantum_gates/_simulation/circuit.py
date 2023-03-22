@@ -11,19 +11,37 @@ from .backend import StandardBackend, EfficientBackend, BackendForOnes
 
 class Circuit(object):
     """ Class that allows to define custom noisy quantum circuit and apply it on a given initial quantum state.
+
+    Args:
+        nqubit (int): number of qubits
+        depth (int): depth of the circuit
+
+    Example:
+        .. code:: python
+
+            from quantum_gates.circuits import Circuit
+            from quantum_gates.gates import standard_gates
+
+            # The depth has to be set correctly for this class.
+            circuit = Circuit(nqubit=2, depth=1, gates=standard_gates)
+
+            # We apply gates for one timestep.
+            circuit.X(i=0, ...)
+            circuit.I(i=1)
+
+            # Evaluate the statevector
+            psi1 = circuit.statevector(psi0=np.array([1, 0, 0, 0]))  # Gives [0, 0, 1, 0]
+
+    Attributes:
+        nqubit (int): Number of qubits.
+        depth (int): Depth of the circuit.
+        j (int): Index of the current matrix product during the building of a list of matrix products.
+        s (int): Number of qubits on which  gates were applied during this building of the current matrix product.
+        phi (list[float]): Phases of the qubits.
+        circuit (list[list[np.array]]): Quantum circuit made from the sampled noisy quantum gates.
     """
 
     def __init__(self, nqubit: int, depth: int, gates: Gates):
-        """
-        Init method for the noisy quantum circuit
-        
-        Parameters:
-            nqubit: number of qubits
-            depth: depth of the circuit
-        
-        Returns:
-            None
-        """
         self.nqubit = nqubit
         self.depth = depth
         self.j = 0
@@ -254,9 +272,33 @@ class Circuit(object):
 
 
 class AlternativeCircuit(object):
-    """ Class that allows to define custom noisy quantum circuit and apply it on a given initial quantum state.
-        In this version, we provide a backend for the evaluation of the tensor contractions that are performed in the
-        creation of the propagator.
+    """ Allows to build a circuit and outsource the computations to an optimized backend.
+
+    In this version, we provide a backend for the evaluation of the tensor contractions that are performed in the
+    creation of the propagator.
+
+    Args:
+        nqubit (int): Number of qubits.
+        gates (int): Gateset from which the noisy quantum gates should be sampled.
+        backendClass (Union[StandardBackend, EfficientBackend]): Backend for performing the computations.
+
+    Example:
+        .. code:: python
+
+            from quantum_gates.circuits import AlternativeCircuit
+            from quantum_gates.backends import EfficientBackend
+            from quantum_gates.gates import standard_gates
+
+            circuit = AlternativeCircuit(
+                nqubit=2,
+                gates=standard_gates,
+                BackendClass=EfficientBackend
+            )
+
+    Attributes:
+        nqubit (int): Number of qubits.
+        gates (int): Gateset from which the noisy quantum gates should be sampled.
+        phi (list[float]): Phases of the qubits.
     """
 
     def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend):
@@ -272,8 +314,9 @@ class AlternativeCircuit(object):
         self._mp_list = []
 
     def apply(self, gate, i):
-        """ Applies a single qubit gate to qubit i. If the circuit snippet is full, then matrix product is appended and
-            the bookkeeping is reset.
+        """Applies a single qubit gate to qubit i.
+
+        If the circuit snippet is full, then matrix product is appended and the bookkeeping is reset.
         """
         # Input validation
         if not isinstance(gate, np.ndarray):
@@ -291,7 +334,7 @@ class AlternativeCircuit(object):
             self._update_mp_list()
 
     def statevector(self, psi0) -> np.array:
-        """ Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
+        """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
         """
         # Handle the trivial case in which no gates were applied.
         if len(self._mp_list) == 0:
@@ -299,8 +342,7 @@ class AlternativeCircuit(object):
         return self._backend.statevector(self._mp_list, psi0)
 
     def I(self, i: int):
-        """
-        Apply identity gate on qubit i
+        """Apply identity gate on qubit i
 
         Args:
             i: index of the qubit
@@ -312,8 +354,7 @@ class AlternativeCircuit(object):
         self.apply(gate=identity_matrix, i=i)
 
     def Rz(self, i: int, theta: float):
-        """
-        Update the phase to implement virtual Rz(theta) gate on qubit i
+        """Update the phase to implement virtual Rz(theta) gate on qubit i
 
         Args:
             i: index of the qubit
@@ -339,8 +380,7 @@ class AlternativeCircuit(object):
         self.apply(gate=self.gates.bitflip(tm, rout), i=i)
 
     def relaxation(self, i: int, Dt: float, T1: float, T2: float):
-        """
-        Apply relaxation noise gate on qubit i. Add on idle-qubits.
+        """Apply relaxation noise gate on qubit i. Add on idle-qubits.
 
         Args:
             i: index of the qubit
@@ -354,8 +394,7 @@ class AlternativeCircuit(object):
         self.apply(gate=self.gates.relaxation(Dt, T1, T2), i=i)
 
     def depolarizing(self, i: int, Dt: float, p: float):
-        """
-        Apply depolarizing noise gate on qubit i. Add on idle-qubits.
+        """Apply depolarizing noise gate on qubit i. Add on idle-qubits.
 
         Args:
             i: index of the qubit
@@ -463,8 +502,9 @@ class AlternativeCircuit(object):
 
 
 class StandardCircuit(AlternativeCircuit):
-    """ Class with the same interface as Circuit but built on top of the AlternativeCircuit. Is used as baseline
-        for benchmarking Circuits/Backends.
+    """Class with the same interface as Circuit but built on top of the AlternativeCircuit.
+
+    Is used as baseline for benchmarking Circuits/Backends.
     """
 
     def __init__(self, nqubit: int, depth: int, gates: Gates):
@@ -472,8 +512,9 @@ class StandardCircuit(AlternativeCircuit):
 
 
 class EfficientCircuit(AlternativeCircuit):
-    """ Class with the same interface as Circuit but built on top of the AlternativeCircuit. Separates the matrix
-        products in chunks, and contracts them with the statevector.
+    """Class with the same interface as Circuit but built on top of the AlternativeCircuit.
+
+    Separates the matrix products in chunks, and contracts them with the statevector.
     """
 
     def __init__(self, nqubit: int, depth: int, gates: Gates):
@@ -481,8 +522,9 @@ class EfficientCircuit(AlternativeCircuit):
 
 
 class OneCircuit(AlternativeCircuit):
-    """ Class with the same interface as Circuit but built on top of the AlternativeCircuit. Is optimized for the
-        Hadamard inv QFT circuit, which contains many 1s.
+    """Class with the same interface as Circuit but built on top of the AlternativeCircuit.
+
+    Is optimized for the Hadamard inv QFT circuit, which contains many 1s.
     """
 
     def __init__(self, nqubit: int, depth: int, gates: Gates):

@@ -2,6 +2,12 @@
 This module contains all the noisy quantum gates functions, but parametrized according to different pulse shapes.
 
 All the time duration are expressed in units of single-qubit gate time tg of IBM's devices.
+
+Attributes:
+    standard_gates (Gates): Gates produced with constant pulses, the integrations are based on analytical solutions.
+    numerical_gates (Gates): Gates produced with constant pulses, but the integrations are performed numerically.
+    noise_free_gates (NoiseFreeGates): Gates in the noise free case, based on solving the equations analytically.
+    almost_noise_free_gates (ScaledNoiseGates): Gates in the noise free case, but based on scaling the noise down.
 """
 
 import numpy as np
@@ -22,8 +28,20 @@ from .factories import (
 
 
 class Gates(object):
-    """ Collection of the gates. Handles adding the pulse shape to the gates. This way, we do not have to pass the
-        pulse shape each time we generate a gate.
+    """Collection of the gates. Handles adding the pulse shape to the gates.
+
+    This way, we do not have to pass the pulse shape each time we generate a gate.
+
+    Example:
+        .. code-block:: python
+
+            from quantum_gates.pulses import GaussianPulse
+            from quantum_gates.gates import Gates
+
+            pulse = GaussianPulse(loc=1, scale=1)
+            gateset = Gates(pulse)
+
+            sampled_x = gateset.X(phi, p, T1, T2)
     """
 
     def __init__(self, pulse: Pulse=constant_pulse):
@@ -69,8 +87,17 @@ class Gates(object):
 
 
 class NoiseFreeGates(object):
-    """ Version of Gates for the noiseless case. Has the same interface as the Gates class, but ignores the
-        arguments specifying the noise.
+    """ Version of Gates for the noiseless case.
+
+    Has the same interface as the Gates class, but ignores the arguments specifying the noise.
+
+    Example:
+        .. code:: python
+
+           from quantum_gates.gates import NoiseFreeGates
+
+           gateset = NoiseFreeGates()
+           sampled_x = gateset.X(phi, p, T1, T2)
     """
 
     def relaxation(self, Dt, T1, T2) -> np.array:
@@ -159,8 +186,17 @@ class NoiseFreeGates(object):
 
 
 class ScaledNoiseGates(object):
-    """ Version of Gates in which the noise is scaled by a certain factor noise_scale of at least 1e-15. The smaller the
-        value, the less noisy the gates are.
+    """ Version of Gates in which the noise is scaled by a certain factor noise_scale of at least 1e-15.
+
+    The smaller the noise_scaling value, the less noisy the gates are.
+
+    Examples:
+        .. code:: python
+
+            from quantum_gates.gates import ScaledNoiseGates
+
+            gateset = ScaledNoiseGates(noise_scaling=0.1, pulse=pulse)  # 10x less noise
+            sampled_x = gateset.X(phi, p, T1, T2)
     """
 
     def __init__(self, noise_scaling: float, pulse: Pulse=constant_pulse):

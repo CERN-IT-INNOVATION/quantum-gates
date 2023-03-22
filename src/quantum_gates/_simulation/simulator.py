@@ -1,8 +1,8 @@
-"""
-This module implements the base class to perform noisy quantum simulations with noisy gates approach
+"""Performs simulations with the Noisy quantum gates approach.
 """
 import numpy as np
 import copy
+import typing
 
 from qiskit import QuantumCircuit
 
@@ -12,14 +12,44 @@ from .._simulation.circuit import Circuit, StandardCircuit
 
 
 class MrAndersonSimulator(object):
-    """ Class for simulating a noisy quantum circuit by extracting information on the structure
-        of the circuit from a transpiled qiskit QuantumCircuit.
+    """Simulates a noisy quantum circuit, extracting the gate instructions from a transpiled qiskit QuantumCircuit.
 
-        Note:
-        - The shots can be parallelized, but this comes with a large overhead. Thus, we recommend to parallelize
-          the usage of the simulator instead. This can be done with the function
-          src.utility.simulation_utility.perform_parallel_simulation like done in main_NG.py.
-        - At the moment, we only support a linear topology.
+    Note that the shots can be parallelized, but this comes with a large overhead. Thus, we recommend to parallelize
+    the usage of the simulator instead. This can be done with the function
+    src.utility.simulation_utility.perform_parallel_simulation.
+
+    Args:
+        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
+        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
+        parallel (bool): Whether or not the shots should be run in parallel. False by default.
+
+    Note:
+        At the moment, we only support a linear topology.
+
+    Example:
+        .. code:: python
+
+           from quantum_gates.simulators import MrAndersonSimulator
+           from quantum_gates.gates import standard_gates
+           from quantum_gates.circuits import EfficientCircuit
+
+           sim = MrAndersonSimulator(
+               gates==standard_gates,
+               CircuitClass=EfficientCircuit,
+               parallel=False
+           )
+
+           sim.run(t_qiskit_circ=...,
+                   qubits_layout=...,
+                   psi0=np.array([1.0, 0.0, 0.0, 0.0]),
+                   shots=1000,
+                   device_param=...,
+                   nqubit=2)
+
+    Attributes:
+        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
+        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
+        parallel (bool): Whether or not the shots should be run in parallel. False by default.
     """
 
     def __init__(self, gates: Gates=standard_gates, CircuitClass=Circuit, parallel: bool=False):
@@ -237,15 +267,18 @@ class MrAndersonSimulator(object):
         return new_probs
 
 
-""" Helper functions """
-
-
 def _apply_gates_on_circuit(
         data: list,
         circ: Circuit or StandardCircuit or EfficientCircuit,
         device_param: dict):
-    """ Applies the operations specified in data on the circuit. The constants regarding the device and noise are
-        passed in device_param.
+    """ Applies the operations specified in data on the circuit.
+
+    The constants regarding the device and noise are passed in device_param.
+
+    Args:
+        data (list): List of circuit instructions as preprocessed by the simulator.
+        circ (Union[Circuit, StandardCircuit, EfficientCircuit]): Performs the computations.
+        device_param (dict): Lookup for the noise information.
     """
 
     # Unpack dict
@@ -313,7 +346,8 @@ def _apply_gates_on_circuit(
 def _single_shot(args: dict) -> np.array:
     """ Function used to simulate a single shot and return the corresponding result.
 
-        Note: We have this method outside of the class such that it can be pickled.
+    Note:
+        We have this method outside of the class such that it can be pickled.
     """
 
     circ = args["circ"]

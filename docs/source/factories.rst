@@ -72,70 +72,12 @@ gates.
 .. _factories_classes:
 
 Classes
-~~~~~~~
+-------
 
-The interface of the classes can be found in the source code.
-
-.. _bitflipfactory:
-
-BitflipFactory
-~~~~~~~~~~~~~~
-
-Coming soon.
-
-.. _depolarizingfactory:
-
-DepolarizingFactory
-~~~~~~~~~~~~~~~~~~~
-
-Coming soon.
-
-.. _relaxationfactory:
+.. automodule:: quantum_gates.factories
+   :members:
+   :imported-members:
+   :undoc-members:
+   :show-inheritance:
 
 
-RelaxationFactory
-~~~~~~~~~~~~~~~~~
-
-Coming soon.
-
-.. _singlequbitgatefactory:
-
-SingleQubitGateFactory
-~~~~~~~~~~~~~~~~~~~~~~
-
-Coming soon.
-
-.. _xfactory:
-
-XFactory
-~~~~~~~~
-
-Coming soon.
-
-.. _sxfactory:
-
-SXFactory
-~~~~~~~~~
-
-Coming soon.
-
-.. _crfactory:
-
-CRFactory
-~~~~~~~~~
-
-Coming soon.
-
-.. _cnotfactory:
-
-CNOTFactory
-~~~~~~~~~~~
-
-Coming soon.
-
-.. _cnotinvfactory:
-
-CNOTInvFactory
-~~~~~~~~~~~~~~
-
-Coming soon.

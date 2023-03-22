@@ -1,16 +1,15 @@
-"""
-This module implements the base class to perform noisy quantum simulations with noisy gates approach
-"""
 import numpy as np
 from numpy import array, absolute, mean
 
-from .circuit import Circuit
+from .circuit import LegacyCircuit
 from .._utility.device_parameters import DeviceParameters
 
 
-class MrAndersonSimulator():
-    """ Class 'MR_ANDERSON' can be used to simulate a noisy quantum circuit by extracting information on the structure
-        of the circuit from a qiskit QuantumCircuit.
+class LegacyMrAndersonSimulator:
+    """Simulates a quantum circuit with the Noisy quantum gates approach.
+
+    Note:
+        This version is only meant for unit testing and the documentation
     """
 
     def run(self, qiskit_circ,
@@ -19,19 +18,38 @@ class MrAndersonSimulator():
             psi0: np.array,
             shots: int,
             device_param: DeviceParameters):
-        """
-            Takes as input a qiskit circuit on a given backend with a given qubits layout
-            and runs noisy quantum gates.
-            Qubits layout must have a linear topology.
-            Args:
-                qiskit_circ: qiskit circuit (QuantumCircuit)
-                backend: IMBQ backend (backend)
-                qubits_layout: qubits layout with linear topology (list)
-                psi0: initial state (array)
-                shots: number of realizations (int)
-                device_param: object that contains the measured noise (DeviceParameters)
-            Returns:
-                  vector of probabilities and density matrix
+        """Performs a run of the simulator.
+
+        Takes as input a qiskit circuit on a given backend with a given qubits layout  and runs noisy quantum gates.
+
+        Note:
+            This simulator has a slightly different interface than the newer MrAndersonSimulator. Moreover, the qubits
+            layout must have a linear topology.
+
+        Args:
+            qiskit_circ: qiskit circuit (QuantumCircuit)
+            backend: IMBQ backend (backend)
+            qubits_layout: qubits layout with linear topology (list)
+            psi0: initial state (array)
+            shots: number of realizations (int)
+            device_param: object that contains the measured noise (DeviceParameters)
+
+
+        Example:
+            .. code:: python
+
+               from quantum_gates.simulators import LegacyMrAndersonSimulator
+
+               sim = LegacyMrAndersonSimulator()
+               sim.run(qiskit_circ,
+                       backend,
+                       qubits_layout,
+                       psi0,
+                       shots,
+                       device_param)
+
+        Returns:
+            Vector of probabilities and density matrix
         """
         # Prepare variables
         nqubit = len(qubits_layout)
@@ -76,10 +94,10 @@ class MrAndersonSimulator():
         for i in range(len(data_measure)):
             swap_detector[data_measure[i][0]] = data_measure[i][1]
 
-        # Initialize Circuit, depth without rz (in IBMQ devices rz gates are virtual --> noiseless)
+        # Initialize LegacyCircuit, depth without rz (in IBMQ devices rz gates are virtual --> noiseless)
         # Add measurements
         depth = len(data) - n_rz + 1
-        circ = Circuit(nqubit, depth)
+        circ = LegacyCircuit(nqubit, depth)
         
         # Read data and apply Noisy Quantum gates
         r = np.zeros((shots, 2**nqubit))

@@ -1,5 +1,5 @@
 Welcome to the Quantum Gates documentation
-======================================
+==========================================
 
 **Quantum Gates** is a Python library for simulating the noisy behaviour of 
 real quantum devices. The noise is incorporated directly into the gates, 
@@ -61,7 +61,7 @@ Factories
 ~~~~~~~~~
 
 To produce :doc:`gates <gates>`, we use :doc:`factories <factories>`, such as the
-:ref:`cnotfactory`. One can combine factories into a custom :doc:`gates <gates>` 
+CNOTFactory. One can combine factories into a custom :doc:`gates <gates>`
 class. The factories have a construct() method, with a well documented 
 signature. 
 
@@ -69,7 +69,7 @@ Pulses
 ~~~~~~
 
 When constructing a set of quantum gates with the Gates class, one can
-specify a :ref:`pulse` instance. This pulse describes the shape of the RF pulses 
+specify a Pulse instance. This pulse describes the shape of the RF pulses
 used to implement the gates.
 
 Integrators
@@ -81,7 +81,7 @@ pulse shapes. This is handled by the :doc:`integrator <integrators>`.
 Simulators
 ~~~~~~~~~~
 
-The :doc:`MrAndersonSimulator <simulators>` can be used to simulate 
+The :doc:`LegacyMrAndersonSimulator <simulators>` can be used to simulate
 a quantum circuit transpiled with Qiskit with a specific 
 :doc:`noisy gate set <gates>`.
 
@@ -89,14 +89,14 @@ Backends
 ~~~~~~~~
 
 For the computation, we provide :doc:`backends <backends>` out of the box, 
-such as the :ref:`efficientbackend` that uses optimized tensor contractions 
+such as the EfficientBackend that uses optimized tensor contractions
 to simulate 20+ qubits with the statevector method.
 
 Circuits
 ~~~~~~~~
 
 The simulators can be configured with a :doc:`circuits` class, such as 
-:ref:`efficient_circuit`. This class is responsible for sampling the 
+EfficientCircuit. This class is responsible for sampling the
 noisy gates. The class can be configured with a :doc:`gates` instance and one of 
 the :doc:`backends` that executes the statevector simulation.
 
@@ -104,33 +104,104 @@ Quantum Algorithms
 ~~~~~~~~~~~~~~~~~~
 
 Four quantum algorithms are provided as functions which return the Qiskit circuit
-for a specific number of qubits, namely
-:ref:`Hadamard reverse QFT circuit <hadamard_reverse_qft_circ>`,
-:ref:`GHZ circuit<ghz_circ>`, :ref:`QFT circuit<qft_circ>`, and
-:ref:`Quantum Approximate Optimization Algorithm circuit<qaoa_circ>`.
+for a specific number of qubits
+
+* Hadamard reverse QFT circuit
+* GHZ circuit
+* QFT circuit
+* Quantum Approximate Optimization Algorithm circuit
 
 
 Legacy
 ~~~~~~
 
 We also provide the :doc:`legacy <legacy>` implementations of the 
-:ref:`gates <legacy_gates>`, :ref:`simulator <legacymrandersonsimulator>` 
-and :ref:`circuit <legacycircuit>` classes. They can be used for unit testing.
+gates, simulator and circuit classes. They can be used for unit testing.
 
 Utility
-~~~~~~
+~~~~~~~
 
-In performing quantum simulation, there are many steps that are
-performed repeatedly, such as :ref:`setup the IBM backend <setup_backend>`, 
-loading the noise information as :ref:`DeviceParameters <deviceparameters>`, 
-:ref:`transpiling the quantum circuits <create_qc_list>`, and executing the 
-:ref:`simulation in parallel <multiprocessing_parallel_simulation>` on a 
-powerful machine. For this reason, the most frequently used functions are 
-part of the :doc:`utilities <utilities>`.
+In performing quantum simulation, there are many steps that are performed repeatedly, such as setup the IBM backend with
+setup_backend(), loading the noise information as DeviceParameters, transpiling the quantum circuits with
+create_qc_list(), and executing the simulation in parallel  with multiprocessing_parallel_simulation() on a
+powerful machine. For this reason, the most frequently used functions are part of the utilities.
+
+
+Structure
+---------
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Gates
+
+   gates
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Factories
+
+   factories
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Pulses
+
+   pulses
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Integrators
+
+   integrators
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Simulators
+
+   simulators
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Backends
+
+   backends
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Circuits
+
+   circuits
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Quantum Algorithm
+
+   quantum_algorithms
+
+.. toctree::
+   :maxdepth: 3
+   :caption: Legacy
+
+   legacy
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Utilities
+
+   utilities
+
+
+Indices and tables
+------------------
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
 
 
 Authors
-=======
+-------
 
 This project has been developed thanks to the effort of the following
 people:

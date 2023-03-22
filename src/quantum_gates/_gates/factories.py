@@ -7,14 +7,16 @@ from .integrator import Integrator
 class BitflipFactory(object):
 
     def construct(self, tm, rout) -> np.array:
-        """
-        NOISE GATE FOR BITFLIP (exact solution, unitary matrix)
-        This function implements the bitflip error on measurements
+        """Generates the noisy gate for bitflips.
+
+        This is the exact solution, a unitary matrix. It is used for bitflip error on measurements.
+
         Args:
-            tm: measurement time in ns (double)
-            rout: readout error (double)
+            tm (float): Measurement time in ns.
+            rout (float): Readout error probability.
+
         Returns:
-            bitflip noise gate (numpy array)
+            Array representing the bitflip noise gate.
         """
         tg = 35 * 10**(-9)
         Dtm = tm / tg
@@ -30,14 +32,17 @@ class BitflipFactory(object):
 class DepolarizingFactory(object):
 
     def construct(self, Dt, p) -> np.array:
-        """
-        NOISE GATE FOR DEPOLARIZATION (2 order approximated solution, unitary matrix)
-        This function implements the single-qubit depolarizing error on idle qubits
+        """Generates the noisy gate for depolarization.
+
+        This is the 2nd order approximated solution, a unitary matrix. It implements the single-qubit depolarizing error
+        on idle qubits.
+
         Args:
-            Dt: idle time in ns (double)
-            p: single-qubit depolarizing error probability (double)
+            Dt (float): Idle time in ns.
+            p (float): Single-qubit depolarizing error probability.
+
         Returns:
-            depolarizing noise gate (numpy array)
+            Array representing the depolarizing noise gate.
         """
         tg = 35 * 10**(-9)
         Dt = Dt / tg
@@ -58,15 +63,18 @@ class DepolarizingFactory(object):
 class RelaxationFactory(object):
 
     def construct(self, Dt, T1, T2) -> np.array:
-        """
-        NOISE GATE FOR AMPLITUDE AND PHASE DAMPING (exact solution, non-unitary matrix)
-        This function implements the single-qubit relaxation error on idle qubits
+        """Generates the noisy gate for combined amplitude and phase damping.
+
+        This is the exact solution, a non-unitary matrix. It implements the single-qubit relaxation error on idle
+        qubits.
+
         Args:
-            Dt: idle time in ns (double)
-            T1: qubit's amplitude damping time in ns (double)
-            T2: qubit's dephasing time in ns (double)
+            Dt (float): idle time in ns.
+            T1 (float): qubit's amplitude damping time in ns.
+            T2 (float): qubit's dephasing time in ns.
+
         Returns:
-              amplitude and phase damping noise gate (numpy array)
+              Array representing the amplitude and phase damping noise gate.
         """
         # Constants
         tg = 35 * 10**(-9)
@@ -98,31 +106,36 @@ class RelaxationFactory(object):
 
 
 class SingleQubitGateFactory(object):
-    """
-    Class for constructing the noisy quantum gate for general single-qubit gates of IBM's DEVICES.
-    This is the 2 order approximated solution, non-unitary matrix.
-    Notes:
-        - Use the method construct() to generate the gate.
-        - The pulse shape / parametrization is hidden in the integrator, such that we can use caching of integration
-          result to speedup the code.
+    """Generates a general single qubit gate on devices from IBM with noise.
+
+    This is the 2 order approximated solution, a non-unitary matrix.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Note:
+        The pulse shape / parametrization is hidden in the integrator, such that we can use caching of integration
+        result to speedup the code.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
     """
 
     def __init__(self, integrator: Integrator):
         self.integrator = integrator
 
     def construct(self, theta, phi, p, T1, T2) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR GENERAL SINGLE-QUBIT GATES OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the single-qubit noisy quantum gate with depolarizing and
-        relaxation errors during the unitary evolution.
+        """Samples a general single qubit gate on devices from IBM with noise.
+
         Args:
-            theta: angle of rotation on the Bloch sphere (double)
-            phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-            p: single-qubit depolarizing error probability (double)
-            T1: qubit's amplitude damping time in ns (double)
-            T2: qubit's dephasing time in ns (double)
+            theta (float): Angle of rotation on the Bloch sphere.
+            phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+            p (float): Single-qubit depolarizing error probability.
+            T1 (float): Qubit's amplitude damping time in ns.
+            T2 (float): Qubit's dephasing time in ns.
+
         Returns:
-              general single-qubit noisy quantum gate (numpy array)
+              Array representing a general single-qubit noisy quantum gate.
         """
 
         """ 0) CONSTANTS """
@@ -187,12 +200,14 @@ class SingleQubitGateFactory(object):
         return result
 
     def _unitary_contribution(self, theta, phi) -> np.array:
-        """ Unitary contribution due to drive Hamiltonian.
-            Args:
-                theta: angle of rotation on the Bloch sphere (double)
-                phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-            Returns:
-                Array that represents the unitary contribution due to drive Hamiltonian.
+        """Unitary contribution due to drive Hamiltonian.
+
+        Args:
+            theta (float): Angle of rotation on the Bloch sphere.
+            phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+
+        Returns:
+            Array representing the unitary contribution due to drive Hamiltonian.
         """
         U = np.array(
             [[np.cos(theta/2), - 1J * np.sin(theta/2) * np.exp(-1J * phi)],
@@ -201,15 +216,20 @@ class SingleQubitGateFactory(object):
         return U
 
     def _ito_integrals_for_X_Y_sigma_min(self, theta) -> tuple[float]:
-        """ Ito integral for the following processes:
-            - depolarization for X(t)
-            - depolarization for Y(t)
-            - relaxation for sigma_min(t).
-            As illustration, we leave the variables names for X(t) in the calculation.
-            Args:
-                theta: angle of rotation on the Bloch sphere (double)
-            Returns:
-                Sampled results of the Ito integrals.
+        """Ito integrals.
+
+        Ito integrals for the following processes:
+            * depolarization for X(t)
+            * depolarization for Y(t)
+            * relaxation for sigma_min(t).
+
+        As illustration, we leave the variables names for X(t) in the calculation.
+
+        Args:
+            theta (float): Angle of rotation on the Bloch sphere.
+
+        Returns:
+            Tuple of floats representing sampled results of the Ito integrals.
         """
         # Integral of sin(theta)**2
         Vdx_1 = self.integrator.integrate("sin(theta/a)**2", theta, 1)
@@ -239,14 +259,19 @@ class SingleQubitGateFactory(object):
         return Idx1, Idx2, Wdx
 
     def _ito_integrals_for_Z(self, theta) -> tuple[float]:
-        """ Ito integral for the following processes:
-            - depolarization for Z(t)
-            - relaxation for Z(t).
-            As illustration, we leave the variable names for the depolarization Itô processes depending on Z(t).
-            Args:
-                theta: angle of rotation on the Bloch sphere (double)
-            Returns:
-                Sampled results of the Ito integrals.
+        """Ito integrals.
+
+        Ito integrals for the following processes:
+            * depolarization for Z(t)
+            * relaxation for Z(t).
+
+        As illustration, we leave the variable names for the depolarization Itô processes depending on Z(t).
+
+        Args:
+            theta (float): angle of rotation on the Bloch sphere.
+
+        Returns:
+             Tuple of floats representing sampled results of the Ito integrals.
         """
 
         # Integral of cos(theta)**2
@@ -273,7 +298,13 @@ class SingleQubitGateFactory(object):
         return Idz1, Idz2
 
     def _deterministic_relaxation(self, theta):
-        """ Deterministic contribution given by relaxation
+        """Deterministic contribution given by relaxation
+
+        Args:
+            theta (float): angle of rotation on the Bloch sphere.
+
+        Returns:
+            Array representing the deterministic part of the relaxation process.
         """
 
         # Integral of sin(theta/(2*a))**2
@@ -289,7 +320,17 @@ class SingleQubitGateFactory(object):
 
 
 class XFactory(object):
-    """ Constructor for the X gate. The dependence on the pulse is hidden in the integrator.
+    """Factory for the X gate.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Note:
+        The dependence on the pulse is hidden in the integrator.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+        constructor (SingleQubitGateFactory): Instance of the gate factory for general single qubit gates.
     """
 
     def __init__(self, integrator: Integrator):
@@ -297,67 +338,84 @@ class XFactory(object):
         self.constructor = SingleQubitGateFactory(self.integrator)
 
     def construct(self, phi, p, T1, T2) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR X SINGLE-QUBIT GATES OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the X single-qubit noisy quantum gate with depolarizing and
-        relaxation errors during the unitary evolution.
+        """Generates a noisy X gate.
+
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the X single-qubit noisy quantum
+        gate with depolarizing and relaxation errors during the unitary evolution.
+
         Args:
-            phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-            p: single-qubit depolarizing error probability (double)
-            T1: qubit's amplitude damping time in ns (double)
-            T2: qubit's dephasing time in ns (double)
+            phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+            p (float): Single-qubit depolarizing error probability.
+            T1 (float): Qubit's amplitude damping time in ns.
+            T2 (float): Qubit's dephasing time in ns.
+
         Returns:
-              X single-qubit noisy quantum gate (numpy array)
+              Array representing the X noisy quantum gate.
         """
         return self.constructor.construct(np.pi, phi, p, T1, T2)
 
 
 class SXFactory(object):
+    """Factory for the SX gate.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Note:
+        The dependence on the pulse is hidden in the integrator.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+        constructor (SingleQubitGateFactory): Instance of the gate factory for general single qubit gates.
+    """
 
     def __init__(self, integrator: Integrator):
         self.integrator = integrator
         self.constructor = SingleQubitGateFactory(self.integrator)
 
     def construct(self, phi, p, T1, T2) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR SX SINGLE-QUBIT GATES OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the SX single-qubit noisy quantum gate with depolarizing and
-        relaxation errors during the unitary evolution.
+        """Generates a noisy SX gate.
+
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the SX single-qubit noisy quantum
+        gate with depolarizing and relaxation errors during the unitary evolution.
+
         Args:
-            phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-            p: single-qubit depolarizing error probability (double)
-            T1: qubit's amplitude damping time in ns (double)
-            T2: qubit's dephasing time in ns (double)
+            phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+            p (float): Single-qubit depolarizing error probability.
+            T1 (float): Qubit's amplitude damping time in ns.
+            T2 (float): Qubit's dephasing time in ns.
+
         Returns:
-              SX single-qubit noisy quantum gate (numpy array)
+              Array representing the SX noisy quantum gate.
         """
         return self.constructor.construct(np.pi/2, phi, p, T1, T2)
 
 
 class CRFactory(object):
-    """
-    Class for constructing the noisy quantum gate for cross resonance (CR) two-qubit gate of IBM's devices.
+    """Factory for constructing the noisy quantum gate for cross resonance (CR) two-qubit gate of IBM's devices.
+
     This is the 2 order approximated solution, non-unitary matrix.
-    Note: Use the method construct() to generate the gate.
     """
 
     def __init__(self, integrator):
         self.integrator = integrator
 
     def construct(self, theta, phi, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR CROSS RESONANCE (CR) TWO-QUBIT GATE OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the CR two-qubit noisy quantum gate with depolarizing and
-        relaxation errors on both qubits during the unitary evolution.
+        """Generates a CR gate.
+
+        This is the 2 order approximated solution, non-unitary matrix. It implements the CR two-qubit noisy quantum gate
+        with depolarizing and relaxation errors on both qubits during the unitary evolution.
+
         Args:
-            theta: angle of rotation on the Bloch sphere (double)
-            phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-            t_cr: CR gate time in ns (double)
-            p_cr: CR depolarizing error probability (double)
-            T1_ctr: control qubit's amplitude damping time in ns (double)
-            T2_ctr: control qubit's dephasing time in ns (double)
-            T1_trg: target qubit's amplitude damping time in ns (double)
-            T2_trg: target qubit's dephasing time in ns (double)
+            theta (float): Angle of rotation on the Bloch sphere.
+            phi (float): Phase of the drive defining axis of rotation on the Bloch sphere.
+            t_cr (float): CR gate time in ns.
+            p_cr (float): CR depolarizing error probability.
+            T1_ctr (float): Control qubit's amplitude damping time in ns.
+            T2_ctr (float): Control qubit's dephasing time in ns.
+            T1_trg (float): Target qubit's amplitude damping time in ns.
+            T2_trg (float): Target qubit's dephasing time in ns.
+
         Returns:
               CR two-qubit noisy quantum gate (numpy array)
         """
@@ -518,18 +576,23 @@ class CRFactory(object):
         return result
 
     def _ito_integrals_for_depolarization_process(self, omega, phi, a) -> tuple[float]:
-        """ Ito integrals used for the depolarization Itô processes depending on one of
-            - [tensor(ID,Z)](t)
-            - [tensor(X,ID)](t)
-            - [tensor(Y,ID)](t)
-            - [tensor(sigma_min,ID)](t)
-            As illustration, we leave the variable names from the version with [tensor(ID,Z)](t).
-            Args:
-                omega: integral of theta from t0 to t1 (double)
-                phi: phase of the drive defining axis of rotation on the Bloch sphere (double)
-                a: fraction representing CR gate time / gate time (double)
-            Returns:
-                Sampled results of the Ito integrals.
+        """ Ito integrals.
+
+         Used for the depolarization Itô processes depending on one of
+            * [tensor(ID,Z)](t)
+            * [tensor(X,ID)](t)
+            * [tensor(Y,ID)](t)
+            * [tensor(sigma_min,ID)](t)
+
+        As illustration, we leave the variable names from the version with [tensor(ID,Z)](t).
+
+        Args:
+            omega: integral of theta from t0 to t1.
+            phi: phase of the drive defining axis of rotation on the Bloch sphere.
+            a: fraction representing CR gate time / gate time.
+
+        Returns:
+            Tuple of floats representing sampled results of the Ito integrals.
         """
 
         # Integral of cos(omega/a)**2
@@ -553,15 +616,20 @@ class CRFactory(object):
         return Ip_trg_1, Ip_trg_2
 
     def _ito_integrals_for_depolarization_process_reversed_tensor(self, omega, a) -> tuple[float]:
-        """ Ito integrals used for the depolarization Itô processes depending on one of
-            - [tensor(ID,X)](t)
-            - [tensor(ID,Y)](t)
-            As illustration, we leave the variable names from the version with [tensor(ID,Y)](t).
-            Args:
-                omega: integral of theta from t0 to t1 (double)
-                a: fraction representing CR gate time / gate time (double)
-            Returns:
-                Sampled results of the Ito integrals.
+        """ Ito integrals.
+
+        Used for the depolarization Itô processes depending on one of
+            * [tensor(ID,X)](t)
+            * [tensor(ID,Y)](t)
+
+        As illustration, we leave the variable names from the version with [tensor(ID,Y)](t).
+
+        Args:
+            omega (float): Integral of theta from t0 to t1.
+            a (float): Fraction representing CR gate time / gate time.
+
+        Returns:
+            Tuple of floats representing sampled results of the Ito integrals.
         """
 
         # Integral of sin**2(omega/a)
@@ -597,6 +665,19 @@ class CRFactory(object):
 
 
 class CNOTFactory(object):
+    """Factory for constructing noisy CNOT gates.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+        cr_c (CRFactory): Instance of the factory for creating CR gates.
+        single_qubit_gate_c (SingelQubitGateFactory): Instance of the factory for creating general single qubit gates.
+        x_c (XFactory): Instance of the factory for creating X gates.
+        sx_c (XFactory): Instance of the factory for creating SX gates.
+        relaxation_c (RelaxationFactory): Instance of the factory for creating gates for relaxation.
+    """
 
     def __init__(self, integrator):
         self.integrator = integrator
@@ -608,25 +689,28 @@ class CNOTFactory(object):
         self.sx_c = SXFactory(self.integrator)
         self.relaxation_c = RelaxationFactory()
 
-    def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR CNOT TWO-QUBIT GATE OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the CNOT two-qubit noisy quantum gate with depolarizing and
-        relaxation errors on both qubits during the unitary evolution.
+    def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg,
+                  T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        """Generates a noisy CNOT gate.
+
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the CNOT two-qubit noisy quantum
+        gate with depolarizing and relaxation errors on both qubits during the unitary evolution.
+
         Args:
-            phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
-            phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
-            t_cnot: CNOT gate time in ns (double)
-            p_cnot: CNOT depolarizing error probability (double)
-            p_single_ctr: control qubit depolarizing error probability (double)
-            p_single_trg: target qubit depolarizing error probability (double)
-            T1_ctr: control qubit's amplitude damping time in ns (double)
-            T2_ctr: control qubit's dephasing time in ns (double)
-            T1_trg: target qubit's amplitude damping time in ns (double)
-            T2_trg: target qubit's dephasing time in ns (double)
-            pulse_parametrization: None or function that parametrized the pulse (None or callable)
+            phi_ctr (float): Control qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            phi_trg (float): Target qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            t_cnot (float): CNOT gate time in ns.
+            p_cnot (float): CNOT depolarizing error probability.
+            p_single_ctr (float): Control qubit depolarizing error probability.
+            p_single_trg (float): Target qubit depolarizing error probability.
+            T1_ctr (float): Control qubit's amplitude damping time in ns.
+            T2_ctr (float): Control qubit's dephasing time in ns.
+            T1_trg (float): Target qubit's amplitude damping time in ns.
+            T2_trg (float): Target qubit's dephasing time in ns.
+            pulse_parametrization (callable): None or function that parametrized the pulse (None or callable)
+
         Returns:
-              CNOT two-qubit noisy quantum gate (numpy array)
+              Array representing a CNOT two-qubit noisy quantum gate.
         """
         # Constants
         tg = 35*10**(-9)
@@ -646,6 +730,19 @@ class CNOTFactory(object):
 
 
 class CNOTInvFactory(object):
+    """Factory for constructing noisy inverse CNOT gates.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+        cr_c (CRFactory): Instance of the factory for creating CR gates.
+        single_qubit_gate_c (SingelQubitGateFactory): Instance of the factory for creating general single qubit gates.
+        x_c (XFactory): Instance of the factory for creating X gates.
+        sx_c (XFactory): Instance of the factory for creating SX gates.
+        relaxation_c (RelaxationFactory): Instance of the factory for creating gates for relaxation.
+    """
 
     def __init__(self, integrator):
         self.integrator = integrator
@@ -658,24 +755,26 @@ class CNOTInvFactory(object):
         self.relaxation_c = RelaxationFactory()
 
     def construct(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        """
-        NOISY QUANTUM GATE FOR REVERSE CNOT TWO-QUBIT GATE OF IBM's DEVICES (2 order approximated solution, non-unitary matrix)
-        This function implements the reverse CNOT two-qubit noisy quantum gate with depolarizing and
-        relaxation errors on both qubits during the unitary evolution.
+        """Generates a reverse CNOT gate of IBM devices.
+
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the reverse CNOT two-qubit noisy
+        quantum gate with depolarizing and relaxation errors on both qubits during the unitary evolution.
+
         Args:
-            phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
-            phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
-            t_cnot: reverse CNOT gate time in ns (double)
-            p_cnot: reverse CNOT depolarizing error probability (double)
-            p_single_ctr: control qubit depolarizing error probability (double)
-            p_single_trg: target qubit depolarizing error probability (double)
-            T1_ctr: control qubit's amplitude damping time in ns (double)
-            T2_ctr: control qubit's dephasing time in ns (double)
-            T1_trg: target qubit's amplitude damping time in ns (double)
-            T2_trg: target qubit's dephasing time in ns (double)
-            pulse_parametrization: None or function that parametrized the pulse (None or callable)
+            phi_ctr (float): control qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            phi_trg (float): target qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            t_cnot (float): reverse CNOT gate time in ns.
+            p_cnot (float): reverse CNOT depolarizing error probability.
+            p_single_ctr (float): control qubit depolarizing error probability.
+            p_single_trg (float): target qubit depolarizing error probability.
+            T1_ctr (float): control qubit's amplitude damping time in ns.
+            T2_ctr (float): control qubit's dephasing time in ns.
+            T1_trg (float): target qubit's amplitude damping time in ns.
+            T2_trg (float): target qubit's dephasing time in ns.
+            pulse_parametrization (callable): None or function that parametrized the pulse.
+
         Returns:
-               reverse CNOT two-qubit noisy quantum gate (numpy array)
+               Array representing the reverse CNOT two-qubit noisy quantum gate.
         """
         # Constants
         tg = 35*10**(-9)
