@@ -91,8 +91,8 @@ class Pulse(object):
         """
         starts_at_0 = abs(parametrization(0) - 0) < self.epsilon
         stops_at_0 = abs(parametrization(1) - 1) < self.epsilon
-        is_monotone = all((parametrization(x + self.epsilon) >= parametrization(x))
-                          for x in np.linspace(0, 1-self.epsilon, self.check_n_points))
+        is_monotone = all((parametrization(x + 1e-3) + self.epsilon >= parametrization(x))
+                          for x in np.linspace(0, 1-1e-3, self.check_n_points))
         return starts_at_0 and stops_at_0 and is_monotone
 
     def _are_compatible(self, pulse, parametrization) -> bool:
