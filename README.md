@@ -178,6 +178,20 @@ Use `ls` to display the name of the wheel, and run `pip install <filename>.whl` 
 Now you can use your version of the library. 
 
 
+# Credits
+Please cite the work using the following Bibtex entry:
+```text
+@misc{dibartolomeo2023novel,
+      title={A novel approach to noisy gates for simulating quantum computers}, 
+      author={Giovanni Di Bartolomeo and Michele Vischi and Francesco Cesa and Roman Wixinger and Michele Grossi and Sandro Donadi and Angelo Bassi},
+      year={2023},
+      eprint={2301.04173},
+      archivePrefix={arXiv},
+      primaryClass={quant-ph}
+}
+```
+
+
 # Authors
 This project has been developed thanks to the effort of the following people:
 
