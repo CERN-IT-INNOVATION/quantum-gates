@@ -4,13 +4,13 @@ import json
 import os
 import concurrent.futures
 
-from qiskit import transpile, IBMQ
+from qiskit import transpile
 from qiskit.transpiler import CouplingMap
 from qiskit.providers.aer import AerSimulator
-from qiskit.providers.ibmq import IBMQAccountCredentialsNotFound
+from qiskit_ibm_provider import IBMProvider
 
 
-def fix_counts(n_qubits: int, counts_0):
+def fix_counts(counts_0: dict, n_qubits: int):
     """ Fixes the qiskit counts in the standard convention, orders the list and adds strings with zero counts.
     """
 
@@ -44,9 +44,10 @@ def fix_counts(n_qubits: int, counts_0):
 
 
 def perform_parallel_simulation_with_multiprocessing(args: list, simulation: callable, max_workers: int=None):
-    """ The .map method allows to execute the function simulation N_process times simultaneously by preserving the order
-            of the given comprehension list. We create a deepcopy of the argument, the simulation currently modifies it
-            during execution.
+    """ The .map method allows to execute the function simulation N_process times simultaneously.
+
+    Preserves the order of the given comprehension list. We create a deepcopy of the argument, the simulation currently
+    modifies it during execution.
     """
 
     # Configure pool
@@ -71,9 +72,10 @@ def perform_parallel_simulation_with_multiprocessing(args: list, simulation: cal
 
 
 def perform_parallel_simulation(args: list, simulation: callable, max_workers: int=None):
-    """ The .map method allows to execute the function simulation N_process times simultaneously by preserving the order
-        of the given comprehension list. We create a deepcopy of the argument, the simulation currently modifies it
-        during execution.
+    """ The .map method allows to execute the function simulation N_process times simultaneously.
+
+    Preserves the order of the given comprehension list. We create a deepcopy of the argument, the simulation currently
+    modifies it during execution.
     """
     if max_workers is None:
         print("We use max_workers = None, so the default value min(32, os.cpu_count() + 4).")
@@ -168,23 +170,27 @@ def load_config(filename: str="") -> dict:
 
 
 def setup_backend(Token: str, hub: str, group: str, project: str, device_name: str):
-    """ Takes the backend configuration and returns the configured backend.
+    """Takes the backend configuration and returns the configured backend.
+
+    Args:
+        Token (str): Token generated with the IBM Quantum Experience account.
+        hub (str): Hub name of the account where the project is located.
+        group (str): Group name of the account.
+        project (str): Project under which the user has access to the device.
+        device_name (str): Name of the quantum device.
+
+    Returns:
+        An IBM Quantum provider object that is configured with the given backend parameters and provides access to the
+        specified quantum device.
     """
-    try:
-        IBMQ.delete_account()
-    except IBMQAccountCredentialsNotFound:
-        pass
-        
-    IBMQ.save_account(Token)
-    IBMQ.load_account()
-    provider = IBMQ.get_provider(hub=hub, group=group, project=project)
+    IBMProvider.delete_account()
+    IBMProvider.save_account(token=Token)
+    provider = IBMProvider(instance=hub+'/'+group+'/'+project)
     return provider.get_backend(device_name)
 
 
 def post_process_split(source_filenames: list, target_filenames: list, split: int):
-    """
-
-    Takes a list of filenames corresponding to the source data. Loads the files as arrays and combines split many
+    """Takes a list of filenames corresponding to the source data. Loads the files as arrays and combines split many
     files into the target files with the given filenames.
 
     Note:
