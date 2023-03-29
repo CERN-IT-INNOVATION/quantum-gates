@@ -94,7 +94,7 @@ def test_simulator_run_one_shot(nqubits: int, gates, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
     main(
         backend,
@@ -115,7 +115,7 @@ def test_simulator_run_many_shots(shots: int, gates, CircuitClass):
         "shots": shots,
         "nqubits": 2,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
     main(
         backend,
@@ -136,7 +136,7 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
         "shots": 100,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
     p_ng = main(
         backend,
@@ -161,7 +161,7 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
     p = main(
         backend,
@@ -189,7 +189,7 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
     p = main(
         backend,
@@ -221,7 +221,7 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/",
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/",
         "backend": backend,
         "do_simulation": do_simulation,
         "gates": almost_noise_free_gates,
@@ -291,7 +291,7 @@ def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/",
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/",
         "backend": backend,
         "do_simulation": do_simulation,
         "gates": almost_noise_free_gates,
@@ -335,7 +335,7 @@ def test_simulator_speed_for_efficient_circuit(nqubits, times):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
 
     time_efficient_circuit = 0
@@ -364,7 +364,7 @@ def test_simulation_speed_parallel_vs_sequential(nqubits):
         "shots": shots,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
 
     # Parallel
@@ -406,7 +406,7 @@ def test_simulation_gives_normalized_result(nqubits):
         "shots": shots,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
     }
 
     p_ng = main(backend,
