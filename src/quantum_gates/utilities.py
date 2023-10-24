@@ -7,5 +7,6 @@ from ._utility.simulations_utility import (
     load_config,
     create_qc_list,
     setup_backend,
-    post_process_split
+    post_process_split,
+    compute_Hellinger_distance as hellinger_distance,
 )

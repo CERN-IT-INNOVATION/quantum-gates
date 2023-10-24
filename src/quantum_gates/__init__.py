@@ -15,7 +15,8 @@ from .utilities import (
     load_config,
     create_qc_list,
     setup_backend,
-    post_process_split
+    post_process_split,
+    hellinger_distance,
 )
 from .pulses import Pulse, GaussianPulse
 from .pulses import constant_pulse, constant_pulse_numerical, gaussian_pulse
@@ -38,7 +39,7 @@ __all__ += [
     "load_config",
     "create_qc_list",
     "setup_backend",
-    "post_process_split"
+    "post_process_split",
 ]
 __all__ += ["Pulse", "GaussianPulse"]
 __all__ += ["constant_pulse", "constant_pulse_numerical", "gaussian_pulse"]
