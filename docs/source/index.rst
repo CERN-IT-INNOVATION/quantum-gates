@@ -3,7 +3,13 @@ Welcome to the Quantum Gates documentation
 
 **Quantum Gates** is a Python library for simulating the noisy behaviour of 
 real quantum devices. The noise is incorporated directly into the gates, 
-which become stochastic matrices. 
+which become stochastic matrices. The corresponding model was published in |prr_paper_link| 
+in Physical Review Research.
+ 
+.. |prr_paper_link| raw:: html
+
+   <a href="https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.5.043210" target="_blank">Di Bartolomeo, 2023</a>
+
 
 .. note::
 
@@ -198,6 +204,27 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+Citation
+--------
+
+You may cite this library using the following BibTex entry:
+
+.. code-block:: bibtex
+   @article{PhysRevResearch.5.043210,
+      title = {Noisy gates for simulating quantum computers},
+      author = {Di Bartolomeo, Giovanni and Vischi, Michele and Cesa, Francesco and Wixinger, Roman and Grossi, Michele and Donadi, Sandro and Bassi, Angelo},
+      journal = {Phys. Rev. Res.},
+      volume = {5},
+      issue = {4},
+      pages = {043210},
+      numpages = {19},
+      year = {2023},
+      month = {Dec},
+      publisher = {American Physical Society},
+      doi = {10.1103/PhysRevResearch.5.043210},
+      url = {https://link.aps.org/doi/10.1103/PhysRevResearch.5.043210}
+   }
 
 
 Authors

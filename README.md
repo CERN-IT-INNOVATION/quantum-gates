@@ -177,7 +177,7 @@ Now you can use your version of the library.
 
 
 # Credits
-Please cite the work using the following Bibtex entry:
+Please cite the work using the following BibTex entry:
 
 ```text
 @article{PhysRevResearch.5.043210,
