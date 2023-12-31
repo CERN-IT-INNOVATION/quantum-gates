@@ -1,6 +1,6 @@
 # Noisy Quantum Gates [![Made at QMTS!](https://img.shields.io/badge/University%20of%20Trieste-Bassi%20Group-brightgreen)](http://www.qmts.it/) [![Made at CERN!](https://img.shields.io/badge/CERN-CERN%20openlab-brightgreen)](https://openlab.cern/) [![Made at CERN!](https://img.shields.io/badge/CERN-Open%20Source-%232980b9.svg)](https://home.cern) [![Made at CERN!](https://img.shields.io/badge/CERN-QTI-blue)](https://quantum.cern/our-governance)
 
-Implementation of the Noisy Quantum Gates model, which is soon to be published. It is a novel method to simulate the noisy behaviour of quantum devices by incorporating the noise directly in the gates, which become stochastic matrices. 
+Implementation of the Noisy Quantum Gates model, published in [Di Bartolomeo, 2023](https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.5.043210). It is a novel method to simulate the noisy behaviour of quantum devices by incorporating the noise directly in the gates, which become stochastic matrices. 
 
 
 ## Documentations
@@ -11,8 +11,7 @@ The documentation for Noisy Quantum Gates can be accessed on the website
 ## How to install
 ### Requirements
 The Python version should be 3.9 or later. Find your Python version by typing `python` or `python3` in the CLI. 
-We recommend using the repo together with an [IBM Quantum Lab](https://quantum-computing.ibm.com/lab) account, 
-as it necessary for circuit compilation with Qiskit in many cases. 
+We recommend using the repo together with an [IBM Quantum Lab](https://quantum-computing.ibm.com/lab) account, as it necessary for circuit compilation with Qiskit in many cases. 
 
 
 ### Installation as a user
@@ -28,8 +27,7 @@ and install a working version of the library.
 
 
 ## Quickstart
-Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable 
-IBM_TOKEN = "your_token". 
+Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token.
 
 ```python
 # Standard libraries
@@ -166,7 +164,7 @@ unit tested and one can get sample code from the unit tests.
 Contributions are welcomed and should apply the usual git-flow: fork this repo, create a local branch named 
 'feature-...'. Commit often to ensure that each commit is easy to understand. Name your commits 
 '[feature-...] Commit message.', such that it possible to differentiate the commits of different features in the 
-main line. Request a merge to the mainline often. Please remember to follow the 
+main line. Request a merge to the mainline often. Contribute to the test suite and verify the functionality with the unit tests when using a different Python version or dependency versions. Please remember to follow the 
 [PEP 8 style guide](https://peps.python.org/pep-0008/), and add comments whenever it helps. The corresponding 
 [authors](<#authors>) are happy to support you. 
 
@@ -180,14 +178,21 @@ Now you can use your version of the library.
 
 # Credits
 Please cite the work using the following Bibtex entry:
+
 ```text
-@misc{dibartolomeo2023novel,
-      title={A novel approach to noisy gates for simulating quantum computers}, 
-      author={Giovanni Di Bartolomeo and Michele Vischi and Francesco Cesa and Roman Wixinger and Michele Grossi and Sandro Donadi and Angelo Bassi},
-      year={2023},
-      eprint={2301.04173},
-      archivePrefix={arXiv},
-      primaryClass={quant-ph}
+@article{PhysRevResearch.5.043210,
+  title = {Noisy gates for simulating quantum computers},
+  author = {Di Bartolomeo, Giovanni and Vischi, Michele and Cesa, Francesco and Wixinger, Roman and Grossi, Michele and Donadi, Sandro and Bassi, Angelo},
+  journal = {Phys. Rev. Res.},
+  volume = {5},
+  issue = {4},
+  pages = {043210},
+  numpages = {19},
+  year = {2023},
+  month = {Dec},
+  publisher = {American Physical Society},
+  doi = {10.1103/PhysRevResearch.5.043210},
+  url = {https://link.aps.org/doi/10.1103/PhysRevResearch.5.043210}
 }
 ```
 
