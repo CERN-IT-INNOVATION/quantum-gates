@@ -18,8 +18,8 @@ authors:
 - family-names: "Bassi"
   given-names: "Angelo"
   orcid: "https://orcid.org/0000-0001-7500-387X"
-title: "A novel approach to noisy gates for simulating quantum computers"
+title: "Noisy gates for simulating quantum computers"
 version: 2.0
-doi: https://doi.org/10.48550/arXiv.2301.04173
-date-released: 2023-02-03
-url: "https://arxiv.org/abs/2301.04173"
+doi: "10.1103/PhysRevResearch.5.043210"
+date-released: 2023-12-06
+url: "https://link.aps.org/doi/10.1103/PhysRevResearch.5.043210"
