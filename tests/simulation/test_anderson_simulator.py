@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import time
 
-from configuration.token import IBM_TOKEN
+from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT, DEVICE_NAME
 from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
 from src.quantum_gates.utilities import setup_backend, create_qc_list
 from src.quantum_gates.simulators import MrAndersonSimulator
@@ -15,10 +15,10 @@ import tests.helpers.functions as helper_functions
 
 
 backend_config = {
-    "hub": "ibm-q-cern",
-    "group": "internal",
-    "project": "default",
-    "device_name": "ibmq_kolkata"
+    "hub": HUB,
+    "group": GROUP,
+    "project": PROJECT,
+    "device_name": DEVICE_NAME
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
