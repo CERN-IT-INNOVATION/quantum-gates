@@ -14,4 +14,4 @@ authors = [
 	{name = "M. Vischi", email = "vischimichele@gmail.com"}, 
 	{name = "R. Wixinger", email = "roman.wixinger@gmail.com"}
 ]
-dynamic = ["version", "description"]
+dynamic = ["version", "description", "readme", "requires-python", "license", "classifiers", "dependencies", "optional-dependencies"]
