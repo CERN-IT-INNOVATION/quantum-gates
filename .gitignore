@@ -132,4 +132,4 @@ dmypy.json
 .idea/
 
 # Token
-*token*.py
+*token.py

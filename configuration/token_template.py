@@ -1,0 +1,5 @@
+IBM_TOKEN = ''
+HUB = ''
+GROUP = ''
+PROJECT = ''
+DEVICE_NAME = ''

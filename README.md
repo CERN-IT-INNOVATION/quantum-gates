@@ -23,7 +23,7 @@ For users who want to have control over the source code, we recommend the follow
 from [Github](https://github.com/CERN-IT-INNOVATION/quantum-gates), create a new virtual environment, and activate the 
 environment. Then you can build the wheel and install it with the package manager of your choice as described in the 
 section [How to contribute](#how-to-contribute). This will install all dependencies in your virtual environment, 
-and install a working version of the library.
+and install a working version of the library. 
 
 
 ## Quickstart
@@ -158,6 +158,13 @@ thanks to optimized tensor contraction algorithms. We also provide various
 [quantum algorithms](https://quantum-gates.readthedocs.io/en/latest/quantum_algorithms.html) as circuits, and 
 scripts to run the circuits with the simulator, the IBM simulator, and a real IBM backend. Last, all functionality is 
 unit tested and one can get sample code from the unit tests.
+
+
+# Unit Tests
+We recommend running the unit tests once you are finished with the setup of your environment. As some tests need access
+to IBM devices, you have to create a script token.py in the configuration folder. You can check the token_template.py
+for reference. Make sure that your token is active and you have accepted all license agreement with IBM in your IBM
+account.  
 
 
 # How to contribute
