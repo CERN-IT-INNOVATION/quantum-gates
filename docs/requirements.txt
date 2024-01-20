@@ -4,3 +4,4 @@ scipy
 matplotlib
 pylatexenc
 opt-einsum
+sphinx_rtd_theme
