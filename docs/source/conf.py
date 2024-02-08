@@ -7,7 +7,7 @@ copyright = '2023, Di Bartolomeo, Vischi, Grossi, Wixinger'
 author = 'Di Bartolomeo, Vischi, Grossi, Wixinger'
 
 release = '1.0'
-version = '1.0.4'
+version = '1.0.5'
 
 import os
 import sys
