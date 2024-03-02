@@ -180,12 +180,12 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         device_name (str): Name of the quantum device.
 
     Returns:
-        An IBM Quantum provider object that is configured with the given backend parameters and provides access to the
+        An IBM Quantum provider backend object that provides access to the
         specified quantum device.
     """
     IBMProvider.delete_account()
     IBMProvider.save_account(token=Token)
-    provider = IBMProvider(instance=hub+'/'+group+'/'+project)
+    provider = IBMProvider(instance=f"{hub}/{group}/{project}")
     return provider.get_backend(device_name)
 
 
