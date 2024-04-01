@@ -23,7 +23,8 @@ from .factories import (
     SXFactory,
     CNOTFactory,
     CNOTInvFactory,
-    CRFactory
+    CRFactory,
+    ECRFactory
 )
 
 
@@ -57,6 +58,7 @@ class Gates(object):
         self.cr_c = CRFactory(self.integrator)
         self.cnot_c = CNOTFactory(self.integrator)
         self.cnot_inv_c = CNOTInvFactory(self.integrator)
+        self.ecr_c = ECRFactory(self.integrator)
 
     def relaxation(self, Dt, T1, T2) -> np.array:
         return self.relaxation_c.construct(Dt, T1, T2)
@@ -84,6 +86,9 @@ class Gates(object):
 
     def CNOT_inv(self, phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.cnot_inv_c.construct(phi_ctr, phi_trg, t_cnot, p_cnot, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    
+    def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.ecr_c.construct(phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
 
 
 class NoiseFreeGates(object):
@@ -183,6 +188,22 @@ class NoiseFreeGates(object):
              [0, 0, np.cos(theta/2), 1J*np.sin(theta/2) * np.exp(-1J * phi)],
              [0, 0, 1J*np.sin(theta/2) * np.exp(1J * phi), np.cos(theta/2)]]
         )
+    
+    def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        """ Returns CNOT gate in noise free regime. """
+        # Constants
+        tg = 35*10**(-9)
+        t_cr = t_ecr/2-tg
+        p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
+
+        # Noise free gates
+        first_cr = self.CR(np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.CR(-np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = self.X(-phi_ctr + np.pi / 2, p_single_ctr, T1_ctr, T2_ctr)
+        relaxation_gate = self.relaxation(tg, T1_trg, T2_trg)
+        
+
+        return first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr 
 
 
 class ScaledNoiseGates(object):
@@ -260,6 +281,20 @@ class ScaledNoiseGates(object):
             phi_trg,
             t_cnot,
             p_cnot * self.noise_scaling,
+            p_single_ctr * self.noise_scaling,
+            p_single_trg * self.noise_scaling,
+            T1_ctr / self.noise_scaling,
+            T2_ctr / self.noise_scaling,
+            T1_trg / self.noise_scaling,
+            T2_trg / self.noise_scaling
+        )
+    
+    def CNOT(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.gates.ECR(
+            phi_ctr,
+            phi_trg,
+            t_ecr,
+            p_ecr * self.noise_scaling,
             p_single_ctr * self.noise_scaling,
             p_single_trg * self.noise_scaling,
             T1_ctr / self.noise_scaling,

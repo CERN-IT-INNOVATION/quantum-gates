@@ -261,6 +261,62 @@ class Circuit(object):
                 self.phi[i] = self.phi[i] + np.pi/2 + np.pi
                 self.phi[k] = self.phi[k] + np.pi/2
 
+    def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+             T2_ctr: float, T1_trg: float, T2_trg: float):
+        """
+        Apply ECR two-qubit noisy quantum gate with depolarizing and
+        relaxation errors on both qubits during the unitary evolution.
+
+        Args:
+            i: index of the control qubit (int)
+            k: index of the target qubit (int)
+            t_ecr: ECR gate time in ns (double)
+            p_i_k: ECR depolarizing error probability (double)
+            p_i: control single-qubit depolarizing error probability (double)
+            p_k: target single-qubit depolarizing error probability (double)
+            T1_ctr: control qubit's amplitude damping time in ns (double)
+            T2_ctr: control qubit's dephasing time in ns (double)
+            T1_trg: target qubit's amplitude damping time in ns (double)
+            T2_trg: target qubit's dephasing time in ns (double)
+
+        Returns:
+              None
+        """
+        assert abs(i - k) == 1, f"Error, control and target are not neighbours with i={i}, k={k}."
+
+        if self.s < self.nqubit:
+
+            if i < k:
+                self.circuit[i][self.j] = self.gates.ECR(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+                self.phi[i] = self.phi[i] - np.pi/2
+
+            else:
+                self.circuit[self.j][i] = self.gates.ECR(
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+                self.phi[k] = self.phi[k] + np.pi/2 + np.pi
+                self.phi[i] = self.phi[i] + np.pi/2
+            self.s = self.s+2
+
+        elif self.s == self.nqubit:
+            self.s = 2
+            self.j = self.j+1
+
+            if i < k:
+                self.circuit[i][self.j] = self.gates.ECR(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+                self.phi[i] = self.phi[i] - np.pi/2
+
+            else:
+                self.circuit[self.j][i] = self.gates.ECR(
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+                self.phi[k] = self.phi[k] + np.pi/2 + np.pi
+                self.phi[i] = self.phi[i] + np.pi/2
+
     def reset(self):
         """ Reset the circuit to the initial state. """
         self.j = 0
@@ -477,6 +533,54 @@ class AlternativeCircuit(object):
 
             # Target k
             self.phi[k] = self.phi[k] + np.pi/2
+
+        # Bookkeeping
+        self._s += 2
+
+        # Case: All gates in this gatetime have been applied
+        if self._s == self.nqubit:
+            self._update_mp_list()
+        return
+    
+    def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+             T2_ctr: float, T1_trg: float, T2_trg: float):
+        """
+        Apply CNOT two-qubit noisy quantum gate with depolarizing and
+        relaxation errors on both qubits during the unitary evolution.
+
+        Args:
+            i: index of the control qubit (int)
+            k: index of the target qubit (int)
+            t_ecr: ECR gate time in ns (double)
+            p_i_k: ECR depolarizing error probability (double)
+            p_i: control single-qubit depolarizing error probability (double)
+            p_k: target single-qubit depolarizing error probability (double)
+            T1_ctr: control qubit's amplitude damping time in ns (double)
+            T2_ctr: control qubit's dephasing time in ns (double)
+            T1_trg: target qubit's amplitude damping time in ns (double)
+            T2_trg: target qubit's dephasing time in ns (double)
+
+        Returns:
+              None
+        """
+
+        # Add two qubit gate to circuit snippet
+        if i < k:
+            # Control i
+            self._mp[i] = self.gates.ECR(
+                self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            )
+            self.phi[i] = self.phi[i] - np.pi/2
+        else:
+            # Control i
+            self._mp[k] = self.gates.ECR(
+                self.phi[k], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            )
+
+            self.phi[k] = self.phi[k] + np.pi/2 + np.pi
+
+            # Target k
+            self.phi[i] = self.phi[i] + np.pi/2
 
         # Bookkeeping
         self._s += 2
