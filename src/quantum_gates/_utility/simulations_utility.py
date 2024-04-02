@@ -6,7 +6,7 @@ import concurrent.futures
 
 from qiskit import transpile
 from qiskit.transpiler import CouplingMap
-from qiskit.providers.aer import AerSimulator
+from qiskit_aer import AerSimulator
 from qiskit_ibm_provider import IBMProvider
 
 
