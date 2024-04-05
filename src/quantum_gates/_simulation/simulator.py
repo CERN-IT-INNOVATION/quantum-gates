@@ -150,22 +150,22 @@ class MrAndersonSimulator(object):
         raw_data = t_qiskit_circ.data
 
         for i in range(t_qiskit_circ.__len__()):
-            if raw_data[i][0].name == 'cx':
-                q_ctr = raw_data[i][1][0].index
-                q_trg = raw_data[i][1][1].index
+            if raw_data[i][0].name == 'ecr':
+                q_ctr = raw_data[i][1][0]._index
+                q_trg = raw_data[i][1][1]._index
                 if q_ctr in qubits_layout and q_trg in qubits_layout:
                     raw_data[i][1][0] = qubits_layout.index(q_ctr)
                     raw_data[i][1][1] = qubits_layout.index(q_trg)  # TODO: Change such shared raw_data is not modified.
                     data.append(raw_data[i])
 
             elif raw_data[i][0].name == 'measure':
-                q = raw_data[i][1][0].index
+                q = raw_data[i][1][0]._index
                 q = qubits_layout.index(q)
-                c = raw_data[i][2][0].index
+                c = raw_data[i][2][0]._index
                 data_measure.append((q, c))
 
             else:
-                q = raw_data[i][1][0].index
+                q = raw_data[i][1][0]._index
                 if q in qubits_layout:
                     if raw_data[i][0].name == 'rz':
                         n_rz = n_rz + 1
@@ -282,13 +282,13 @@ def _apply_gates_on_circuit(
     """
 
     # Unpack dict
-    T1, T2, p, rout, p_cnot, t_cnot, tm, dt = (
+    T1, T2, p, rout, p_ecr, t_ecr, tm, dt = (
         device_param["T1"],
         device_param["T2"],
         device_param["p"],
         device_param["rout"],
-        device_param["p_cnot"],
-        device_param["t_cnot"],
+        device_param["p_ecr"],
+        device_param["t_ecr"],
         device_param["tm"],
         device_param["dt"][0]
     )
@@ -318,12 +318,12 @@ def _apply_gates_on_circuit(
                 else:
                     circ.I(k)
 
-        if data[j][0].name == 'cx':
+        if data[j][0].name == 'ecr':
             q_ctr = data[j][1][0]
             q_trg = data[j][1][1]
             for k in range(nqubit):
                 if k == q_ctr:
-                    circ.CNOT(k, q_trg, t_cnot[k][q_trg], p_cnot[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
+                    circ.ECR(k, q_trg, t_ecr[k][q_trg], p_ecr[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
                 elif k == q_trg:
                     pass
                 else:

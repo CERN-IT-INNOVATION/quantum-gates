@@ -145,24 +145,24 @@ class DeviceParameters(object):
             "config": config.to_dict()
         }
 
-        t_cnot = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
-        p_cnot = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
+        t_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
+        p_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
 
         if self.nr_of_qubits > 1:
             for i in range(self.nr_of_qubits):
                 if i == 0:
-                    t_cnot[0][1] = prop.gate_length('cx', [self.qubits_layout[0], self.qubits_layout[1]])
-                    p_cnot[0][1] = prop.gate_error('cx', [self.qubits_layout[0], self.qubits_layout[1]])
+                    t_ecr[0][1] = prop.gate_length('ecr', [self.qubits_layout[0], self.qubits_layout[1]])
+                    p_ecr[0][1] = prop.gate_error('ecr', [self.qubits_layout[0], self.qubits_layout[1]])
                 if i != 0 and i != self.nr_of_qubits-1:
-                    t_cnot[i][i-1] = prop.gate_length('cx', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    p_cnot[i][i-1] = prop.gate_error('cx', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    t_cnot[i][i+1] = prop.gate_length('cx', [self.qubits_layout[i], self.qubits_layout[i+1]])
-                    p_cnot[i][i+1] = prop.gate_error('cx', [self.qubits_layout[i], self.qubits_layout[i+1]])
+                    t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+                    p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+                    t_ecr[i][i+1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i+1]])
+                    p_ecr[i][i+1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i+1]])
                 if i == self.nr_of_qubits-1:
-                    t_cnot[i][i-1] = prop.gate_length('cx', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    p_cnot[i][i-1] = prop.gate_error('cx', [self.qubits_layout[i], self.qubits_layout[i-1]])
-        self.t_cnot = t_cnot
-        self.p_cnot = p_cnot
+                    t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+                    p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+        self.t_cnot = t_ecr
+        self.p_cnot = p_ecr
 
         # Verify
         if not self.is_complete():
