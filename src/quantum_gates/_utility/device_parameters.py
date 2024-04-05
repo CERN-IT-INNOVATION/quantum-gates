@@ -22,8 +22,8 @@ class DeviceParameters(object):
         T2 (np.array): T2 time.
         p (np.array): To be added.
         rout (np.array): To be added.
-        p_cnot (np.array): Error probabilites in the CNOT gate.
-        p_cnot (np.array): Gate time to implement controlled not operations in the CNOT gate.
+        p_ecr (np.array): Error probabilites in the ECR gate.
+        p_ecr (np.array): Gate time to implement controlled not operations in the ECR gate.
         tm (np.array): To be added.
         dt (np.array): To be added.
         
@@ -34,8 +34,8 @@ class DeviceParameters(object):
     f_T2 = "T2.txt"
     f_p = "p.txt"
     f_rout = "rout.txt"
-    f_p_cnot = "p_cnot.txt"
-    f_t_cnot = "t_cnot.txt"
+    f_p_ecr = "p_ecr.txt"
+    f_t_ecr = "t_ecr.txt"
     f_tm = "tm.txt"
     f_dt = "dt.txt"
     f_json = "device_parameters.json"
@@ -48,13 +48,13 @@ class DeviceParameters(object):
         self.T2 = None
         self.p = None
         self.rout = None
-        self.p_cnot = None
-        self.t_cnot = None
+        self.p_ecr = None
+        self.t_ecr = None
         self.tm = None
         self.dt = None
         self.metadata = None
-        self._names = ["T1", "T2", "p", "rout", "p_cnot", "t_cnot", "tm", "dt", "metadata"]
-        self._f_txt = ["T1.txt", "T2.txt", "p.txt", "rout.txt", "p_cnot.txt", "t_cnot.txt", "tm.txt", "dt.txt",
+        self._names = ["T1", "T2", "p", "rout", "p_ecr", "t_ecr", "tm", "dt", "metadata"]
+        self._f_txt = ["T1.txt", "T2.txt", "p.txt", "rout.txt", "p_ecr.txt", "t_ecr.txt", "tm.txt", "dt.txt",
                        "metadata.json"]
 
     def load_from_json(self, location: str):
@@ -151,18 +151,18 @@ class DeviceParameters(object):
         if self.nr_of_qubits > 1:
             for i in range(self.nr_of_qubits):
                 if i == 0:
-                    t_ecr[0][1] = prop.gate_length('ecr', [self.qubits_layout[0], self.qubits_layout[1]])
-                    p_ecr[0][1] = prop.gate_error('ecr', [self.qubits_layout[0], self.qubits_layout[1]])
+                    t_ecr[0][1] = prop.gate_length('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
+                    p_ecr[0][1] = prop.gate_error('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
                 if i != 0 and i != self.nr_of_qubits-1:
-                    t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    t_ecr[i][i+1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i+1]])
-                    p_ecr[i][i+1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i+1]])
+                    t_ecr[i-1][i] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+                    p_ecr[i-1][i] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+                    t_ecr[i+1][i] = prop.gate_length('ecr', [self.qubits_layout[i+1], self.qubits_layout[i]])
+                    p_ecr[i+1][i] = prop.gate_error('ecr', [self.qubits_layout[i+1], self.qubits_layout[i]])
                 if i == self.nr_of_qubits-1:
                     t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
                     p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-        self.t_cnot = t_ecr
-        self.p_cnot = p_ecr
+        self.t_ecr = t_ecr
+        self.p_ecr = p_ecr
 
         # Verify
         if not self.is_complete():
@@ -229,8 +229,8 @@ class DeviceParameters(object):
                 self.T2 is None,
                 self.p is None,
                 self.rout is None,
-                self.p_cnot is None,
-                self.t_cnot is None,
+                self.p_ecr is None,
+                self.t_ecr is None,
                 self.tm is None,
                 self.dt is None,
                 self.metadata is None)):
@@ -289,8 +289,8 @@ class DeviceParameters(object):
             "T2": self.T2,
             "p": self.p,
             "rout": self.rout,
-            "p_cnot": self.p_cnot,
-            "t_cnot": self.t_cnot,
+            "p_ecr": self.p_ecr,
+            "t_ecr": self.t_ecr,
             "tm": self.tm,
             "dt": self.dt,
             "metadata": self.metadata

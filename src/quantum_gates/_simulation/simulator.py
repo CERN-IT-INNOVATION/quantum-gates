@@ -269,7 +269,7 @@ class MrAndersonSimulator(object):
 
 def _apply_gates_on_circuit(
         data: list,
-        circ: Circuit or StandardCircuit or EfficientCircuit,
+        circ: Circuit or StandardCircuit or EfficientCircuit, # type: ignore
         device_param: dict):
     """ Applies the operations specified in data on the circuit.
 
@@ -299,11 +299,11 @@ def _apply_gates_on_circuit(
 
         if data[j][0].name == 'rz':
             theta = float(data[j][0].params[0])
-            q = data[j][1][0]
+            q = data[j][1][0]._index
             circ.Rz(q, theta)
 
         if data[j][0].name == 'sx':
-            q = data[j][1][0]
+            q = data[j][1][0]._index
             for k in range(nqubit):
                 if k == q:
                     circ.SX(k, p[k], T1[k], T2[q])
@@ -311,7 +311,7 @@ def _apply_gates_on_circuit(
                     circ.I(k)
 
         if data[j][0].name == 'x':
-            q = data[j][1][0]
+            q = data[j][1][0]._index
             for k in range(nqubit):
                 if k == q:
                     circ.X(k, p[k], T1[k], T2[q])
@@ -319,8 +319,8 @@ def _apply_gates_on_circuit(
                     circ.I(k)
 
         if data[j][0].name == 'ecr':
-            q_ctr = data[j][1][0]
-            q_trg = data[j][1][1]
+            q_ctr = data[j][1][0]._index
+            q_trg = data[j][1][1]._index
             for k in range(nqubit):
                 if k == q_ctr:
                     circ.ECR(k, q_trg, t_ecr[k][q_trg], p_ecr[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
@@ -330,7 +330,7 @@ def _apply_gates_on_circuit(
                     circ.I(k)
 
         if data[j][0].name == 'delay':
-            q = data[j][1][0]
+            q = data[j][1][0]._index
             time = data[j][0].duration * dt
             for k in range(nqubit):
                 if k == q:
