@@ -7,5 +7,6 @@ from ._gates.factories import (
     SXFactory, 
     CRFactory, 
     CNOTFactory,
-    CNOTInvFactory
+    CNOTInvFactory,
+    ECRFactory
 )

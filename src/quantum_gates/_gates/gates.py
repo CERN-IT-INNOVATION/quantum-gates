@@ -190,7 +190,7 @@ class NoiseFreeGates(object):
         )
     
     def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
-        """ Returns CNOT gate in noise free regime. """
+        """ Returns ECR gate in noise free regime. """
         # Constants
         tg = 35*10**(-9)
         t_cr = t_ecr/2-tg
@@ -289,7 +289,7 @@ class ScaledNoiseGates(object):
             T2_trg / self.noise_scaling
         )
     
-    def CNOT(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+    def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.gates.ECR(
             phi_ctr,
             phi_trg,

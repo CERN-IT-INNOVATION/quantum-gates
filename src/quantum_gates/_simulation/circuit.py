@@ -526,13 +526,13 @@ class AlternativeCircuit(object):
         else:
             # Control i
             self._mp[i] = self.gates.CNOT_inv(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[k], self.phi[i], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
-            self.phi[i] = self.phi[i] + np.pi/2 + np.pi
+            self.phi[k] = self.phi[k] + np.pi/2 + np.pi
 
             # Target k
-            self.phi[k] = self.phi[k] + np.pi/2
+            self.phi[i] = self.phi[i] + np.pi/2
 
         # Bookkeeping
         self._s += 2
@@ -545,7 +545,7 @@ class AlternativeCircuit(object):
     def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
-        Apply CNOT two-qubit noisy quantum gate with depolarizing and
+        Apply ECR two-qubit noisy quantum gate with depolarizing and
         relaxation errors on both qubits during the unitary evolution.
 
         Args:
@@ -564,6 +564,8 @@ class AlternativeCircuit(object):
               None
         """
 
+        i, k = k, i
+
         # Add two qubit gate to circuit snippet
         if i < k:
             # Control i
@@ -574,7 +576,7 @@ class AlternativeCircuit(object):
         else:
             # Control i
             self._mp[k] = self.gates.ECR(
-                self.phi[k], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
             self.phi[k] = self.phi[k] + np.pi/2 + np.pi
