@@ -847,12 +847,11 @@ class ECRFactory(object):
         p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
 
         # Sample gates
-        first_cr = self.cr_c.construct(np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        second_cr = self.cr_c.construct(-np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        x_gate = self.x_c.construct(-phi_ctr+np.pi/2, p_single_ctr, T1_ctr, T2_ctr)
+        first_cr = self.cr_c.construct(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.cr_c.construct(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* self.x_c.construct(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
         relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
         
-
-        result = first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr 
+        result = (first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr )
         return result
     

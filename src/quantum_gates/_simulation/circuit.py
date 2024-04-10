@@ -357,7 +357,7 @@ class AlternativeCircuit(object):
         phi (list[float]): Phases of the qubits.
     """
 
-    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend):
+    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend): # type: ignore
         self.nqubit = nqubit                        # Number of qubits
         self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
         self._backend = BackendClass(nqubit)        # Backend for tensor contractions
@@ -563,26 +563,25 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
-
-        i, k = k, i
+        i,k = k,i # for the qiskit notation flip the target and control qubit
 
         # Add two qubit gate to circuit snippet
-        if i < k:
+        if i > k:
             # Control i
             self._mp[i] = self.gates.ECR(
                 self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
-            self.phi[i] = self.phi[i] - np.pi/2
+            #self.phi[i] = self.phi[i] - np.pi/2
         else:
             # Control i
-            self._mp[k] = self.gates.ECR(
-                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            self._mp[i] = self.gates.ECR(
+                self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
-            self.phi[k] = self.phi[k] + np.pi/2 + np.pi
+            #self.phi[i] = self.phi[i] + np.pi/2 + np.pi
 
             # Target k
-            self.phi[i] = self.phi[i] + np.pi/2
+            #self.phi[k] = self.phi[k] + np.pi/2
 
         # Bookkeeping
         self._s += 2
