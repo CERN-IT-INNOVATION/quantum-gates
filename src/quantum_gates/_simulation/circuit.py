@@ -287,17 +287,17 @@ class Circuit(object):
         if self.s < self.nqubit:
 
             if i < k:
-                self.circuit[i][self.j] = self.gates.ECR_inv(
+                self.circuit[i][self.j] = self.gates.ECR(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
-                self.circuit[self.j][i] = self.gates.ECR_inv(
-                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.circuit[i][self.j] = self.gates.ECR_inv(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
-                self.phi[k] = self.phi[k] + np.pi/2 + np.pi
-                self.phi[i] = self.phi[i] + np.pi/2
+                self.phi[i] = self.phi[i] + np.pi/2 + np.pi
+                self.phi[k] = self.phi[k] + np.pi/2
             self.s = self.s+2
 
         elif self.s == self.nqubit:
@@ -305,17 +305,18 @@ class Circuit(object):
             self.j = self.j+1
 
             if i < k:
-                self.circuit[i][self.j] = self.gates.ECR_inv(
+                self.circuit[i][self.j] = self.gates.ECR(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
-                self.circuit[self.j][i] = self.gates.ECR_inv(
-                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.circuit[i][self.j] = self.gates.ECR_inv(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
-                self.phi[k] = self.phi[k] + np.pi/2 + np.pi
-                self.phi[i] = self.phi[i] + np.pi/2
+                self.phi[i] = self.phi[i] + np.pi/2 + np.pi
+                self.phi[k] = self.phi[k] + np.pi/2
+                
 
     def reset(self):
         """ Reset the circuit to the initial state. """
@@ -526,13 +527,13 @@ class AlternativeCircuit(object):
         else:
             # Control i
             self._mp[i] = self.gates.CNOT_inv(
-                self.phi[k], self.phi[i], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
-            self.phi[k] = self.phi[k] + np.pi/2 + np.pi
+            self.phi[i] = self.phi[i] + np.pi/2 + np.pi
 
             # Target k
-            self.phi[i] = self.phi[i] + np.pi/2
+            self.phi[k] = self.phi[k] + np.pi/2
 
         # Bookkeeping
         self._s += 2
@@ -565,16 +566,15 @@ class AlternativeCircuit(object):
         """
         
         # Add two qubit gate to circuit snippet
-        if i > k:
-            # Control i
-            self._mp[i] = self.gates.ECR(
-                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
-            )
-            
-        else:
+        if i < k:
             # Control i
             self._mp[i] = self.gates.ECR(
                 self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            )
+        else:
+            # Control i
+            self._mp[i] = self.gates.ECR_inv(
+                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
         # Bookkeeping
