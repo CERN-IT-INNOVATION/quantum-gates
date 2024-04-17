@@ -852,6 +852,76 @@ class ECRFactory(object):
         x_gate = -1J* self.x_c.construct(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
         relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
         
-        result = (first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr )
+        result = (first_cr @ np.kron(x_gate , relaxation_gate) @ second_cr )
         return result
-    
+
+
+class ECRInvFactory(object):
+    """Factory for constructing noisy inverse ECR gates.
+
+    Args:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+
+    Attributes:
+        integrator (Integrator): Used to perform the Ito integrals, hides the pulse waveform information.
+        cr_c (CRFactory): Instance of the factory for creating CR gates.
+        single_qubit_gate_c (SingelQubitGateFactory): Instance of the factory for creating general single qubit gates.
+        x_c (XFactory): Instance of the factory for creating X gates.
+        sx_c (XFactory): Instance of the factory for creating SX gates.
+        relaxation_c (RelaxationFactory): Instance of the factory for creating gates for relaxation.
+
+    """
+
+    def __init__(self, integrator):
+        self.integrator = integrator
+
+        # Factories
+        self.cr_c = CRFactory(self.integrator)
+        self.x_c = XFactory(self.integrator)
+        self.sx_c = SXFactory(self.integrator)
+        self.single_qubit_gate_c = SingleQubitGateFactory(self.integrator)
+        self.relaxation_c = RelaxationFactory()
+
+    def construct(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg,
+                  T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        """Generates a noisy inverse ECR gate.
+
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the ECR two-qubit noisy quantum
+        gate with depolarizing and relaxation errors on both qubits during the unitary evolution.
+
+        Args:
+            phi_ctr (float): Control qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            phi_trg (float): Target qubit phase of the drive defining axis of rotation on the Bloch sphere.
+            t_ecr (float): ECR gate time in ns.
+            p_ecr (float): ECR depolarizing error probability.
+            p_single_ctr (float): Control qubit depolarizing error probability.
+            p_single_trg (float): Target qubit depolarizing error probability.
+            T1_ctr (float): Control qubit's amplitude damping time in ns.
+            T2_ctr (float): Control qubit's dephasing time in ns.
+            T1_trg (float): Target qubit's amplitude damping time in ns.
+            T2_trg (float): Target qubit's dephasing time in ns.
+            pulse_parametrization (callable): None or function that parametrized the pulse (None or callable)
+
+        Returns:
+              Array representing a ECR two-qubit noisy quantum gate.
+        """
+        # Constants
+        tg = 35*10**(-9)
+        t_cr = t_ecr/2-tg
+        p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
+
+        # Sample gates
+        first_cr = self.cr_c.construct(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.cr_c.construct(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* self.x_c.construct(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
+
+        sx_gate_ctr_1 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_1 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+        sx_gate_ctr_2 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_2 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+        result = 1j * np.kron(sx_gate_ctr_1, sx_gate_trg_1) @ (first_cr @ np.kron(x_gate , relaxation_gate) @ second_cr ) @ np.kron(sx_gate_ctr_2, sx_gate_trg_2)
+
+        return result

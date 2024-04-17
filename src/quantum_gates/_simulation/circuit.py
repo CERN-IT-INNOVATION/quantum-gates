@@ -287,13 +287,13 @@ class Circuit(object):
         if self.s < self.nqubit:
 
             if i < k:
-                self.circuit[i][self.j] = self.gates.ECR(
+                self.circuit[i][self.j] = self.gates.ECR_inv(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
-                self.circuit[self.j][i] = self.gates.ECR(
+                self.circuit[self.j][i] = self.gates.ECR_inv(
                     self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[k] = self.phi[k] + np.pi/2 + np.pi
@@ -305,13 +305,13 @@ class Circuit(object):
             self.j = self.j+1
 
             if i < k:
-                self.circuit[i][self.j] = self.gates.ECR(
+                self.circuit[i][self.j] = self.gates.ECR_inv(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
-                self.circuit[self.j][i] = self.gates.ECR(
+                self.circuit[self.j][i] = self.gates.ECR_inv(
                     self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[k] = self.phi[k] + np.pi/2 + np.pi
@@ -563,25 +563,19 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
-        i,k = k,i # for the qiskit notation flip the target and control qubit
-
+        
         # Add two qubit gate to circuit snippet
         if i > k:
             # Control i
             self._mp[i] = self.gates.ECR(
-                self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
-            #self.phi[i] = self.phi[i] - np.pi/2
+            
         else:
             # Control i
             self._mp[i] = self.gates.ECR(
                 self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
-
-            #self.phi[i] = self.phi[i] + np.pi/2 + np.pi
-
-            # Target k
-            #self.phi[k] = self.phi[k] + np.pi/2
 
         # Bookkeeping
         self._s += 2

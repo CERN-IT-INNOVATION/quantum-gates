@@ -151,8 +151,8 @@ class DeviceParameters(object):
         if self.nr_of_qubits > 1:
             for i in range(self.nr_of_qubits):
                 if i == 0:
-                    t_ecr[0][1] = prop.gate_length('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
-                    p_ecr[0][1] = prop.gate_error('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
+                    t_ecr[1][0] = prop.gate_length('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
+                    p_ecr[1][0] = prop.gate_error('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
                 if i != 0 and i != self.nr_of_qubits-1:
                     t_ecr[i-1][i] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
                     p_ecr[i-1][i] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])

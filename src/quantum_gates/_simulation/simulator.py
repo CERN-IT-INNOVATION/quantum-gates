@@ -319,11 +319,11 @@ def _apply_gates_on_circuit(
                     circ.I(k)
 
         if data[j][0].name == 'ecr':
-            q_ctr = data[j][1][0]._index
-            q_trg = data[j][1][1]._index
+            q_ctr = data[j][1][0]._index # index control qubit
+            q_trg = data[j][1][1]._index # index target qubit
             for k in range(nqubit):
                 if k == q_ctr:
-                    circ.ECR(k, q_trg, t_ecr[k][q_trg], p_ecr[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
+                    circ.ECR_inv(k, q_trg, t_ecr[k][q_trg], p_ecr[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
                 elif k == q_trg:
                     pass
                 else:

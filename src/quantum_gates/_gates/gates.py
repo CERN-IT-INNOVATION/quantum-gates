@@ -24,7 +24,8 @@ from .factories import (
     CNOTFactory,
     CNOTInvFactory,
     CRFactory,
-    ECRFactory
+    ECRFactory,
+    ECRInvFactory
 )
 
 
@@ -59,6 +60,7 @@ class Gates(object):
         self.cnot_c = CNOTFactory(self.integrator)
         self.cnot_inv_c = CNOTInvFactory(self.integrator)
         self.ecr_c = ECRFactory(self.integrator)
+        self.ecr_inv_c = ECRInvFactory(self.integrator)
 
     def relaxation(self, Dt, T1, T2) -> np.array:
         return self.relaxation_c.construct(Dt, T1, T2)
@@ -89,6 +91,9 @@ class Gates(object):
     
     def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.ecr_c.construct(phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    
+    def ECR_inv(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.ecr_inv_c.construct(phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg)
 
 
 class NoiseFreeGates(object):
@@ -197,14 +202,36 @@ class NoiseFreeGates(object):
         p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
 
         # Noise free gates
-        first_cr = self.CR(np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        second_cr = self.CR(-np.pi/4, -phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        x_gate = self.X(-phi_ctr + np.pi / 2, p_single_ctr, T1_ctr, T2_ctr)
+        first_cr = self.CR(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.CR(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* self.X(np.pi -phi_ctr , p_single_ctr, T1_ctr, T2_ctr)
         relaxation_gate = self.relaxation(tg, T1_trg, T2_trg)
-        
 
         return first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr 
+    
 
+    def ECR_inv(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        """ Returns ECR inverse gate in noise free regime. """
+        # Constants
+        tg = 35*10**(-9)
+        t_cr = t_ecr/2-tg
+        p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
+
+        # Sample gates
+        first_cr = self.cr_c.construct(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.cr_c.construct(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* self.x_c.construct(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
+
+        sx_gate_ctr_1 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_1 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+        sx_gate_ctr_2 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_2 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+        return 1j * np.kron(sx_gate_ctr_1, sx_gate_trg_1) @ (first_cr @ np.kron(x_gate , relaxation_gate) @ second_cr ) @ np.kron(sx_gate_ctr_2, sx_gate_trg_2)
+
+    
 
 class ScaledNoiseGates(object):
     """ Version of Gates in which the noise is scaled by a certain factor noise_scale of at least 1e-15.
@@ -291,6 +318,20 @@ class ScaledNoiseGates(object):
     
     def ECR(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         return self.gates.ECR(
+            phi_ctr,
+            phi_trg,
+            t_ecr,
+            p_ecr * self.noise_scaling,
+            p_single_ctr * self.noise_scaling,
+            p_single_trg * self.noise_scaling,
+            T1_ctr / self.noise_scaling,
+            T2_ctr / self.noise_scaling,
+            T1_trg / self.noise_scaling,
+            T2_trg / self.noise_scaling
+        )
+    
+    def ECR_inv(self, phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        return self.gates.ECR_inv(
             phi_ctr,
             phi_trg,
             t_ecr,
