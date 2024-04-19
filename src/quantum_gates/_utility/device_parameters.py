@@ -148,7 +148,18 @@ class DeviceParameters(object):
         t_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
         p_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
 
+        ecr_info = prop.gate_property('ecr')
+
         if self.nr_of_qubits > 1:
+            for x in ecr_info:
+                i = list(x)[0]
+                j = list(x)[1]
+                if i > self.nr_of_qubits-1 or j > self.nr_of_qubits-1:
+                    continue
+                p_ecr[i,j] = ecr_info[i,j]['gate_error'][0]
+                t_ecr[i,j] = ecr_info[i,j]['gate_length'][0]
+
+            """
             for i in range(self.nr_of_qubits):
                 if i == 0:
                     t_ecr[1][0] = prop.gate_length('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
@@ -161,6 +172,9 @@ class DeviceParameters(object):
                 if i == self.nr_of_qubits-1:
                     t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
                     p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
+
+            """
+
         self.t_ecr = t_ecr
         self.p_ecr = p_ecr
 
