@@ -886,7 +886,7 @@ class ECRInvFactory(object):
                   T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
         """Generates a noisy inverse ECR gate.
 
-        This is a 2nd order approximated solution, a non-unitary matrix. It implements the ECR two-qubit noisy quantum
+        This is a 2nd order approximated solution, a non-unitary matrix. It implements the reverse ECR two-qubit noisy quantum
         gate with depolarizing and relaxation errors on both qubits during the unitary evolution.
 
         Args:
@@ -903,7 +903,7 @@ class ECRInvFactory(object):
             pulse_parametrization (callable): None or function that parametrized the pulse (None or callable)
 
         Returns:
-              Array representing a ECR two-qubit noisy quantum gate.
+              Array representing a reverse ECR two-qubit noisy quantum gate.
         """
         # Constants
         tg = 35*10**(-9)

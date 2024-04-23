@@ -290,14 +290,11 @@ class Circuit(object):
                 self.circuit[i][self.j] = self.gates.ECR(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
-                self.phi[i] = self.phi[i] - np.pi/2
 
             else:
                 self.circuit[i][self.j] = self.gates.ECR_inv(
-                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
-                self.phi[i] = self.phi[i] + np.pi/2 + np.pi
-                self.phi[k] = self.phi[k] + np.pi/2
             self.s = self.s+2
 
         elif self.s == self.nqubit:
@@ -307,15 +304,12 @@ class Circuit(object):
             if i < k:
                 self.circuit[i][self.j] = self.gates.ECR(
                     self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
-                )
-                self.phi[i] = self.phi[i] - np.pi/2
+                ) 
 
             else:
                 self.circuit[i][self.j] = self.gates.ECR_inv(
-                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
-                self.phi[i] = self.phi[i] + np.pi/2 + np.pi
-                self.phi[k] = self.phi[k] + np.pi/2
                 
 
     def reset(self):
