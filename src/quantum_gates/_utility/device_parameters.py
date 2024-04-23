@@ -145,16 +145,18 @@ class DeviceParameters(object):
             "config": config.to_dict()
         }
 
-        t_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
-        p_ecr = np.zeros((self.nr_of_qubits, self.nr_of_qubits))
+        max_qubit = np.max(self.qubits_layout) + 1 # value of the index of the 'greatest' qubit + 1 because the count start from 0
+
+        t_ecr = np.zeros((max_qubit, max_qubit))
+        p_ecr = np.zeros((max_qubit, max_qubit))
 
         ecr_info = prop.gate_property('ecr')
 
-        if self.nr_of_qubits > 1:
+        if max_qubit > 1:
             for x in ecr_info:
                 i = list(x)[0]
                 j = list(x)[1]
-                if i > self.nr_of_qubits-1 or j > self.nr_of_qubits-1:
+                if i > max_qubit-1 or j > max_qubit-1:
                     continue
                 p_ecr[i,j] = ecr_info[i,j]['gate_error'][0]
                 t_ecr[i,j] = ecr_info[i,j]['gate_length'][0]
