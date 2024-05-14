@@ -282,13 +282,13 @@ def _apply_gates_on_circuit(
     """
 
     # Unpack dict
-    T1, T2, p, rout, p_ecr, t_ecr, tm, dt = (
+    T1, T2, p, rout, p_int, t_int, tm, dt = (
         device_param["T1"],
         device_param["T2"],
         device_param["p"],
         device_param["rout"],
-        device_param["p_ecr"],
-        device_param["t_ecr"],
+        device_param["p_int"],
+        device_param["t_int"],
         device_param["tm"],
         device_param["dt"][0]
     )
@@ -323,12 +323,23 @@ def _apply_gates_on_circuit(
             q_trg = data[j][1][1]._index # index target qubit
             for k in range(nqubit):
                 if k == q_ctr:
-                    circ.ECR(k, q_trg, t_ecr[k][q_trg], p_ecr[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
+                    circ.ECR(k, q_trg, t_int[k][q_trg], p_int[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
                 elif k == q_trg:
                     pass
                 else:
                     circ.I(k)
 
+        if data[j][0].name == 'cx':
+            q_ctr = data[j][1][0]._index # index control qubit
+            q_trg = data[j][1][1]._index # index target qubit
+            for k in range(nqubit):
+                if k == q_ctr:
+                    circ.CNOT(k, q_trg, t_int[k][q_trg], p_int[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
+                elif k == q_trg:
+                    pass
+                else:
+                    circ.I(k)
+        
         if data[j][0].name == 'delay':
             q = data[j][1][0]._index
             time = data[j][0].duration * dt

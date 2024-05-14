@@ -22,8 +22,8 @@ class DeviceParameters(object):
         T2 (np.array): T2 time.
         p (np.array): To be added.
         rout (np.array): To be added.
-        p_ecr (np.array): Error probabilites in the ECR gate.
-        p_ecr (np.array): Gate time to implement controlled not operations in the ECR gate.
+        p_int (np.array): Error probabilites in the 2 qubit gate.
+        p_int (np.array): Gate time to implement controlled not operations in the 2 qubit gate.
         tm (np.array): To be added.
         dt (np.array): To be added.
         
@@ -34,8 +34,8 @@ class DeviceParameters(object):
     f_T2 = "T2.txt"
     f_p = "p.txt"
     f_rout = "rout.txt"
-    f_p_ecr = "p_ecr.txt"
-    f_t_ecr = "t_ecr.txt"
+    f_p_int = "p_int.txt"
+    f_t_int = "t_int.txt"
     f_tm = "tm.txt"
     f_dt = "dt.txt"
     f_json = "device_parameters.json"
@@ -48,13 +48,13 @@ class DeviceParameters(object):
         self.T2 = None
         self.p = None
         self.rout = None
-        self.p_ecr = None
-        self.t_ecr = None
+        self.p_int = None
+        self.t_int = None
         self.tm = None
         self.dt = None
         self.metadata = None
-        self._names = ["T1", "T2", "p", "rout", "p_ecr", "t_ecr", "tm", "dt", "metadata"]
-        self._f_txt = ["T1.txt", "T2.txt", "p.txt", "rout.txt", "p_ecr.txt", "t_ecr.txt", "tm.txt", "dt.txt",
+        self._names = ["base", "T1", "T2", "p", "rout", "p_int", "t_int", "tm", "dt", "metadata"]
+        self._f_txt = ["base.txt" ,"T1.txt", "T2.txt", "p.txt", "rout.txt", "p_ecr.txt", "t_ecr.txt", "tm.txt", "dt.txt",
                        "metadata.json"]
 
     def load_from_json(self, location: str):
@@ -76,8 +76,8 @@ class DeviceParameters(object):
         self.T2 = np.array(data_dict["T2"])
         self.p = np.array(data_dict["p"])
         self.rout = np.array(data_dict["rout"])
-        self.p_cnot = np.array(data_dict["p_cnot"])
-        self.t_cnot = np.array(data_dict["t_cnot"])
+        self.p_int = np.array(data_dict["p_int"])
+        self.t_int = np.array(data_dict["t_int"])
         self.tm = np.array(data_dict["tm"])
         self.dt = np.array(data_dict["dt"])
         self.metadata = data_dict["metadata"]
@@ -102,16 +102,16 @@ class DeviceParameters(object):
             self.T2 = np.array([np.loadtxt(location + self.f_T2)])
             self.p = np.array([np.loadtxt(location + self.f_p)])
             self.rout = np.array([np.loadtxt(location + self.f_rout)])
-            self.p_cnot = np.array([np.loadtxt(location + self.f_p_cnot)])
-            self.t_cnot = np.array([np.loadtxt(location + self.f_t_cnot)])
+            self.p_int = np.array([np.loadtxt(location + self.f_p_int)])
+            self.t_int = np.array([np.loadtxt(location + self.f_t_int)])
             self.tm = np.array([np.loadtxt(location + self.f_tm)])
         else:
             self.T1 = np.loadtxt(location + self.f_T1)
             self.T2 = np.loadtxt(location + self.f_T2)
             self.p = np.loadtxt(location + self.f_p)
             self.rout = np.loadtxt(location + self.f_rout)
-            self.p_cnot = np.loadtxt(location + self.f_p_cnot)
-            self.t_cnot = np.loadtxt(location + self.f_t_cnot)
+            self.p_int = np.loadtxt(location + self.f_p_int)
+            self.t_int = np.loadtxt(location + self.f_t_int)
             self.tm = np.loadtxt(location + self.f_tm)
         self.dt = np.array([np.loadtxt(location + self.f_dt)])
         with open(location + self.f_metadata, "r") as metadata_file:
@@ -147,19 +147,32 @@ class DeviceParameters(object):
 
         max_qubit = np.max(self.qubits_layout) + 1 # value of the index of the 'greatest' qubit + 1 because the count start from 0
 
-        t_ecr = np.zeros((max_qubit, max_qubit))
-        p_ecr = np.zeros((max_qubit, max_qubit))
+        t_int = np.zeros((max_qubit, max_qubit))
+        p_int = np.zeros((max_qubit, max_qubit))
 
-        ecr_info = prop.gate_property('ecr')
+        backend_base = config.basis_gates
+
+        for x in backend_base:
+            if x == 'ecr':
+                int_info = prop.gate_property('ecr')
+                break
+            elif x == 'cx':
+                int_info = prop.gate_property('cx')
+                break
+            #elif x == 'cz':
+            #    int_info = prop.gate_propery('cz')
+            else:
+                raise ValueError("The interaction gate of the backend is not implemented. Please choose another backend2")
+            
 
         if max_qubit > 1:
-            for x in ecr_info:
+            for x in int_info:
                 i = list(x)[0]
                 j = list(x)[1]
                 if i > max_qubit-1 or j > max_qubit-1:
                     continue
-                p_ecr[i,j] = ecr_info[i,j]['gate_error'][0]
-                t_ecr[i,j] = ecr_info[i,j]['gate_length'][0]
+                p_int[i,j] = int_info[i,j]['gate_error'][0]
+                t_int[i,j] = int_info[i,j]['gate_length'][0]
 
             """
             for i in range(self.nr_of_qubits):
@@ -177,8 +190,8 @@ class DeviceParameters(object):
 
             """
 
-        self.t_ecr = t_ecr
-        self.p_ecr = p_ecr
+        self.t_int = t_int
+        self.p_int = p_int
 
         # Verify
         if not self.is_complete():
@@ -199,8 +212,8 @@ class DeviceParameters(object):
         np.savetxt(location + self.f_T2, self.T2)
         np.savetxt(location + self.f_p, self.p)
         np.savetxt(location + self.f_rout, self.rout)
-        np.savetxt(location + self.f_p_cnot, self.p_cnot)
-        np.savetxt(location + self.f_t_cnot, self.t_cnot)
+        np.savetxt(location + self.f_p_int, self.p_int)
+        np.savetxt(location + self.f_t_int, self.t_int)
         np.savetxt(location + self.f_dt, self.dt)
         np.savetxt(location + self.f_tm, self.tm)
         with open(location + self.f_metadata, 'w') as fp:
@@ -234,7 +247,7 @@ class DeviceParameters(object):
         """
         if not self.is_complete():
             raise Exception("Exception in DeviceParameters.get_as_tuble(): At least one of the parameters is None.")
-        return self.T1, self.T2, self.p, self.rout, self.p_cnot, self.t_cnot, self.tm, self.dt, self.metadata
+        return self.T1, self.T2, self.p, self.rout, self.p_int, self.t_int, self.tm, self.dt, self.metadata
 
     def is_complete(self) -> bool:
         """ Returns whether all device parameters have been successfully initialized.
@@ -245,8 +258,8 @@ class DeviceParameters(object):
                 self.T2 is None,
                 self.p is None,
                 self.rout is None,
-                self.p_ecr is None,
-                self.t_ecr is None,
+                self.p_int is None,
+                self.t_int is None,
                 self.tm is None,
                 self.dt is None,
                 self.metadata is None)):
@@ -305,8 +318,8 @@ class DeviceParameters(object):
             "T2": self.T2,
             "p": self.p,
             "rout": self.rout,
-            "p_ecr": self.p_ecr,
-            "t_ecr": self.t_ecr,
+            "p_int": self.p_int,
+            "t_int": self.t_int,
             "tm": self.tm,
             "dt": self.dt,
             "metadata": self.metadata
