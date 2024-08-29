@@ -4,7 +4,7 @@ import numpy as np
 from src.quantum_gates.utilities import DeviceParameters
 
 
-location = 'tests/helpers/device_parameters/ibmq_manila/'
+location = 'tests/helpers/device_parameters/ibmq_kyoto/'
 invalid_location = 'invalid_location'
 
 
@@ -35,7 +35,7 @@ def test_device_parameters_load_from_texts_with_invalid_input():
 def test_device_parameters_get_as_tuple():
     device_param = DeviceParameters([0, 1, 2, 3, 4])
     device_param.load_from_texts(location=location)
-    T1, T2, p, rout, p_cnot, t_cnot, tm, dt, metadata = device_param.get_as_tuple()
+    T1, T2, p, rout, p_int, t_int, tm, dt, metadata = device_param.get_as_tuple()
 
 
 def test_device_parameters_get_as_tuple_type():
@@ -49,13 +49,13 @@ def test_device_parameters_get_as_tuple_type():
 def test_device_parameters_get_as_tuple_sizes():
     device_param = DeviceParameters([0, 1, 2, 3, 4])
     device_param.load_from_texts(location=location)
-    T1, T2, p, rout, p_cnot, t_cnot, tm, dt, metadata = device_param.get_as_tuple()
+    T1, T2, p, rout, p_int, t_int, tm, dt, metadata = device_param.get_as_tuple()
     assert T1.shape == (5,), f"T1 had invalid shape {T1.shape} instead of (5)."
     assert T2.shape == (5,), f"T2 had invalid shape {T2.shape} instead of (5)."
     assert p.shape == (5,), f"p had invalid shape {p.shape} instead of (5)."
     assert rout.shape == (5,), f"rout had invalid shape {rout.shape} instead of (5)."
-    assert p_cnot.shape == (5, 5), f"p_cnot had invalid shape {p_cnot.shape} instead of (5, 5)."
-    assert t_cnot.shape == (5, 5), f"t_cnot had invalid shape {t_cnot.shape} instead of (5, 5)."
+    assert p_int.shape == (5, 5), f"p_int had invalid shape {p_int.shape} instead of (5, 5)."
+    assert t_int.shape == (5, 5), f"t_int had invalid shape {t_int.shape} instead of (5, 5)."
     assert tm.shape == (5,), f"tm had invalid shape {tm.shape} instead of (5)"
     assert dt.shape == (1,), f"dt had invalid shape {dt.shape} instead of (5)"
     assert isinstance(metadata, dict), f"Expected metadata to be of type dict, but found {type(metadata)}."
