@@ -7,6 +7,9 @@ import os
 from datetime import datetime
 import json
 import numpy as np
+from qiskit.providers import BackendV2 as Backend
+from qiskit_ibm_runtime.fake_provider.fake_backend import FakeBackendV2 as FakeBackend
+from qiskit.providers.models import BackendProperties, BackendConfiguration
 
 
 class DeviceParameters(object):
@@ -127,15 +130,22 @@ class DeviceParameters(object):
         """ Load device parameters from the IBM backend. """
 
         # Load
-        prop = backend.properties()
-        config = backend.configuration()
-        defaults = backend.defaults()
+        if isinstance(backend, FakeBackend):
+            backend._set_props_dict_from_json()
+            prop = BackendProperties.from_dict(backend._props_dict)
+            config = BackendConfiguration.from_dict(backend._conf_dict)
+            #defaults = backend.defaults()
+        elif isinstance(backend, Backend):
+            prop = backend.properties() 
+            config = backend.configuration() 
+        else:
+            raise ValueError("The backend is neither a BackendV2 nor a FakeBackendV2 object")
 
         self.T1 = [prop.t1(j) for j in self.qubits_layout]
         self.T2 = [prop.t2(j) for j in self.qubits_layout]
         self.p = [prop.gate_error('x', [j]) for j in self.qubits_layout]
         self.rout = [prop.readout_error(j) for j in self.qubits_layout]
-        self.dt = [backend.configuration().dt]
+        self.dt = [config.dt]
         self.tm = [prop.readout_length(j) for j in self.qubits_layout]
         self.metadata = {
             "version": datetime.today().strftime('%Y%m%d'),
@@ -151,7 +161,8 @@ class DeviceParameters(object):
         p_int = np.zeros((max_qubit, max_qubit))
 
         backend_base = config.basis_gates
-
+        int_info = None
+        
         for x in backend_base:
             if x == 'ecr':
                 int_info = prop.gate_property('ecr')
@@ -161,9 +172,9 @@ class DeviceParameters(object):
                 break
             #elif x == 'cz':
             #    int_info = prop.gate_propery('cz')
-            else:
-                raise ValueError("The interaction gate of the backend is not implemented. Please choose another backend2")
             
+        if int_info is None:
+                raise ValueError("The interaction gate of the backend is not implemented. Please choose another backend") 
 
         if max_qubit > 1:
             for x in int_info:
