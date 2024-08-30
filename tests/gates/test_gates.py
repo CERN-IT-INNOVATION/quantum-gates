@@ -47,8 +47,8 @@ single_qubit_gate_args = {
 cr_args = {
     "theta": np.pi/2,
     "phi": np.pi/2,
-    "t_cr": helper_dev_param.t_cnot[0][1],
-    "p_cr": helper_dev_param.p_cnot[0][1],
+    "t_cr": helper_dev_param.t_int[1][0],
+    "p_cr": helper_dev_param.p_int[1][0],
     "T1_ctr": helper_dev_param.T1[0],
     "T2_ctr": helper_dev_param.T2[0],
     "T1_trg": helper_dev_param.T1[1],
@@ -57,8 +57,8 @@ cr_args = {
 cnot_args = {
     "phi_ctr": np.pi/2,
     "phi_trg": np.pi/2,
-    "t_cnot": helper_dev_param.t_cnot[0][1],
-    "p_cnot": helper_dev_param.p_cnot[0][1],
+    "t_cnot": helper_dev_param.t_int[1][0],
+    "p_cnot": helper_dev_param.p_int[1][0],
     "p_single_ctr": helper_dev_param.p[0],
     "p_single_trg": helper_dev_param.p[1],
     "T1_ctr": helper_dev_param.T1[0],

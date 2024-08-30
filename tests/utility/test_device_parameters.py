@@ -4,7 +4,7 @@ import numpy as np
 from src.quantum_gates.utilities import DeviceParameters
 
 
-location = 'tests/helpers/device_parameters/ibmq_kyoto/'
+location = 'tests/helpers/device_parameters/ibm_kyoto/'
 invalid_location = 'invalid_location'
 
 

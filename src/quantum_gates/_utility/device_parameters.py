@@ -56,8 +56,8 @@ class DeviceParameters(object):
         self.tm = None
         self.dt = None
         self.metadata = None
-        self._names = ["base", "T1", "T2", "p", "rout", "p_int", "t_int", "tm", "dt", "metadata"]
-        self._f_txt = ["base.txt" ,"T1.txt", "T2.txt", "p.txt", "rout.txt", "p_ecr.txt", "t_ecr.txt", "tm.txt", "dt.txt",
+        self._names = ["T1", "T2", "p", "rout", "p_int", "t_int", "tm", "dt", "metadata"]
+        self._f_txt = ["T1.txt", "T2.txt", "p.txt", "rout.txt", "p_int.txt", "t_int.txt", "tm.txt", "dt.txt",
                        "metadata.json"]
 
     def load_from_json(self, location: str):

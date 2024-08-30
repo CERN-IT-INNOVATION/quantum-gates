@@ -7,7 +7,7 @@ import concurrent.futures
 from qiskit import transpile
 from qiskit.transpiler import CouplingMap
 from qiskit_aer import AerSimulator
-from qiskit_ibm_provider import IBMProvider
+from qiskit_ibm_runtime import QiskitRuntimeService
 
 
 def fix_counts(counts_0: dict, n_qubits: int):
@@ -183,9 +183,7 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         An IBM Quantum provider backend object that provides access to the
         specified quantum device.
     """
-    IBMProvider.delete_account()
-    IBMProvider.save_account(token=Token)
-    provider = IBMProvider(instance=f"{hub}/{group}/{project}")
+    provider = QiskitRuntimeService(channel= 'ibm_quantum', token=Token)
     return provider.get_backend(device_name)
 
 
