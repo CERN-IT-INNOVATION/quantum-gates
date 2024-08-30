@@ -218,16 +218,16 @@ class NoiseFreeGates(object):
         p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
 
         # Sample gates
-        first_cr = self.cr_c.construct(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        second_cr = self.cr_c.construct(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
-        x_gate = -1J* self.x_c.construct(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
-        relaxation_gate = self.relaxation_c.construct(tg, T1_trg, T2_trg)
+        first_cr = self.CR(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = self.CR(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* self.X(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        relaxation_gate = self.relaxation(tg, T1_trg, T2_trg)
 
-        sx_gate_ctr_1 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
-        sx_gate_trg_1 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+        sx_gate_ctr_1 =  self.SX(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_1 =  self.SX(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
 
-        sx_gate_ctr_2 =  self.sx_c.construct(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
-        sx_gate_trg_2 =  self.sx_c.construct(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+        sx_gate_ctr_2 =  self.SX(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+        sx_gate_trg_2 =  self.SX(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
 
         return 1j * np.kron(sx_gate_ctr_1, sx_gate_trg_1) @ (first_cr @ np.kron(x_gate , relaxation_gate) @ second_cr ) @ np.kron(sx_gate_ctr_2, sx_gate_trg_2)
 

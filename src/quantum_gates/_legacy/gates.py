@@ -706,6 +706,46 @@ def CNOT_inv(phi_ctr: float, phi_trg: float, t_cnot: float, p_cnot: float, p_sin
     
     return result
 
+def ECR(phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+        """ Returns ECR gate in noise free regime. """
+        # Constants
+        tg = 35*10**(-9)
+        t_cr = t_ecr/2-tg
+        p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
+
+        # Noise free gates
+        first_cr = CR(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        second_cr = CR(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+        x_gate = -1J* X(np.pi -phi_ctr , p_single_ctr, T1_ctr, T2_ctr)
+        relaxation_gate = relaxation(tg, T1_trg, T2_trg)
+
+        return first_cr @ np.kron(x_gate, relaxation_gate) @ second_cr 
+    
+
+def ECR_inv(phi_ctr, phi_trg, t_ecr, p_ecr, p_single_ctr, p_single_trg, T1_ctr, T2_ctr, T1_trg, T2_trg) -> np.array:
+    """ Returns ECR inverse gate in noise free regime. """
+    # Constants
+    tg = 35*10**(-9)
+    t_cr = t_ecr/2-tg
+    p_cr = (4/3) * (1 - np.sqrt(np.sqrt((1 - (3/4) * p_ecr)**2 / ((1-(3/4)*p_single_ctr)**2 * (1-(3/4)*p_single_trg)))))
+
+    # Sample gates
+    first_cr = CR(np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    second_cr = CR(-np.pi/4, np.pi-phi_trg, t_cr, p_cr, T1_ctr, T2_ctr, T1_trg, T2_trg)
+    x_gate = -1J* X(np.pi-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+    relaxation_gate = relaxation(tg, T1_trg, T2_trg)
+
+    sx_gate_ctr_1 =  SX(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+    sx_gate_trg_1 =  SX(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+    sx_gate_ctr_2 =  SX(-np.pi/2-phi_ctr, p_single_ctr, T1_ctr, T2_ctr)
+    sx_gate_trg_2 =  SX(-np.pi/2-phi_trg, p_single_trg, T1_trg, T2_trg)
+
+    return 1j * np.kron(sx_gate_ctr_1, sx_gate_trg_1) @ (first_cr @ np.kron(x_gate , relaxation_gate) @ second_cr ) @ np.kron(sx_gate_ctr_2, sx_gate_trg_2)
+
+
+
+
 
 class LegacyGates(object):
     """ Gateset with all legacy gate implementations.
@@ -719,6 +759,8 @@ class LegacyGates(object):
         CR
         CNOT
         CNOT_inv
+        ECR
+        ECR_inv
     """
     relaxation = staticmethod(relaxation)
     bitflip = staticmethod(bitflip)
@@ -728,3 +770,5 @@ class LegacyGates(object):
     CR = staticmethod(CR)
     CNOT = staticmethod(CNOT)
     CNOT_inv = staticmethod(CNOT_inv)
+    ECR = staticmethod(ECR)
+    ECR_inv = staticmethod(ECR_inv)
