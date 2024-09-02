@@ -9,7 +9,7 @@ import json
 import numpy as np
 from qiskit.providers import BackendV2 as Backend
 from qiskit_ibm_runtime.fake_provider.fake_backend import FakeBackendV2 as FakeBackend
-from qiskit.providers.models import BackendProperties, BackendConfiguration
+from qiskit_ibm_runtime.models import BackendProperties, BackendConfiguration
 
 
 class DeviceParameters(object):
@@ -184,22 +184,6 @@ class DeviceParameters(object):
                     continue
                 p_int[i,j] = int_info[i,j]['gate_error'][0]
                 t_int[i,j] = int_info[i,j]['gate_length'][0]
-
-            """
-            for i in range(self.nr_of_qubits):
-                if i == 0:
-                    t_ecr[1][0] = prop.gate_length('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
-                    p_ecr[1][0] = prop.gate_error('ecr', [self.qubits_layout[1], self.qubits_layout[0]])
-                if i != 0 and i != self.nr_of_qubits-1:
-                    t_ecr[i-1][i] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    p_ecr[i-1][i] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    t_ecr[i+1][i] = prop.gate_length('ecr', [self.qubits_layout[i+1], self.qubits_layout[i]])
-                    p_ecr[i+1][i] = prop.gate_error('ecr', [self.qubits_layout[i+1], self.qubits_layout[i]])
-                if i == self.nr_of_qubits-1:
-                    t_ecr[i][i-1] = prop.gate_length('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-                    p_ecr[i][i-1] = prop.gate_error('ecr', [self.qubits_layout[i], self.qubits_layout[i-1]])
-
-            """
 
         self.t_int = t_int
         self.p_int = p_int

@@ -6,9 +6,9 @@ dependencies:
   - setuptools
   - pip:
     - numpy
-    - qiskit==1.0.2
-    - qiskit-aer
-    - qiskit-ibm-provider
+    - qiskit==1.2
+    - qiskit-aer==0.15.0
+    - qiskit-ibm-runtime==0.28.0
     - scipy
     - matplotlib
     - pylatexenc
