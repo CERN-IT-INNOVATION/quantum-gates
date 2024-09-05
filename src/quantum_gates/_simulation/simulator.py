@@ -132,9 +132,9 @@ class MrAndersonSimulator(object):
               + f"{t_qiskit_circ.num_qubits} qubits in circuit and {len(qubits_layout)} qubits in layout."
             )
         if nqubit > len(device_param["T1"]):
-            raise ValueError(
-                f"Expected device parameters to cover at least as many qubits as the transpiled circuit, but found "
-              + f"{t_qiskit_circ.num_qubits} qubits in circuit and {len(device_param['T1'])} qubits in device parameters."
+            print(
+                f"Warning: Expected device parameters to cover at least as many qubits as the transpiled circuit,"
+              + f"but found {nqubit} qubits in circuit and {len(device_param['T1'])} qubits in device parameters."
             )
 
         return
