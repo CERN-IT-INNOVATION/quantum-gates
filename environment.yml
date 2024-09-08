@@ -13,3 +13,5 @@ dependencies:
     - matplotlib
     - pylatexenc
     - opt-einsum
+    - pytest
+    - python-dotenv

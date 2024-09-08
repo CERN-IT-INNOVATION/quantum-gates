@@ -134,3 +134,6 @@ dmypy.json
 # Token
 *token.py
 .DS_Store
+
+# Environment files
+.env

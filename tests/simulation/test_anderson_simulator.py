@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import time
 
-from configuration.token_template import IBM_TOKEN, HUB, GROUP, PROJECT, DEVICE_NAME
+from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT, DEVICE_NAME
 from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
 from src.quantum_gates.utilities import setup_backend, create_qc_list
 from src.quantum_gates.simulators import MrAndersonSimulator
