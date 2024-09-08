@@ -134,7 +134,6 @@ class DeviceParameters(object):
             backend._set_props_dict_from_json()
             prop = BackendProperties.from_dict(backend._props_dict)
             config = BackendConfiguration.from_dict(backend._conf_dict)
-            #defaults = backend.defaults()
         elif isinstance(backend, Backend):
             prop = backend.properties() 
             config = backend.configuration() 
@@ -170,8 +169,6 @@ class DeviceParameters(object):
             elif x == 'cx':
                 int_info = prop.gate_property('cx')
                 break
-            #elif x == 'cz':
-            #    int_info = prop.gate_propery('cz')
             
         if int_info is None:
                 raise ValueError("The interaction gate of the backend is not implemented. Please choose another backend") 

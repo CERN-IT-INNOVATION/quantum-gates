@@ -426,6 +426,8 @@ class CRFactory(object):
         tg = 35 * 10**(-9)
         omega = theta
         a = t_cr / tg
+        assert t_cr > 0, f"Expected t_cr to be > 0 but found {t_cr}"
+        assert tg > 0, f"Expected tg to be > 0 but found {tg}"
         ed_cr = np.sqrt(p_cr/(4*a))
 
         if T1_ctr == 0:
