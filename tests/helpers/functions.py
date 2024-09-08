@@ -6,7 +6,7 @@ import numpy as np
 import random
 
 from src.quantum_gates.utilities import DeviceParameters
-from tests.helpers.gates import X, SX,Z, H, CNOT, identity
+from tests.helpers.gates import X, SX,Z, H, CNOT, identity, single_qubit_gate_list
 
 
 def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0.5, many_identites=False):
@@ -15,8 +15,7 @@ def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0
         cases there is still budget for two qubit gates.
     """
 
-    if many_identites:
-        single_qubit_gate_list = [X, SX, Z, H] + [identity for i in range(40)]
+    gate_list = [X, SX, Z, H] + [identity for i in range(40)] if many_identites else single_qubit_gate_list + identity
 
     # Result
     mp_list = []
@@ -28,7 +27,7 @@ def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0
         while budget > 0:
             # Case: Only one qubit left
             if budget == 1:
-                mp.append(random.choice(single_qubit_gate_list))
+                mp.append(random.choice(gate_list))
                 budget -= 1
 
             # Case: More than one qubit left -> We can apply two qubit gates.
@@ -39,7 +38,7 @@ def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0
                     mp.append(1)
                     budget -= 2
                 else:
-                    mp.append(random.choice(single_qubit_gate_list))
+                    mp.append(random.choice(gate_list))
                     budget -= 1
         assert budget == 0
         mp_list.append(mp)
