@@ -205,7 +205,7 @@ class Circuit(object):
         """
         self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
 
-    def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+    def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
@@ -214,7 +214,7 @@ class Circuit(object):
         Args:
             i: index of the control qubit (int)
             k: index of the target qubit (int)
-            t_cnot: CNOT gate time in ns (double)
+            t_int: CNOT gate time in ns (double)
             p_i_k: CNOT depolarizing error probability (double)
             p_i: control single-qubit depolarizing error probability (double)
             p_k: target single-qubit depolarizing error probability (double)
@@ -232,13 +232,13 @@ class Circuit(object):
 
             if i < k:
                 self.circuit[i][self.j] = self.gates.CNOT(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
                 self.circuit[i][self.j] = self.gates.CNOT_inv(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] + np.pi/2 + np.pi
                 self.phi[k] = self.phi[k] + np.pi/2
@@ -250,16 +250,67 @@ class Circuit(object):
 
             if i < k:
                 self.circuit[i][self.j] = self.gates.CNOT(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
                 self.circuit[i][self.j] = self.gates.CNOT_inv(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] + np.pi/2 + np.pi
                 self.phi[k] = self.phi[k] + np.pi/2
+
+    def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+             T2_ctr: float, T1_trg: float, T2_trg: float):
+        """
+        Apply ECR two-qubit noisy quantum gate with depolarizing and
+        relaxation errors on both qubits during the unitary evolution.
+
+        Args:
+            i: index of the control qubit (int)
+            k: index of the target qubit (int)
+            t_ecr: ECR gate time in ns (double)
+            p_i_k: ECR depolarizing error probability (double)
+            p_i: control single-qubit depolarizing error probability (double)
+            p_k: target single-qubit depolarizing error probability (double)
+            T1_ctr: control qubit's amplitude damping time in ns (double)
+            T2_ctr: control qubit's dephasing time in ns (double)
+            T1_trg: target qubit's amplitude damping time in ns (double)
+            T2_trg: target qubit's dephasing time in ns (double)
+
+        Returns:
+              None
+        """
+        assert abs(i - k) == 1, f"Error, control and target are not neighbours with i={i}, k={k}."
+
+        if self.s < self.nqubit:
+
+            if i < k:
+                self.circuit[i][self.j] = self.gates.ECR(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+
+            else:
+                self.circuit[i][self.j] = self.gates.ECR_inv(
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+            self.s = self.s+2
+
+        elif self.s == self.nqubit:
+            self.s = 2
+            self.j = self.j+1
+
+            if i < k:
+                self.circuit[i][self.j] = self.gates.ECR(
+                    self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                ) 
+
+            else:
+                self.circuit[i][self.j] = self.gates.ECR_inv(
+                    self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                )
+                
 
     def reset(self):
         """ Reset the circuit to the initial state. """
@@ -301,7 +352,7 @@ class AlternativeCircuit(object):
         phi (list[float]): Phases of the qubits.
     """
 
-    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend):
+    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend): # type: ignore
         self.nqubit = nqubit                        # Number of qubits
         self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
         self._backend = BackendClass(nqubit)        # Backend for tensor contractions
@@ -438,7 +489,7 @@ class AlternativeCircuit(object):
         """
         self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
 
-    def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+    def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
@@ -447,7 +498,7 @@ class AlternativeCircuit(object):
         Args:
             i: index of the control qubit (int)
             k: index of the target qubit (int)
-            t_cnot: CNOT gate time in ns (double)
+            t_int: CNOT gate time in ns (double)
             p_i_k: CNOT depolarizing error probability (double)
             p_i: control single-qubit depolarizing error probability (double)
             p_k: target single-qubit depolarizing error probability (double)
@@ -464,19 +515,61 @@ class AlternativeCircuit(object):
         if i < k:
             # Control i
             self._mp[i] = self.gates.CNOT(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
             self.phi[i] = self.phi[i] - np.pi/2
         else:
             # Control i
             self._mp[i] = self.gates.CNOT_inv(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
             self.phi[i] = self.phi[i] + np.pi/2 + np.pi
 
             # Target k
             self.phi[k] = self.phi[k] + np.pi/2
+
+        # Bookkeeping
+        self._s += 2
+
+        # Case: All gates in this gatetime have been applied
+        if self._s == self.nqubit:
+            self._update_mp_list()
+        return
+    
+    def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+             T2_ctr: float, T1_trg: float, T2_trg: float):
+        """
+        Apply ECR two-qubit noisy quantum gate with depolarizing and
+        relaxation errors on both qubits during the unitary evolution.
+
+        Args:
+            i: index of the control qubit (int)
+            k: index of the target qubit (int)
+            t_ecr: ECR gate time in ns (double)
+            p_i_k: ECR depolarizing error probability (double)
+            p_i: control single-qubit depolarizing error probability (double)
+            p_k: target single-qubit depolarizing error probability (double)
+            T1_ctr: control qubit's amplitude damping time in ns (double)
+            T2_ctr: control qubit's dephasing time in ns (double)
+            T1_trg: target qubit's amplitude damping time in ns (double)
+            T2_trg: target qubit's dephasing time in ns (double)
+
+        Returns:
+              None
+        """
+        
+        # Add two qubit gate to circuit snippet
+        if i < k:
+            # Control i
+            self._mp[i] = self.gates.ECR(
+                self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            )
+        else:
+            # Control i
+            self._mp[i] = self.gates.ECR_inv(
+                self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+            )
 
         # Bookkeeping
         self._s += 2

@@ -6,8 +6,8 @@ import concurrent.futures
 
 from qiskit import transpile
 from qiskit.transpiler import CouplingMap
-from qiskit.providers.aer import AerSimulator
-from qiskit_ibm_provider import IBMProvider
+from qiskit_aer import AerSimulator
+from qiskit_ibm_runtime import QiskitRuntimeService
 
 
 def fix_counts(counts_0: dict, n_qubits: int):
@@ -113,7 +113,7 @@ def compute_Hellinger_distance(p_ng: float, p_real: float, nqubits: int) -> floa
     return h_ng  
 
 
-def create_qc_list(circuit_generator, nqubits_list, qubits_layout, backend):
+def create_qc_list(circuit_generator: callable, nqubits_list: list[int], qubits_layout: list[int], backend):
     """ Creates a list of quantum circuit.
 
     Args:
@@ -183,9 +183,7 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         An IBM Quantum provider backend object that provides access to the
         specified quantum device.
     """
-    IBMProvider.delete_account()
-    IBMProvider.save_account(token=Token)
-    provider = IBMProvider(instance=f"{hub}/{group}/{project}")
+    provider = QiskitRuntimeService(channel='ibm_quantum', token=Token)
     return provider.get_backend(device_name)
 
 

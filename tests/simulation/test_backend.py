@@ -4,8 +4,17 @@ import time
 
 from src.quantum_gates.backends import EfficientBackend
 from src.quantum_gates._simulation.backend import StandardBackend, BackendForOnes
-import tests.helpers.gates as helper_gates
-import tests.helpers.functions as helper_functions
+from tests.helpers.gates import (
+    X,
+    Z,
+    identity,
+    CNOT,
+    single_qubit_gate_list,
+)
+from tests.helpers.functions import (
+    vector_almost_equal,
+    generate_random_matrix_products,
+)
 
 
 backends = [StandardBackend, EfficientBackend, BackendForOnes]
@@ -28,7 +37,7 @@ def test_backend_eye(nqubits, Backend):
     psi0 = np.random.rand(2**nqubits)
     psi1 = tb.statevector(mp_list, psi0)
 
-    assert helper_functions.vector_almost_equal(psi0, psi1, nqubits), \
+    assert vector_almost_equal(psi0, psi1, nqubits), \
         f"Assumed that applying identities will lead to a trivial circuit, but found {psi1} != 1 {psi0}."
 
 
@@ -42,7 +51,7 @@ def test_backend_x(nqubits, Backend):
     psi1 = tb.statevector(mp_list, psi0)
     psi1_exp = np.zeros(2**nqubits)
     psi1_exp[-1] = 1
-    assert helper_functions.vector_almost_equal(psi1, psi1_exp, nqubits), \
+    assert vector_almost_equal(psi1, psi1_exp, nqubits), \
         f"Assumed that applying (X ... X) on |0..0> produces |1...1>, but found {psi1} != (X...X) {psi0}."
 
 
@@ -50,9 +59,9 @@ def test_backend_x(nqubits, Backend):
 def test_backend_result_x_and_many_cnot(nqubits, Backend):
 
     # Create circuit that maps |0..0> to |1...1> with one X and many CNOTs.
-    mp_list = [[helper_gates.X] + [helper_gates.identity for i in range(nqubits - 1)]]
+    mp_list = [[X] + [identity for i in range(nqubits - 1)]]
     for j in range(nqubits - 1):
-        mp_list.append([helper_gates.identity for i in range(j)] + [helper_gates.CNOT, 1] + [helper_gates.identity for i in range(nqubits - 2 - j)])
+        mp_list.append([identity for i in range(j)] + [CNOT, 1] + [identity for i in range(nqubits - 2 - j)])
 
     tb = Backend(nqubit=nqubits)
 
@@ -69,7 +78,7 @@ def test_backend_result_x_and_many_cnot(nqubits, Backend):
 
 @pytest.mark.parametrize(
     "nqubits,steps,gate",
-    [(n, s, gate) for n in [2, 3, 4, 6, 10] for s in [1, 10] for gate in helper_gates.single_qubit_gate_list]
+    [(n, s, gate) for n in [2, 3, 4, 6, 10] for s in [1, 10] for gate in single_qubit_gate_list]
 )
 def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: int, gate: np.array):
 
@@ -90,16 +99,16 @@ def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: i
     psi_standard = standard_tb.statevector(mp_list, psi0)
 
     # Evaluate
-    assert helper_functions.vector_almost_equal(psi_efficient, psi_standard, nqubits), \
+    assert vector_almost_equal(psi_efficient, psi_standard, nqubits), \
         f"The efficient backend did not generate the same result as the standard backend. Found {psi_efficient} and {psi_standard}."
 
-    assert helper_functions.vector_almost_equal(psi_one, psi_standard, nqubits), \
+    assert vector_almost_equal(psi_one, psi_standard, nqubits), \
         f"The one backend did not generate the same result as the standard backend. Found {psi_one} and {psi_standard}."
 
 
 @pytest.mark.parametrize("nqubits, steps", [(n, s) for n in [2, 3, 4, 6, 8, 9, 10] for s in [5]])
 def test_backends_get_same_result_with_random_matrix_products(nqubits, steps):
-    mp_list = helper_functions.generate_random_matrix_products(nqubits, steps=steps)
+    mp_list = generate_random_matrix_products(nqubits, steps=steps)
 
     # Backends
     one_tb = BackendForOnes(nqubits)
@@ -118,18 +127,18 @@ def test_backends_get_same_result_with_random_matrix_products(nqubits, steps):
     print("efficient_psi1", efficient_psi1)
     print("trivial_psi1", trivial_psi1)
 
-    assert helper_functions.vector_almost_equal(efficient_psi1, trivial_psi1, nqubits), \
+    assert vector_almost_equal(efficient_psi1, trivial_psi1, nqubits), \
         "The efficient backend did not generate the same result as the standard backend."
 
-    assert helper_gates.vector_almost_equal(one_psi1, trivial_psi1, nqubits), \
+    assert vector_almost_equal(one_psi1, trivial_psi1, nqubits), \
         "The one backend did not generate the same result as the standard backend."
 
 
 def test_backends_hard_against_each_other():
     # Setup
     nqubit = 2
-    mp1 = [helper_gates.identity, helper_gates.X]
-    mp2 = [helper_gates.identity, helper_gates.Z]
+    mp1 = [identity, X]
+    mp2 = [identity, Z]
     mp_list = [mp1, mp2]
 
     # Apply
@@ -146,16 +155,16 @@ def test_backends_hard_against_each_other():
     print("efficient_psi", efficient_psi)
     print("trivial_psi", trivial_psi)
 
-    assert helper_functions.vector_almost_equal(efficient_psi, trivial_psi, nqubit), \
+    assert vector_almost_equal(efficient_psi, trivial_psi, nqubit), \
         "The efficient backend did not generate the same result as the standard backend."
 
-    assert helper_functions.vector_almost_equal(one_psi, trivial_psi, nqubit), \
+    assert vector_almost_equal(one_psi, trivial_psi, nqubit), \
         "The one backend did not generate the same result as the standard backend."
 
 
 @pytest.mark.parametrize("nqubits, steps", [(n,s) for n in [7, 8, 10] for s in [5, 100]])
 def test_backend_is_faster_than_standard_backend(nqubits: int, steps: int):
-    mp_list = helper_functions.generate_random_matrix_products(nqubits, steps=steps)
+    mp_list = generate_random_matrix_products(nqubits, steps=steps)
 
     # Time Backend
     start = time.time()
@@ -179,7 +188,7 @@ def test_backend_is_faster_than_standard_backend(nqubits: int, steps: int):
 
 @pytest.mark.parametrize("nqubits, steps", [(n,s) for n in range(6, 18) for s in [500]])
 def test_one_backend_is_faster_than_efficient_backend(nqubits: int, steps: int):
-    mp_list = helper_functions.generate_random_matrix_products(nqubits, steps=steps, prob_cnot=1/nqubits, many_identites=True)
+    mp_list = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=1/nqubits, many_identites=True)
 
     # Time EfficientBackend
     start = time.time()
@@ -198,7 +207,7 @@ def test_one_backend_is_faster_than_efficient_backend(nqubits: int, steps: int):
     time_one = time.time() - start
 
     # Check result is the same
-    assert helper_functions.vector_almost_equal(psi_one, psi_eff, nqubits), \
+    assert vector_almost_equal(psi_one, psi_eff, nqubits), \
         "The one backend did not generate the same result as the efficient backend."
 
     # Check runtime
@@ -212,7 +221,7 @@ def test_one_backend_is_faster_than_efficient_backend(nqubits: int, steps: int):
     [(n,s, prob_cnot) for n in [7, 8, 9, 10, 11, 12, 13, 14] for s in [100] for prob_cnot in [0.0, 0.5]]
 )
 def test_backend_performance_just_fail_and_print(nqubits: int, steps: int, prob_cnot):
-    mp_list = helper_functions.generate_random_matrix_products(nqubits, steps=steps, prob_cnot=prob_cnot)
+    mp_list = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=prob_cnot)
 
     start = time.time()
     tb = EfficientBackend(nqubits)

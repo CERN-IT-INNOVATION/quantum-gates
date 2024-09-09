@@ -6,9 +6,12 @@ dependencies:
   - setuptools
   - pip:
     - numpy
-    - qiskit==0.39.2
-    - qiskit-ibm-provider
+    - qiskit==1.2
+    - qiskit-aer==0.15.0
+    - qiskit-ibm-runtime==0.28.0
     - scipy
     - matplotlib
     - pylatexenc
     - opt-einsum
+    - pytest
+    - python-dotenv

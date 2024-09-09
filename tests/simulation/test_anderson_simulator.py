@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import time
 
-from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT, DEVICE_NAME
+from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT
 from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
 from src.quantum_gates.utilities import setup_backend, create_qc_list
 from src.quantum_gates.simulators import MrAndersonSimulator
@@ -18,7 +18,7 @@ backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": DEVICE_NAME
+    "device_name": "ibm_kyiv"
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
@@ -38,7 +38,7 @@ def main(backend,
          parallel: bool=False):
 
     # Transpile circuit
-    qc = create_qc_list(circuit_generator, [nqubits], qubits_layout, backend)[0]
+    qc = create_qc_list(circuit_generator=circuit_generator, nqubits_list=[nqubits], qubits_layout=qubits_layout, backend=backend)[0]
 
     # Prepare the arguments
     device_param = DeviceParameters(qubits_layout=qubits_layout)
@@ -87,14 +87,14 @@ def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
 
 @pytest.mark.parametrize(
     "nqubits,gates,CircuitClass",
-    [(nqubit, gates, CircuitClass) for nqubit in range(2, 8) for gates in gates_set for CircuitClass in circuit_set]
+    [(nqubit, gates, CircuitClass) for nqubit in range(2, 5) for gates in gates_set for CircuitClass in circuit_set]
 )
 def test_simulator_run_one_shot(nqubits: int, gates, CircuitClass):
     run_config = {
         "shots": 1,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
     main(
         backend,
@@ -114,8 +114,8 @@ def test_simulator_run_many_shots(shots: int, gates, CircuitClass):
     run_config = {
         "shots": shots,
         "nqubits": 2,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
     main(
         backend,
@@ -135,8 +135,8 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
     run_config = {
         "shots": 100,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
     p_ng = main(
         backend,
@@ -153,15 +153,15 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
 @pytest.mark.skip(reason="Invalid test: At the moment, the noise_free_gates have a bug with the global phase.")
 @pytest.mark.parametrize(
     "nqubits,CircuitClass",
-    [(nqubits, CircuitClass) for nqubits in [2, 3, 4, 6, 8] for CircuitClass in circuit_set]
+    [(nqubits, CircuitClass) for nqubits in [2, 3, 4] for CircuitClass in circuit_set]
 )
 def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
     epsilon = 1e-12
     run_config = {
         "shots": 1,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
     p = main(
         backend,
@@ -181,15 +181,15 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
 
 @pytest.mark.parametrize(
     "nqubits,CircuitClass",
-    [(nqubits, CircuitClass) for nqubits in [2, 3, 4, 6, 8] for CircuitClass in circuit_set]
+    [(nqubits, CircuitClass) for nqubits in [2, 3, 4] for CircuitClass in circuit_set]
 )
 def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
     epsilon = 1e-6
     run_config = {
         "shots": 1,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
     p = main(
         backend,
@@ -209,7 +209,7 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
         f"There was a state whose probability differed by {max_diff} > {epsilon}."
 
 
-@pytest.mark.parametrize("nqubits, times", [(nqubits, times) for nqubits in [7, 8, 9] for times in [1]])
+@pytest.mark.parametrize("nqubits, times", [(nqubits, times) for nqubits in [3, 4, 5] for times in [1]])
 def test_simulator_speed_for_different_circuits(nqubits, times):
     """ Measures the time the simulation needs for each of the three circuits, times often. Checks that the efficient
         circuit is the fastest.
@@ -220,8 +220,8 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
     args = {
         "shots": 1,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/",
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/",
         "backend": backend,
         "do_simulation": do_simulation,
         "gates": almost_noise_free_gates,
@@ -278,7 +278,7 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
 
 @pytest.mark.parametrize(
     "nqubits, times",
-    [(nqubits, times) for nqubits in range(2, 18) for times in [2]]
+    [(nqubits, times) for nqubits in range(2, 5) for times in [2]]
 )
 def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
     """ Measures the time the simulation needs for the more efficient circuit, namely the EfficientCircuit and the
@@ -290,8 +290,8 @@ def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
     args = {
         "shots": 1,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/",
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/",
         "backend": backend,
         "do_simulation": do_simulation,
         "gates": almost_noise_free_gates,
@@ -325,7 +325,7 @@ def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
 @pytest.mark.skip(reason="We fail this test on purpose to get the time and prints. Uncomment this line to run test.")
 @pytest.mark.parametrize(
     "nqubits,times",
-    [(nqubits, times) for nqubits in range(2, 22) for times in [1]]
+    [(nqubits, times) for nqubits in range(2, 5) for times in [1]]
 )
 def test_simulator_speed_for_efficient_circuit(nqubits, times):
     """ Measures the time the efficient simulation needs to to run one shot. Fails on purpose to print the time.
@@ -335,7 +335,7 @@ def test_simulator_speed_for_efficient_circuit(nqubits, times):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
 
     time_efficient_circuit = 0
@@ -354,7 +354,7 @@ def test_simulator_speed_for_efficient_circuit(nqubits, times):
     assert False
 
 
-@pytest.mark.parametrize("nqubits", [2, 4, 6])
+@pytest.mark.parametrize("nqubits", [2, 4])
 def test_simulation_speed_parallel_vs_sequential(nqubits):
     """ Measures the time the efficient simulation needs when the shots are parallelized vs when not.
     """
@@ -363,8 +363,8 @@ def test_simulation_speed_parallel_vs_sequential(nqubits):
     run_config = {
         "shots": shots,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
 
     # Parallel
@@ -405,8 +405,8 @@ def test_simulation_gives_normalized_result(nqubits):
     run_config = {
         "shots": shots,
         "nqubits": nqubits,
-        "qubits_layout": [0, 1, 4, 7, 10, 12, 15, 18, 21, 23, 24, 25, 22, 19, 16, 14, 11, 8, 5, 3, 2],
-        "location_device_parameters": "tests/helpers/device_parameters/ibmq_kolkata/"
+        "qubits_layout": [0, 1, 2, 3, 4],
+        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
     }
 
     p_ng = main(backend,

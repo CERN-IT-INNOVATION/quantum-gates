@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pickle
 
-from src.quantum_gates._legacy.gates import X, SX, Noise_Gate, CR, CNOT, CNOT_inv
+from src.quantum_gates._legacy.gates import X, SX, Noise_Gate, CR, CNOT, CNOT_inv, ECR, ECR_inv
 from src.quantum_gates.gates import standard_gates, noise_free_gates
 from src.quantum_gates._gates.gates import numerical_gates, almost_noise_free_gates
 from src.quantum_gates.gates import Gates
@@ -16,18 +16,18 @@ import tests.helpers.device_parameters as helper_dev_param
 
 # Gates
 # Original gates before refactoring
-original_gates_list = [X, SX, Noise_Gate, CR, CNOT, CNOT_inv]
+original_gates_list = [X, SX, Noise_Gate, CR, CNOT, CNOT_inv, ECR, ECR_inv]
 
 # Gates without numerical integration after refactoring
 refactored_gates_list = [
     standard_gates.X, standard_gates.SX, standard_gates.single_qubit_gate, standard_gates.CR,
-    standard_gates.CNOT, standard_gates.CNOT_inv
+    standard_gates.CNOT, standard_gates.CNOT_inv, standard_gates.ECR, standard_gates.ECR_inv
 ]
 
 # Gates with numerical integration after refactoring
 numerical_gates_list = [
     numerical_gates.X, numerical_gates.SX, numerical_gates.single_qubit_gate, numerical_gates.CR,
-    numerical_gates.CNOT, numerical_gates.CNOT_inv
+    numerical_gates.CNOT, numerical_gates.CNOT_inv, standard_gates.ECR, standard_gates.ECR_inv
 ]
 
 # Args
@@ -47,8 +47,8 @@ single_qubit_gate_args = {
 cr_args = {
     "theta": np.pi/2,
     "phi": np.pi/2,
-    "t_cr": helper_dev_param.t_cnot[0][1],
-    "p_cr": helper_dev_param.p_cnot[0][1],
+    "t_cr": helper_dev_param.t_int[1][0],
+    "p_cr": helper_dev_param.p_int[1][0],
     "T1_ctr": helper_dev_param.T1[0],
     "T2_ctr": helper_dev_param.T2[0],
     "T1_trg": helper_dev_param.T1[1],
@@ -57,8 +57,8 @@ cr_args = {
 cnot_args = {
     "phi_ctr": np.pi/2,
     "phi_trg": np.pi/2,
-    "t_cnot": helper_dev_param.t_cnot[0][1],
-    "p_cnot": helper_dev_param.p_cnot[0][1],
+    "t_cnot": helper_dev_param.t_int[1][0],
+    "p_cnot": helper_dev_param.p_int[1][0],
     "p_single_ctr": helper_dev_param.p[0],
     "p_single_trg": helper_dev_param.p[1],
     "T1_ctr": helper_dev_param.T1[0],
@@ -66,7 +66,19 @@ cnot_args = {
     "T1_trg": helper_dev_param.T1[1],
     "T2_trg": helper_dev_param.T2[1]
 }
-args = [x_args, x_args, single_qubit_gate_args, cr_args, cnot_args, cnot_args]
+ecr_args = {
+    "phi_ctr": np.pi/2,
+    "phi_trg": np.pi/2,
+    "t_ecr": helper_dev_param.t_int[1][0],
+    "p_ecr": helper_dev_param.p_int[1][0],
+    "p_single_ctr": helper_dev_param.p[0],
+    "p_single_trg": helper_dev_param.p[1],
+    "T1_ctr": helper_dev_param.T1[0],
+    "T2_ctr": helper_dev_param.T2[0],
+    "T1_trg": helper_dev_param.T1[1],
+    "T2_trg": helper_dev_param.T2[1]
+}
+args = [x_args, x_args, single_qubit_gate_args, cr_args, cnot_args, cnot_args, ecr_args, ecr_args]
 
 
 """ Helper functions """
@@ -281,6 +293,71 @@ def test_gates_noiseless_cnot_inv(phi_ctr: float, phi_trg: float):
     res_exp = noise_free_gates.CNOT_inv(**args)    # Hardcoded noiseless
     res = numerical_gates.CNOT_inv(**args)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-9), \
+        f"Found almost noiseless CNOT {res} instead of {res_exp}."
+    
+@pytest.mark.parametrize(
+    "phi_ctr,phi_trg",
+    [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
+)
+def test_gates_noiseless_ecr(phi_ctr: float, phi_trg: float):
+    # phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
+    # phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
+    # t_cnot: CNOT gate time in ns (double)
+    # p_cnot: CNOT depolarizing error probability (double)
+    # p_single_ctr: control qubit depolarizing error probability (double)
+    # p_single_trg: target qubit depolarizing error probability (double)
+    # T1_ctr: control qubit's amplitude damping time in ns (double)
+    # T2_ctr: control qubit's dephasing time in ns (double)
+    # T1_trg: target qubit's amplitude damping time in ns (double)
+    # T2_trg: target qubit's dephasing time in ns (double)
+    args = {
+        "phi_ctr": phi_ctr,
+        "phi_trg": phi_trg,
+        "t_ecr": 3.3422e-07,
+        "p_ecr": 0.0,
+        "p_single_ctr": 0.0,
+        "p_single_trg": 0.0,
+        "T1_ctr": 1e12,
+        "T2_ctr": 1e12,
+        "T1_trg": 1e12,
+        "T2_trg": 1e12
+    }
+    res_exp = noise_free_gates.ECR(**args)    # Hardcoded noiseless
+    res = numerical_gates.ECR(**args)         # Simulated noiseless
+    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
+        f"Found almost noiseless CNOT {res} instead of {res_exp}."
+    
+
+@pytest.mark.parametrize(
+    "phi_ctr,phi_trg",
+    [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
+)
+def test_gates_noiseless_ecr_inv(phi_ctr: float, phi_trg: float):
+    # phi_ctr: control qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
+    # phi_trg: target qubit phase of the drive defining axis of rotation on the Bloch sphere (double)
+    # t_cnot: CNOT gate time in ns (double)
+    # p_cnot: CNOT depolarizing error probability (double)
+    # p_single_ctr: control qubit depolarizing error probability (double)
+    # p_single_trg: target qubit depolarizing error probability (double)
+    # T1_ctr: control qubit's amplitude damping time in ns (double)
+    # T2_ctr: control qubit's dephasing time in ns (double)
+    # T1_trg: target qubit's amplitude damping time in ns (double)
+    # T2_trg: target qubit's dephasing time in ns (double)
+    args = {
+        "phi_ctr": phi_ctr,
+        "phi_trg": phi_trg,
+        "t_ecr": 3.3422e-07,
+        "p_ecr": 0.0,
+        "p_single_ctr": 0.0,
+        "p_single_trg": 0.0,
+        "T1_ctr": 1e12,
+        "T2_ctr": 1e12,
+        "T1_trg": 1e12,
+        "T2_trg": 1e12
+    }
+    res_exp = noise_free_gates.ECR_inv(**args)    # Hardcoded noiseless
+    res = numerical_gates.ECR_inv(**args)         # Simulated noiseless
+    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
 
 

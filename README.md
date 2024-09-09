@@ -162,9 +162,11 @@ unit tested and one can get sample code from the unit tests.
 
 # Unit Tests
 We recommend running the unit tests once you are finished with the setup of your environment. As some tests need access
-to IBM devices, you have to create a script token.py in the configuration folder. You can check the token_template.py
-for reference. Make sure that your token is active and you have accepted all license agreement with IBM in your IBM
-account.  
+to IBM devices, you have to follow the steps outlined in token.py. Make sure that your token is active and you have 
+accepted all license agreement with IBM in your IBM account. Before you run the tests, make sure that the device you are 
+testing with (the on set in tests/simulation/test_anderson_simulator.py) is available in your account and the device 
+parameters are prepared in the tests/utility/device_parameters folder. In the future we might upgrade the tests and mock 
+these dependencies.
 
 
 # How to contribute

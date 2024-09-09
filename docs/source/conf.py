@@ -3,11 +3,11 @@
 # -- Project information
 
 project = 'Quantum Gates'
-copyright = '2023, Di Bartolomeo, Vischi, Grossi, Wixinger'
-author = 'Di Bartolomeo, Vischi, Grossi, Wixinger'
+copyright = '2023, Di Bartolomeo, Vischi, Grossi, Da Rold, Wixinger'
+author = 'Di Bartolomeo, Vischi, Grossi, Da Rold, Wixinger'
 
-release = '1.0'
-version = '1.0.5'
+release = '1.1'
+version = '1.1.0'
 
 import os
 import sys

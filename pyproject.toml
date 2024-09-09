@@ -11,7 +11,8 @@ name = "quantum-gates"
 authors = [
 	{name = "M, Grossi", email = "michele.grossi@cern.ch"},
 	{name = "G. D. Bartolomeo", email = "dibartolomeo.giov@gmail.com"},
-	{name = "M. Vischi", email = "vischimichele@gmail.com"}, 
+	{name = "M. Vischi", email = "vischimichele@gmail.com"},
+	{name = "P. Da Rold", email = "PAOLO.DAROLD@studenti.units.it"},
 	{name = "R. Wixinger", email = "roman.wixinger@gmail.com"}
 ]
 dynamic = ["version", "description", "readme", "requires-python", "license", "classifiers", "dependencies", "optional-dependencies"]
