@@ -131,8 +131,7 @@ dmypy.json
 # Editor
 .idea/
 
-# Token
-*token.py
+# Mac
 .DS_Store
 
 # Environment files
