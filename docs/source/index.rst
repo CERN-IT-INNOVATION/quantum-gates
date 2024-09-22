@@ -239,4 +239,6 @@ people:
 -  Michele Grossi (michele.grossi@cern.ch)
 -  Sandro Donadi
 -  Angelo Bassi
+-  Paolo Da Rold (paolo.darold@studenti.units.it)
+-  Giulio Crognaletti (giulio.crognaletti@phd.units.it)
 -  Roman Wixinger (roman.wixinger@gmail.com)
