@@ -18,6 +18,10 @@ import functools as ft
 import opt_einsum as oe
 import copy
 import string
+from scipy.sparse import coo_matrix
+from typing import Union
+import time
+from .._utility.circ_optimizator import Optimizator
 
 
 class StandardBackend(object):
@@ -63,7 +67,6 @@ class StandardBackend(object):
         for i in range(1, depth):
             propagator = ft.reduce(np.kron, mp_array[i,:]) @ propagator
         return propagator @ psi0
-
 
 class EfficientBackend(object):
     """Evaluates the quantum circuit represented as list of list of matrices with efficient tensor contractions.
@@ -212,6 +215,220 @@ class EfficientBackend(object):
             return chunks[:-1]
         return chunks
 
+class BinaryBackend(object):
+    """Evaluate the quantum circuit through the list of gate coming from the BinaryCircuit class.
+    This backend use an algorithm usefull to go beyond the linear topology considering the indices of the gates in a smart way.
+    
+
+    Args:
+        nqubit (int): Total number of qubit used in the circuit
+
+    Note:
+        Always use this version for the backend for simulating circuit that use non linear topologies.
+    """
+
+    def __init__(self, nqubit : int):
+        self.nqubit = nqubit
+
+    def statevector(self, mp_list: list, psi0: np.array, level_opt:int, qubit_layout:list) -> np.array:
+        """Propagates a statevector based on a list of matrix products.
+
+        Args:
+             mp_list (list[list]): List of list that contain the gates as np.array and the qubit where they act.
+             psi0 (np.array): Statevector to be propagated.
+             level_opt(int): Level of optimization for the circuit optimizator
+
+        Returns:
+            The propagated statevector.
+        """
+        assert len(mp_list) > 0, f"Expected non empty matrix product list, but found {mp_list}."
+        psi1 = copy.deepcopy(psi0)
+ 
+        mp_list_opt = Optimizator(level_opt= level_opt, circ_list= mp_list, qubit_list=qubit_layout).optimize()
+
+        """
+        time_creation_dense = 0.0
+        time_calculation_dense = 0.0
+        time_creation_sparse = 0.0
+        time_calculation_sparse = 0.0
+        s = 0
+        """
+
+        for item in mp_list_opt:
+
+            q_list = list(range(self.nqubit)) # list of indexes of all qubit in the circuit
+            q_used = item[1] # list of indexes of the qubit used in this moment
+
+            if len(item[1]) == 1: # check if the current is a 1 qubit
+                q = item[1][0]
+                q_list.remove(q) # remove index of the qubit from the list
+            elif len(item[1]) == 2: # check if the current is a 2 qubit gates
+                q1 = item[1][0]
+                q2 = item[1][1]
+                q_list.remove(q1) # remove index of the qubit from the list
+                q_list.remove(q2)
+
+            q_n_used = q_list
+
+            k = len(q_n_used)
+
+            if k == 0: # in case of 1 or 2 qubits circuit
+                #start_crear = time.time()
+                U = self.create_dense(item =item, q_used = q_used, q_n_used = q_n_used)
+                #end_crear = time.time()
+                #time_creation_dense += (end_crear-start_crear)
+
+                #start_calc = time.time()
+                psi1 = U @ psi1
+                #end_calc = time.time()
+                #time_calculation_dense += (end_calc-start_calc)
+
+            elif k > 0:
+                # calculate the sparse matrix
+                #start_crear = time.time()
+                U = self.create_sparse(item = item, q_n_used = q_n_used, q_used = q_used, N = self.nqubit)
+                #end_crear = time.time()
+                #print("Item n: ", s)
+                #print("Time creation single sparse: ", end_crear-start_crear, "n of qubit for the gate: ", q_used)
+                #time_creation_sparse += (end_crear-start_crear)
+
+                #start_calc = time.time()
+                psi1 = U.dot(psi1)
+                #end_calc = time.time()
+                #time_calculation_sparse += (end_calc-start_calc)
+            
+            #s += 1
+        
+        #print("Time creation dense: ", time_creation_dense)
+        #print("Time calculation dense: ", time_calculation_dense)
+        #print("Time creation sparse: ", time_creation_sparse)
+        #print("Time calculation sparse: ", time_calculation_sparse)
+
+        return psi1
+    
+    def create_sparse(self, item : list, q_n_used : list , q_used : list, N : int):
+        """Given a gate applied on some qubits the function return a sparse array to use in the statevector function
+
+        Args:
+            item (list): List representing the entries of the gate and in whithc qubit is applied
+            q_n_used (list): list of not used qubit
+            q_used (list): list of used qubit
+            N (int): Number of total qubit
+
+        Raises:
+            ValueError: If the number of total qubit doesn't match the sum of used and not used qubit there is a problem
+
+        Returns:
+            Sparse matrix: Sparse matrix representing the gate
+        """
+
+        #N = self.nqubit
+
+        k = len(q_n_used) # number of not used qubit
+        m = len(q_used) # m = n-k number of used qubit
+
+        if k+m != N:
+            raise ValueError(f"You lose some qubit along the way, total number of qubit is {N} and the sum of used and not used qubit is {k+m}")
+
+        # quantities for the sparse matrix
+        data = []
+        row_indices = []
+        col_indices = []
+
+        for i in range(2**k): # generate only the non zero element in D according to number of not used qubit
+                k_str = f"{i*(2**k+1):0{2*k}b}"
+                for j in range(2**(2*(m))):
+                    m_str = f"{j:0{2*(m)}b}"
+                    n_str = self.join_str(k_str, m_str, q_n_used, q_used ,k ,m) # merge string
+                    row_indices.append(int(n_str[:N],2)) # row index
+                    col_indices.append(int(n_str[N:],2)) # column index
+                    d = 1
+                    if len(item[1]) == 1: # 1 qubit gate
+                        gate = item[0]
+                        qubit = item[1][0]
+                        d *= gate[int(n_str[qubit]),int(n_str[qubit+N])]
+                    else:                 # 2 qubit gate
+                        gate = item[0]
+                        qubit1 = item[1][0] 
+                        qubit2 = item[1][1]
+                        index1 = int(n_str[qubit1] + n_str[qubit2],2)
+                        index2 = int(n_str[qubit1+N] + n_str[qubit2+N],2)
+                        d *= gate[index1, index2]
+                    data.append(d)
+
+        coo = coo_matrix((data, (row_indices, col_indices)), shape=(2**N, 2**N), dtype= complex)
+        csr = coo.tocsr()
+
+        return csr
+    
+    def join_str(self, k_str : str, m_str : str, q_n_used : tuple, q_used : tuple, k: int ,m: int) ->  str:
+        """Join the list of the identities coming from the not used qubit and the list of the used qubit
+        Args:
+            k_str (str): indexes of not used qubit in binary form different from 0
+            m_str (str): indexes of used qubit from the gates
+            q_n_used (tuple): list of not used qubit
+            q_used (tuple): list of used qubit
+            k (int): number of not used qubit 
+            m (int): number of used qubit
+
+        Returns:
+            tot_str (str): string that represent the element of the matrix
+        """
+        n = k+m
+        tot_str = [0] * 2*n
+        if (len(q_n_used) != k or len(q_used) != m):
+            raise ValueError("Mismatch number of qubit provided and number of qubit in the lists")
+
+        for i, q in enumerate(q_n_used):
+            tot_str[q] = k_str[i]
+            tot_str[q+n] = k_str[i+k]
+
+        for i, q in enumerate(q_used):
+            tot_str[q] = m_str[i]
+            tot_str[q+n] = m_str[i+m]
+
+        return ''.join(map(str, tot_str))
+    
+    def create_dense(self, item : list, q_used : tuple, q_n_used: tuple) -> np.array:
+        """Convert the moment in the matrix that acts in the statevector. This function use an algorithm that calculate only the non zero value
+        If I have N qubit and I don't use k of it, than the complexity is 2**(2*n-k)
+
+        Args:
+            q_used (tuple): tuple of qubit used in this moment
+            q_n_used (tuple): tuple of qubit not used in this moment
+            item (list): list of gates as matrices and the qubits that are used
+
+        Returns:
+            U (np.array): Matrix 2^N x 2^N that is applied to the statevector
+        """
+
+        N = self.nqubit
+
+        k = len(q_n_used) # number of not used qubit
+        m = len(q_used) # m = n-k number of used qubit
+
+        if k+m != N:
+            raise ValueError("You lose some qubit along the way")
+
+        D = np.zeros((2**N, 2**N), dtype=complex)
+ 
+        for i in range(2**N): 
+            for j in range(2**N):
+                binary = f"{i:0{N}b}{j:0{N}b}" # binary representation of the indices of the matrix
+                D[i,j] = 1
+                if len(item[1]) == 1: # 1 qubit gate
+                    gate = item[0]
+                    qubit = item[1][0]
+                    D[i,j] *= gate[int(binary[qubit]),int(binary[qubit+N])]
+                else:                 # 2 qubit gate
+                    gate = item[0]
+                    qubit1 = item[1][0] 
+                    qubit2 = item[1][1]
+                    index1 = int(binary[qubit1] + binary[qubit2],2)
+                    index2 = int(binary[qubit1+N] + binary[qubit2+N],2)
+                    D[i,j] *= gate[index1,index2]
+            
+        return D
 
 class BackendForOnes(object):
     """Version of the backend which is optimized for circuits that contain many identities.
@@ -451,3 +668,4 @@ class BackendForOnes(object):
 
         psi_many_leggs = psi.view().reshape(shape)
         return oe.contract(cs, *non_one_chunks,  psi_many_leggs).reshape(psi.shape)
+

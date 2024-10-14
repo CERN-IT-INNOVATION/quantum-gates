@@ -10,3 +10,5 @@ from ._utility.simulations_utility import (
     post_process_split,
     compute_Hellinger_distance as hellinger_distance,
 )
+
+from ._utility.circ_optimizator import Optimizator
