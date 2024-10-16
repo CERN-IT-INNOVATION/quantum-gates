@@ -605,9 +605,20 @@ class BinaryCircuit(object):
         depth (int): 
         gates (int): Gateset from which the noisy quantum gates should be sampled.
 
+    Example:
+        .. code:: python
+
+            from quantum_gates.circuits import BinaryCircuit
+            from quantum_gates.gates import standard_gates
+
+            circuit = BinaryCircuit(
+                nqubit=2,
+                gates=standard_gates,
+            )
+
     """
 
-    def __init__(self, nqubit: int, depth : int, gates: Gates): # type: ignore
+    def __init__(self, nqubit: int, gates: Gates): 
         self.nqubit = nqubit                        # Number of qubits
         self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
         self._backend = BinaryBackend(nqubit)       # Backend for tensor contractions
@@ -625,7 +636,6 @@ class BinaryCircuit(object):
         """
         the_info = [gate, qubit]
         self._info_gates_list.append(the_info)
-
             
     def statevector(self, psi0 : np.array, level_opt:int, qubit_layout:list) -> np.array:
         """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
@@ -778,7 +788,6 @@ class BinaryCircuit(object):
 
         return
 
-    
     def ECR(self, i: int, k: int, t_ecr: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
@@ -819,7 +828,6 @@ class BinaryCircuit(object):
             self.update_circuit_list(gate=the_gate, qubit=[k,i])
 
         return
-
 
     def reset(self):
         """ Reset the circuit to the initial state. """

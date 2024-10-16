@@ -218,13 +218,29 @@ class EfficientBackend(object):
 class BinaryBackend(object):
     """Evaluate the quantum circuit through the list of gate coming from the BinaryCircuit class.
     This backend use an algorithm usefull to go beyond the linear topology considering the indices of the gates in a smart way.
-    
+    If you are running a circuit with at most two qubit then it's made a dense matrix otherwise a sparse one. This to optimize the calculation
 
     Args:
         nqubit (int): Total number of qubit used in the circuit
 
     Note:
         Always use this version for the backend for simulating circuit that use non linear topologies.
+
+    Example:
+        .. code:: python
+
+            from quantum_gates.backend import BinaryBackend
+
+            backend = BinaryBackend(nqubit=2)
+
+            qubit_layout = [0,1]
+            level_opt = 4
+            H, CNOT, I = ...
+            mp_list = [[H, [0]], [I, [1]], [CNOT, [0,1]]]
+
+            psi0 = np.array([1, 0, 0, 0])
+            psi1 = backend.statevector(mp_list, psi0, level_opt, qubit_layout)  # Gives [1, 0, 0, 1] / sqrt(2)
+
     """
 
     def __init__(self, nqubit : int):
@@ -246,14 +262,6 @@ class BinaryBackend(object):
  
         mp_list_opt = Optimizator(level_opt= level_opt, circ_list= mp_list, qubit_list=qubit_layout).optimize()
 
-        """
-        time_creation_dense = 0.0
-        time_calculation_dense = 0.0
-        time_creation_sparse = 0.0
-        time_calculation_sparse = 0.0
-        s = 0
-        """
-
         for item in mp_list_opt:
 
             q_list = list(range(self.nqubit)) # list of indexes of all qubit in the circuit
@@ -273,36 +281,12 @@ class BinaryBackend(object):
             k = len(q_n_used)
 
             if k == 0: # in case of 1 or 2 qubits circuit
-                #start_crear = time.time()
                 U = self.create_dense(item =item, q_used = q_used, q_n_used = q_n_used)
-                #end_crear = time.time()
-                #time_creation_dense += (end_crear-start_crear)
-
-                #start_calc = time.time()
                 psi1 = U @ psi1
-                #end_calc = time.time()
-                #time_calculation_dense += (end_calc-start_calc)
 
             elif k > 0:
-                # calculate the sparse matrix
-                #start_crear = time.time()
                 U = self.create_sparse(item = item, q_n_used = q_n_used, q_used = q_used, N = self.nqubit)
-                #end_crear = time.time()
-                #print("Item n: ", s)
-                #print("Time creation single sparse: ", end_crear-start_crear, "n of qubit for the gate: ", q_used)
-                #time_creation_sparse += (end_crear-start_crear)
-
-                #start_calc = time.time()
                 psi1 = U.dot(psi1)
-                #end_calc = time.time()
-                #time_calculation_sparse += (end_calc-start_calc)
-            
-            #s += 1
-        
-        #print("Time creation dense: ", time_creation_dense)
-        #print("Time calculation dense: ", time_calculation_dense)
-        #print("Time creation sparse: ", time_creation_sparse)
-        #print("Time calculation sparse: ", time_calculation_sparse)
 
         return psi1
     
@@ -321,8 +305,6 @@ class BinaryBackend(object):
         Returns:
             Sparse matrix: Sparse matrix representing the gate
         """
-
-        #N = self.nqubit
 
         k = len(q_n_used) # number of not used qubit
         m = len(q_used) # m = n-k number of used qubit

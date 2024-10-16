@@ -12,15 +12,18 @@ class Optimizator(object):
     def __init__(self, level_opt:int, circ_list: list, qubit_list: list):
         if level_opt > 4 or level_opt < 0:
             raise ValueError(f"Not exist the level {level_opt} of optimizaion. They are from 0 to 4")
-        if len(qubit_list) == 1:
-            level_opt = 0
-        self.level_opt = level_opt
         self.circ_list = circ_list
+        self.level_opt = level_opt
         self.qubit_list = qubit_list
 
     def optimize(self) -> list:
 
-        level = self.level_opt
+        if len(self.circ_list) <= 2:
+            level = 0
+        elif len(self.qubit_list) == 1:
+            level = 0
+        else:
+            level = self.level_opt
 
         if level == 0:
             return self.circ_list
@@ -99,10 +102,11 @@ class Optimizator(object):
                     _snip.append(gate_list[counter])
                     counter += 1
                 _snip.append(gate_list[counter]) # append the 2q gate
-                if len(gate_list[counter+1][1]) == 1: # append the right after gate if it is a 1 q gate
-                    _snip.append(gate_list[counter+1])
-                    if len(gate_list[counter+2][1]) == 1: # if it's appended the first closer whatch if append the second after gate if it is a 1 q gate
-                        _snip.append(gate_list[counter+2])
+                if len(gate_list) > counter+1: # assert that there are gate after the one considered
+                    if len(gate_list[counter+1][1]) == 1: # append the right after gate if it is a 1 q gate
+                        _snip.append(gate_list[counter+1])
+                        if len(gate_list[counter+2][1]) == 1: # if it's appended the first closer whatch if append the second after gate if it is a 1 q gate
+                            _snip.append(gate_list[counter+2])
                 # the snip now is done
 
                 # remove from result the snipped
