@@ -205,7 +205,7 @@ class Circuit(object):
         """
         self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
 
-    def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+    def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
@@ -214,7 +214,7 @@ class Circuit(object):
         Args:
             i: index of the control qubit (int)
             k: index of the target qubit (int)
-            t_cnot: CNOT gate time in ns (double)
+            t_int: CNOT gate time in ns (double)
             p_i_k: CNOT depolarizing error probability (double)
             p_i: control single-qubit depolarizing error probability (double)
             p_k: target single-qubit depolarizing error probability (double)
@@ -232,13 +232,13 @@ class Circuit(object):
 
             if i < k:
                 self.circuit[i][self.j] = self.gates.CNOT(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
                 self.circuit[i][self.j] = self.gates.CNOT_inv(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] + np.pi/2 + np.pi
                 self.phi[k] = self.phi[k] + np.pi/2
@@ -250,13 +250,13 @@ class Circuit(object):
 
             if i < k:
                 self.circuit[i][self.j] = self.gates.CNOT(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] - np.pi/2
 
             else:
                 self.circuit[i][self.j] = self.gates.CNOT_inv(
-                    self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                    self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
                 )
                 self.phi[i] = self.phi[i] + np.pi/2 + np.pi
                 self.phi[k] = self.phi[k] + np.pi/2
@@ -489,7 +489,7 @@ class AlternativeCircuit(object):
         """
         self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
 
-    def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+    def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
@@ -498,7 +498,7 @@ class AlternativeCircuit(object):
         Args:
             i: index of the control qubit (int)
             k: index of the target qubit (int)
-            t_cnot: CNOT gate time in ns (double)
+            t_int: CNOT gate time in ns (double)
             p_i_k: CNOT depolarizing error probability (double)
             p_i: control single-qubit depolarizing error probability (double)
             p_k: target single-qubit depolarizing error probability (double)
@@ -515,13 +515,13 @@ class AlternativeCircuit(object):
         if i < k:
             # Control i
             self._mp[i] = self.gates.CNOT(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
             self.phi[i] = self.phi[i] - np.pi/2
         else:
             # Control i
             self._mp[i] = self.gates.CNOT_inv(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
             self.phi[i] = self.phi[i] + np.pi/2 + np.pi
@@ -618,7 +618,7 @@ class BinaryCircuit(object):
 
     """
 
-    def __init__(self, nqubit: int, gates: Gates): 
+    def __init__(self, nqubit: int, depth: int, gates: Gates): 
         self.nqubit = nqubit                        # Number of qubits
         self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
         self._backend = BinaryBackend(nqubit)       # Backend for tensor contractions
@@ -634,6 +634,12 @@ class BinaryCircuit(object):
             gate (np.array): The matrix representation of the noisy gate
             i (list): index of the qubit or qubits in which the gate is applied
         """
+        if not isinstance(gate, np.ndarray):
+            raise ValueError(f"Circuit.update_circuit_list() expected gate to be a numpy array but found type {type(gate)}.")
+        
+        if gate.shape == (4, 4) and len(qubit) != 2:
+            raise ValueError(f"Circuit.update_circuit_list() expected 2 qubit for a two qubit gates but found {len(qubit)} qubits.")
+
         the_info = [gate, qubit]
         self._info_gates_list.append(the_info)
             
@@ -742,7 +748,7 @@ class BinaryCircuit(object):
         """
         self.update_circuit_list(gate=self.gates.SX(-self.phi[i], p, T1, T2), qubit=[i])
 
-    def CNOT(self, i: int, k: int, t_cnot: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
+    def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
         """
         Apply CNOT two-qubit noisy quantum gate with depolarizing and
@@ -751,7 +757,7 @@ class BinaryCircuit(object):
         Args:
             i: index of the control qubit (int)
             k: index of the target qubit (int)
-            t_cnot: CNOT gate time in ns (double)
+            t_int: CNOT gate time in ns (double)
             p_i_k: CNOT depolarizing error probability (double)
             p_i: control single-qubit depolarizing error probability (double)
             p_k: target single-qubit depolarizing error probability (double)
@@ -768,7 +774,7 @@ class BinaryCircuit(object):
         if i < k:
             # Control i
             the_gate = self.gates.CNOT(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
             self.phi[i] = self.phi[i] - np.pi/2
 
@@ -776,7 +782,7 @@ class BinaryCircuit(object):
         else:
             # Control i
             the_gate = self.gates.CNOT_inv(
-                self.phi[i], self.phi[k], t_cnot, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
+                self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
             self.phi[i] = self.phi[i] + np.pi/2 + np.pi
