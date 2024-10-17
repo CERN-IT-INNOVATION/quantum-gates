@@ -64,7 +64,7 @@ class MrAndersonSimulator(object):
             shots: int,
             device_param: dict,
             nqubit: int,
-            level_opt:int):
+            level_opt:int = 4) -> dict:
         """
             Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
             and runs noisy quantum gates. Warning: Qubits layout must have a linear topology.
@@ -418,8 +418,8 @@ def _apply_gates_on_circuit(
             if data[j][0].name == 'ecr':
                 q_ctr_r = data[j][1][0]._index # index control real qubit
                 q_trg_r = data[j][1][1]._index # index target real qubit
-                q_ctr_v = qubit_layout.index(q_ctr_r) # index control real qubit
-                q_trg_v = qubit_layout.index(q_trg_r) # index control real qubit
+                q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
+                q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
                 for k in range(nqubit):
                     if k == q_ctr_v:
                         circ.ECR(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
@@ -429,8 +429,8 @@ def _apply_gates_on_circuit(
             if data[j][0].name == 'cx':
                 q_ctr_r = data[j][1][0]._index # index control real qubit
                 q_trg_r = data[j][1][1]._index # index target real qubit
-                q_ctr_v = qubit_layout.index(q_ctr_r) # index control real qubit
-                q_trg_v = qubit_layout.index(q_trg_r) # index control real qubit
+                q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
+                q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
                 for k in range(nqubit):
                     if k == q_ctr_v:
                         circ.CNOT(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])

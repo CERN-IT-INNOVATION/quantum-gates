@@ -164,6 +164,7 @@ class Optimizator(object):
         last_part = []
         l = 0
         gate_list = gate_list[::-1] # reverse the list of the gate
+        reorder_qubit_list = list(range(len(self.qubit_list)))
 
         # check if there is almost one two qubit gate
         for item in gate_list:
@@ -187,7 +188,7 @@ class Optimizator(object):
             if l > 1: # check if there almost two element in the last part
                 last_part = last_part[::-1] # reverse the list to obtain the right order
                 result_4 = gate_list[:-l] # add all the gate before the last part a result_4
-                for q_i in self.qubit_list: # scan all the used qubit 
+                for q_i in reorder_qubit_list: # scan all the used qubit 
                     if len(last_part) > 1:
                         indices = [index for index, element in enumerate(last_part) if element[1][0] == q_i] # find the indices of the element for the qubit q_i
                         if len(indices) > 1:
@@ -212,7 +213,7 @@ class Optimizator(object):
             if length_last_part > 1: # check if there almost two element in the last part
                 last_part = last_part[::-1] # reverse the list to obtain the right order
                 result_4 = []
-                for q_i in self.qubit_list: # scan all the used qubit 
+                for q_i in reorder_qubit_list: # scan all the used qubit 
                     if len(last_part) > 1:
                         indices = [index for index, element in enumerate(last_part) if element[1][0] == q_i] # find the indices of the element for the qubit q_i
                         if len(indices) > 1:
