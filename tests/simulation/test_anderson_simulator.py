@@ -7,7 +7,7 @@ from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
 from src.quantum_gates.utilities import setup_backend, create_qc_list
 from src.quantum_gates.simulators import MrAndersonSimulator
 from src.quantum_gates.circuits import EfficientCircuit
-from src.quantum_gates._simulation.circuit import Circuit, StandardCircuit, OneCircuit
+from src.quantum_gates._simulation.circuit import Circuit, StandardCircuit, OneCircuit, BinaryCircuit
 from src.quantum_gates.gates import standard_gates, noise_free_gates
 from src.quantum_gates._gates.gates import numerical_gates, almost_noise_free_gates
 from src.quantum_gates.utilities import DeviceParameters
@@ -22,8 +22,10 @@ backend_config = {
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
-circuit_set = [Circuit, StandardCircuit, EfficientCircuit, OneCircuit]
+circuit_set = [Circuit, StandardCircuit, EfficientCircuit, OneCircuit, BinaryCircuit]
 gates_set = [standard_gates, numerical_gates, almost_noise_free_gates]
+
+location = "helpers/device_parameters/ibm_kyiv/"
 
 
 def main(backend,
@@ -80,7 +82,8 @@ def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
         psi0=psi0,
         shots=args['shots'],
         device_param=args['device_param'],
-        nqubit=nqubit
+        nqubit=nqubit,
+        level_opt=4
     )
     return p_ng
 
@@ -94,7 +97,7 @@ def test_simulator_run_one_shot(nqubits: int, gates, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location
     }
     main(
         backend,
@@ -115,7 +118,8 @@ def test_simulator_run_many_shots(shots: int, gates, CircuitClass):
         "shots": shots,
         "nqubits": 2,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location 
+
     }
     main(
         backend,
@@ -136,7 +140,7 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
         "shots": 100,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location
     }
     p_ng = main(
         backend,
@@ -146,8 +150,10 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
-    assert all((p_ng[0] >= p_i for p_i in p_ng)), \
-        f"The state |0..0> was not the most likely. Found probabilities {p_ng}."
+
+    values = np.array(list(p_ng.values()))
+    assert all((values[0] >= values_i for values_i in values)), \
+        f"The state |0..0> was not the most likely. Found probabilities {values}."
 
 
 @pytest.mark.skip(reason="Invalid test: At the moment, the noise_free_gates have a bug with the global phase.")
@@ -161,7 +167,7 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location
     }
     p = main(
         backend,
@@ -172,11 +178,12 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
         **run_config
     )
 
+    values = np.array(list(p.values()))
     p_exp = np.zeros(2**nqubits)
     p_exp[0] = 1
 
-    assert all((abs(p_exp[i] - p[i]) < epsilon for i in range(2**nqubits))), \
-        f"The state |0...0> was not the most likely. Found probabilities {p}."
+    assert all((abs(p_exp[i] - values[i]) < epsilon for i in range(2**nqubits))), \
+        f"The state |0...0> was not the most likely. Found probabilities {values}."
 
 
 @pytest.mark.parametrize(
@@ -189,7 +196,7 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location
     }
     p = main(
         backend,
@@ -202,8 +209,9 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
 
     p_exp = np.zeros(2**nqubits)
     p_exp[0] = 1
+    values = np.array(list(p.values()))
 
-    abs_diffs = [abs(p_exp[i] - p[i]) for i in range(2**nqubits)]
+    abs_diffs = [abs(p_exp[i] - values[i]) for i in range(2**nqubits)]
     max_diff = np.max(abs_diffs)
     assert all((abs_diffs[i] < epsilon for i in range(2**nqubits))), \
         f"There was a state whose probability differed by {max_diff} > {epsilon}."
@@ -221,7 +229,7 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
         "shots": 1,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/",
+        "location_device_parameters": location,
         "backend": backend,
         "do_simulation": do_simulation,
         "gates": almost_noise_free_gates,
@@ -232,6 +240,7 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
     time_standard_circuit = 0
     time_efficient_circuit = 0
     time_one_circuit = 0
+    time_binary_circuit = 0
 
     for i in range(times):
 
@@ -250,25 +259,41 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
         p_efficient = main(CircuitClass=EfficientCircuit, **args)
         time_efficient_circuit += time.time()
 
-        # Measure efficient circuit
+        # Measure one circuit
         time_one_circuit -= time.time()
         p_one = main(CircuitClass=OneCircuit, **args)
         time_one_circuit += time.time()
+
+        # Measure binary circuit
+        time_binary_circuit -= time.time()
+        p_binary = main(CircuitClass=BinaryCircuit, **args)
+        time_binary_circuit += time.time()
+
+        v_circuit = np.array(list(p_circuit.values()))
+        v_standard = np.array(list(p_standard.values()))
+        v_efficient = np.array(list(p_efficient.values()))
+        v_one = np.array(list(p_one.values()))
+        v_binary = np.array(list(p_binary.values()))
+
 
     print(f"time_circuit: {time_circuit} s")
     print(f"time_standard_circuit: {time_standard_circuit} s")
     print(f"time_efficient_circuit: {time_efficient_circuit} s")
     print(f"time_one_circuit: {time_one_circuit} s")
+    print(f"time_binary_circuit: {time_binary_circuit} s")
 
     # Check that they give the same result
-    assert helper_functions.vector_almost_equal(p_circuit, p_standard, nqubits, abstol), \
+    assert helper_functions.vector_almost_equal(v_circuit, v_standard, nqubits, abstol), \
         "StandardCircuit and Circuit did not produce the same result"
 
-    assert helper_functions.vector_almost_equal(p_circuit, p_efficient, nqubits, abstol), \
+    assert helper_functions.vector_almost_equal(v_circuit, v_efficient, nqubits, abstol), \
         "EfficientCircuit and Circuit did not produce the same result"
 
-    assert helper_functions.vector_almost_equal(p_circuit, p_one, nqubits, abstol), \
+    assert helper_functions.vector_almost_equal(v_circuit, v_one, nqubits, abstol), \
         "OneCircuit and Circuit did not produce the same result"
+    
+    assert helper_functions.vector_almost_equal(v_circuit, v_binary, nqubits, abstol), \
+        "BinaryCircuit and Circuit did not produce the same result"
 
     # Check speeds
     assert time_efficient_circuit < min(time_circuit, time_standard_circuit), \
@@ -406,7 +431,7 @@ def test_simulation_gives_normalized_result(nqubits):
         "shots": shots,
         "nqubits": nqubits,
         "qubits_layout": [0, 1, 2, 3, 4],
-        "location_device_parameters": "tests/helpers/device_parameters/ibm_kyiv/"
+        "location_device_parameters": location
     }
 
     p_ng = main(backend,
@@ -416,5 +441,7 @@ def test_simulation_gives_normalized_result(nqubits):
                 circuit_generator=hadamard_reverse_qft_circ,
                 **run_config,
                 parallel=False)
+    
+    v_ng = np.array(list(p_ng.values()))
 
-    assert np.sum(p_ng) == pytest.approx(1.0), "Found that the simulator does not return a probability distribution."
+    assert np.sum(v_ng) == pytest.approx(1.0), "Found that the simulator does not return a probability distribution."

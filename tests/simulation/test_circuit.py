@@ -106,3 +106,4 @@ def test_alternative_apply_cnot_three_qubits(BackendClass):
     prop_exp = np.array([0, 0, 0, 0, 0, 0, 0, 1**2])
     assert all(abs(abs(prop_found[i]) - abs(prop_exp[i])) < 0.2 for i in range(8)), \
         f"Propagation failed. Expected prop {prop_exp} vs. found {prop_found}."
+    
