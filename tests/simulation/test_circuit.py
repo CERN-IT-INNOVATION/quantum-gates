@@ -107,3 +107,17 @@ def test_alternative_apply_cnot_three_qubits(BackendClass):
     assert all(abs(abs(prop_found[i]) - abs(prop_exp[i])) < 0.2 for i in range(8)), \
         f"Propagation failed. Expected prop {prop_exp} vs. found {prop_found}."
     
+def test_non_close_gate_binary_circuit():
+    n_qubit = 3
+    psi0 = [1] + [0] * (2**n_qubit-1)
+    qubit_layout = [0,1,14]
+    circ = BinaryCircuit(nqubit = n_qubit, depth=1, gates= standard_gates)
+    circ.update_circuit_list(gate=helper_gates.X, qubit = [0])
+    circ.update_circuit_list(gate=helper_gates.CNOT, qubit = [0,2])
+    psi1 = circ.statevector(psi0, 0, qubit_layout)
+    exp = np.array([0,0,0,0,0,1,0,0])
+    assert all(psi1[i] == exp[i] for i in range(2**n_qubit))
+
+
+
+    

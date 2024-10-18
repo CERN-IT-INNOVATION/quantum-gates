@@ -253,6 +253,7 @@ class BinaryBackend(object):
              mp_list (list[list]): List of list that contain the gates as np.array and the qubit where they act.
              psi0 (np.array): Statevector to be propagated.
              level_opt(int): Level of optimization for the circuit optimizator
+             qubit_layout(list): Layout of the qubit used in the optimizator
 
         Returns:
             The propagated statevector.
@@ -317,7 +318,7 @@ class BinaryBackend(object):
         row_indices = []
         col_indices = []
 
-        for i in range(2**k): # generate only the non zero element in D according to number of not used qubit
+        for i in range(2**k): # generate only the non zero element in the matrix according to the number of not used qubit
                 k_str = f"{i*(2**k+1):0{2*k}b}"
                 for j in range(2**(2*(m))):
                     m_str = f"{j:0{2*(m)}b}"

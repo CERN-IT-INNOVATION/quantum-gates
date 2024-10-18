@@ -8,8 +8,44 @@ Pay attention that it is designend mainly to work with BinaryCircuit and BinaryB
 import numpy as np
 
 class Optimizator(object):
+    """This class implements an algorithm used before calculate the statevector in BinaryBackedn to optimize the output coming from the BinaryCircuit class. 
+    The output is the list of gate and the qubit(s) on which it's applied. The idea is to reduce the lentgh of the list watching at the pattern of near 
+    gates and compress them in less gate.
+    The algorithm works on 4 different levels, higher the level is and more it's expected that the length will be reduced.
+
+    Example:
+        .. code:: python
+
+            from quantum_gates.utilities import Optimizator
+            from quantum_gates.circuits import BinaryCircuit
+            from quantum_gates.gates import standard_gates
+
+            N_QUBIT = 10
+            depth = 0
+
+            circuit = BinaryCircuit(nqubit = N_QUBIT, depth=depth, gates= standard_gates)
+
+            # fill the info gates list 
+
+            result = circuit._info_gates_list
+            opt = Optimizator(level_opt= 4, circ_list= result, qubit_list=qubits_layout_t)
+
+            result_opt_4 = opt.optimize()
+
+
+    """
 
     def __init__(self, level_opt:int, circ_list: list, qubit_list: list):
+        """
+
+        Args:
+            level_opt (int): At which level you want optimize
+            circ_list (list): List of matrices representing the gates and the qubits on which the gates act coming from BinaryCircuit
+            qubit_list (list): Layout of the qubit used in stage 4 to calculate how many qubits there are
+
+        Raises:
+            ValueError: The possible values for the optimization go from 0 (no opt) to 4 (max opt)
+        """
         if level_opt > 4 or level_opt < 0:
             raise ValueError(f"Not exist the level {level_opt} of optimizaion. They are from 0 to 4")
         self.circ_list = circ_list
@@ -17,6 +53,12 @@ class Optimizator(object):
         self.qubit_list = qubit_list
 
     def optimize(self) -> list:
+        """This function runs the optimization algorithm at the optimazion level chosen. 
+        There are some exception for circuit with only one qubit or too short
+
+        Returns:
+            list: Return the optimized list of gates ready to go in the statevector function
+        """
 
         if len(self.circ_list) <= 2:
             level = 0
@@ -52,6 +94,15 @@ class Optimizator(object):
             return result_4
 
     def opt_level_1(self, gate_list: list) -> list:
+        """This is the first level of optimiazion. It watch at the near single qubit gate: 
+        If there are two or more closed gates that act on the same qubit then they are multiplicated together to obtain a single gate.
+
+        Args:
+            gate_list (list): List of gate coming from BinaryCircuit
+
+        Returns:
+            list: Return the first level optimize list of gate
+        """
         result_1 = []
 
         while gate_list:
@@ -83,6 +134,17 @@ class Optimizator(object):
         return result_1
     
     def opt_level_2(self, gate_list:list) -> list:
+        """This is the second level of optimization. It watch at the two single qubit gate before and after a two qubit gate:
+        If there are one or two single qubit gate before a two qubit gate that act on the same qubit then there are multiplicate together.
+        The same is done if there are one or two single qubit gate after the two qubit gate.
+        In this way most of the single qubit gate are deleted and the information is stored inside the two qubit gates
+
+        Args:
+            gate_list (list): List of gate coming from the first level of optimization
+
+        Returns:
+            list: Return the second level optimize list of gate
+        """
 
         q2_gate = 0
         result_2 = []
@@ -125,6 +187,15 @@ class Optimizator(object):
         return result_2
     
     def opt_level_3(self, gate_list:list) -> list:
+        """This is the third level of optimization. It watch at the near two qubit gates.
+        If there are two or more closed gates that act on the same qubits then they are multiplicated together to obtain a single two qubit gate.
+
+        Args:
+            gate_list (list): List of gate coming from the second level of optimization
+
+        Returns:
+            list: Return the third level optimize list of gate
+        """
 
         result_3 = []
 
@@ -160,6 +231,18 @@ class Optimizator(object):
         return result_3
     
     def opt_level_4(self, gate_list:list) -> list:
+        """This is the fourth level of optimization. It watch at the last part after the last two qubit gate of the list where there are only single qubit gate:
+        Considering the used qubit it scan all the last single qubit gates and if there are two or more gates that act on the same qubit they are multiplicated together
+
+        Args:
+            gate_list (list): List of gate coming from the third level of optimization
+
+        Raises:
+            ValueError: The calculated number of gates in the last part doesn't match the input list
+
+        Returns:
+            list: Return the fourth level optimize list of gate
+        """
 
         last_part = []
         l = 0
@@ -235,6 +318,17 @@ class Optimizator(object):
         return result_4
     
     def proces_snipped(self, snip: list) -> list:
+        """This is an auxiliary function used in the second level to isolate and analyze each two qubit gates and its neighbour if there are single qubit gates that on the same qubits
+
+        Args:
+            snip (list): Little list of gate that contain the two qubit gate and its neighbour
+
+        Raises:
+            ValueError: If the gate is not a two qubit gate is raised an error
+
+        Returns:
+            list: Processed list 
+        """
         loc = 0 # index of the 2q gates in the snip
         n_elem = len(snip) -1 # number of elements in the snip starting from 0
         proces_snip = [] 

@@ -598,11 +598,11 @@ class BinaryCircuit(object):
     """ Allows to build a circuit to deal with non linear topologies of the devices.
 
     In this version, we provide a backend that must be the BinaryBackend because it provide the execution of the circuit with the algorithm that goes beyond
-    the linear topology of a device. So it's full general.
+    the linear topology of a device. It's full general.
 
     Args:
         nqubit (int): Number of qubits.
-        depth (int): 
+        depth (int): Depth of the circuit (Doesn't use, but leave here to follow the structure of the previous Circuit Class)
         gates (int): Gateset from which the noisy quantum gates should be sampled.
 
     Example:
@@ -611,10 +611,24 @@ class BinaryCircuit(object):
             from quantum_gates.circuits import BinaryCircuit
             from quantum_gates.gates import standard_gates
 
+            n_qubit = 3
+
             circuit = BinaryCircuit(
-                nqubit=2,
+                nqubit=n_qubit,
+                depth=1,
                 gates=standard_gates,
             )
+
+            X, CNOT = ...
+
+            #apply gate on the circuit
+            circ.update_circuit_list(gate=X, qubit = [0])
+            circ.update_circuit_list(gate=CNOT, qubit = [0,2])
+
+            # calculate the statevector
+            psi0 = [1] + [0] * (2**n_qubit-1)
+            qubit_layout = [0,1,2]
+            psi1 = circ.statevector(psi0 = psi0, 0, qubit_layout)
 
     """
 
