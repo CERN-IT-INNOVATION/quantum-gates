@@ -26,8 +26,9 @@ section [How to contribute](#how-to-contribute). This will install all dependenc
 and install a working version of the library. 
 
 
-## Quickstart
-Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token.
+## Quickstart 
+Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token. 
+
 
 ```python
 # Standard libraries
@@ -41,7 +42,7 @@ from qiskit.visualization import plot_histogram
 # Own library
 from quantum_gates.simulators import MrAndersonSimulator
 from quantum_gates.gates import standard_gates
-from quantum_gates.circuits import EfficientCircuit
+from quantum_gates.circuits import EfficientCircuit, BinaryCircuit
 from quantum_gates.utilities import DeviceParameters
 from quantum_gates.utilities import setup_backend
 IBM_TOKEN = "<your_token>"
@@ -64,7 +65,7 @@ config = {
         "hub": "ibm-q",
         "group": "open",
         "project": "main",
-        "device_name": "ibmq_manila"
+        "device_name": "ibm_kyiv"
     },
     "run": {
         "shots": 1000,
@@ -114,6 +115,63 @@ counts_ng = {format(i, 'b').zfill(2): probs[i] for i in range(0, 4)}
 ... and analyse the result. 
 
 ```python
+plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+```
+
+If you want to use a non-linear topology you must use the BinaryCircuit and slightly modify the code.
+First of all we modify the qubit layout to match the topology of the device.
+
+```python
+config = {
+    "run": {
+        "shots": 1000,
+        "qubits_layout": [0, 14],
+        "psi0": [1, 0, 0, 0]
+    }
+}
+```
+Then also the command to import the parameter device has to change in order to import all the information of all the qubits up to the one with the max indices.
+
+```python
+device_param = DeviceParameters(list(np.arange(max(qubits_layout)+1)))
+device_param.load_from_backend(backend)
+device_param_lookup = device_param.__dict__()
+```
+
+Last, we perform the simulation ... 
+```python
+sim = MrAndersonSimulator(gates=standard_gates, CircuitClass=BinaryCircuit)
+
+t_circ = transpile(
+    circ,
+    backend,
+    scheduling_method='asap',
+    initial_layout=qubits_layout,
+    seed_transpiler=42
+)
+
+probs = sim.run(
+    t_qiskit_circ=t_circ, 
+    qubits_layout=qubits_layout, 
+    psi0=np.array(run_config["psi0"]), 
+    shots=run_config["shots"], 
+    device_param=device_param_lookup,
+    nqubit=2)
+
+counts_ng = {format(i, 'b').zfill(2): probs[i] for i in range(0, 4)}
+```
+... and analyse the result. 
+
+```python
+plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+```
+
+Remember that the ouput of the simulator follows the Big-Endian order, if you want to switch to Little-Endian order, which is the standard for Qiskit, you can use the command
+
+```python
+from quantum_gates.utilities import fix_counts
+
+counts_ng = fix_counts(probs, n_measured_qubit)
 plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
 
@@ -215,4 +273,5 @@ This project has been developed thanks to the effort of the following people:
 * Michele Grossi (michele.grossi@cern.ch) 
 * Sandro Donadi
 * Angelo Bassi 
+* Paolo Da Rold 
 * Roman Wixinger (roman.wixinger@gmail.com)
