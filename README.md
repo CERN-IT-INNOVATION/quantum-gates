@@ -171,6 +171,7 @@ Remember that the ouput of the simulator follows the Big-Endian order, if you wa
 ```python
 from quantum_gates.utilities import fix_counts
 
+n_measured_qubit = 2
 probs_little_endian = fix_counts(probs, n_measured_qubit)
 plot_histogram(probs_little_endian, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
