@@ -19,11 +19,36 @@ The library is available on the Python Package Index (PyPI) with `pip install qu
 
 
 ### Installation as a contributor
-For users who want to have control over the source code, we recommend the following installation. Clone the repository 
-from [Github](https://github.com/CERN-IT-INNOVATION/quantum-gates), create a new virtual environment, and activate the 
-environment. Then you can build the wheel and install it with the package manager of your choice as described in the 
-section [How to contribute](#how-to-contribute). This will install all dependencies in your virtual environment, 
-and install a working version of the library. 
+For users who want to have control over the source code, we recommend the following installation. 
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/CERN-IT-INNOVATION/quantum-gates.git
+```
+
+2. Navigate to the project directory:
+
+```bash
+cd quantum_gates
+```
+
+3. Create virtual environment
+
+You can either use your IDE to set this up automatically or do it manually in the CLI.
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+```
+This saves your environment from pollution.
+
+4. Install the package in editable mode.
+
+```bash
+pip install -e .
+```
+This command installs the package in editable mode, allowing you to work directly with the source code. Any changes you 
+make will be immediately available without the need to reinstall the package.
 
 
 ## Quickstart
@@ -119,11 +144,8 @@ plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
 
 
 # Usage
-We recommend to read the [overview](https://quantum-gates.readthedocs.io/en/latest/index.html) of the documentation as a 2-minute preparation. 
-
-
-## Imports
-There are two ways of importing the package. 1) If you installed the code with pip, then the imports are simply of the form seen in the [Quickstart](<#quickstart>). 
+We recommend to read the [overview](https://quantum-gates.readthedocs.io/en/latest/index.html) of the documentation 
+as a 2-minute preparation. You can import the package modules as shown in the Quickstart:
 
 ```python
 from quantum_gates.simulators import MrAndersonSimulator
@@ -131,18 +153,6 @@ from quantum_gates.gates import standard_gates
 from quantum_gates.circuits import EfficientCircuit
 from quantum_gates.utilities import DeviceParameters, setup_backend
 ```
-
-2) If you use the source code directly and develop within the repository, then the imports become
-
-```python
-from src.quantum_gates._simulation.simulator import MrAndersonSimulator
-from src.quantum_gates._gates.gates import standard_gates
-from src.quantum_gates._simulation.circuit import EfficientCircuit
-from src.quantum_gates._utility.device_parameters import (
-    DeviceParameters, 
-    setup_backend
-)
-``` 
 
 
 # Functionality
