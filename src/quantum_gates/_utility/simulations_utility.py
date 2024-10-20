@@ -10,37 +10,38 @@ from qiskit_aer import AerSimulator
 from qiskit_ibm_runtime import QiskitRuntimeService
 
 
-def fix_counts(counts_0: dict, n_qubits: int):
-    """ Fixes the qiskit counts in the standard convention, orders the list and adds strings with zero counts.
-    """
-
+def fix_counts(counts_0: dict, n_qubits: int) -> dict:
+    """Fixes the qiskit counts in the standard convention, orders the list, and adds strings with zero counts."""
+    
     # Mirror the bit strings to pass in standard convention
     mirrored_counts = {j[::-1]: counts_0[j] for j in counts_0}
 
-    # Sort the results and return a list
+    # Sort the results
     dict_items = mirrored_counts.items()
     counts = sorted(dict_items)
 
-    # Add element 00 if it is missing
+    # Add element '00' if it is missing
     if int(counts[0][0], 2) != 0:
         zero = format(0, 'b').zfill(n_qubits)
         counts.insert(0, (zero, 0))
 
-    # Add element 11 if it is missing
-    if int(counts[len(counts)-1][0], 2) != 2**n_qubits - 1:
-        uno = format(2**n_qubits -1, 'b').zfill(n_qubits)
-        counts.insert(len(counts), (uno, 0))
-        
-    for j in range(2**n_qubits-1):
-        # Add missing elements
-        if int(counts[j+1][0], 2) != int(counts[j][0],2) + 1:
+    # Add element '11' if it is missing
+    if int(counts[len(counts) - 1][0], 2) != 2**n_qubits - 1:
+        uno = format(2**n_qubits - 1, 'b').zfill(n_qubits)
+        counts.append((uno, 0))
+
+    # Fill in any missing elements
+    for j in range(2**n_qubits - 1):
+        if int(counts[j + 1][0], 2) != int(counts[j][0], 2) + 1:
             new = int(counts[j][0], 2) + 1
             new_bin = format(new, 'b').zfill(n_qubits)
-            counts.insert(j+1, (new_bin, 0))
-        else:
-            pass
-        
-    return counts
+            counts.insert(j + 1, (new_bin, 0))
+    
+    # Convert the list of tuples back into a dictionary
+    counts_dict = dict(counts)
+
+    return counts_dict
+
 
 
 def perform_parallel_simulation_with_multiprocessing(args: list, simulation: callable, max_workers: int=None):

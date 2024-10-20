@@ -24,7 +24,8 @@ class MrAndersonSimulator(object):
         parallel (bool): Whether or not the shots should be run in parallel. False by default.
 
     Note:
-        At the moment, we only support a linear topology.
+        You must use the BinaryCircuit for non linear topologies, the other Circuit classes don't support non linear topologies.
+        If you use the BinaryCircuit for non-linear topologies, make sure to import the parameters of all qubits up to the one with the maximum index, even if some qubits are not used, when importing device parameters.
 
     Example:
         .. code:: python
@@ -67,7 +68,7 @@ class MrAndersonSimulator(object):
             level_opt:int = 4) -> dict:
         """
             Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
-            and runs noisy quantum gates. Warning: Qubits layout must have a linear topology.
+            and runs noisy quantum gates.
             Args:
                 t_qiskit_circ: transpiled qiskit circuit (QuantumCircuit)
                 qubits_layout: qubits layout with linear topology (list)
@@ -78,7 +79,7 @@ class MrAndersonSimulator(object):
                 level_opt (int): Level of optimization for the circuit optimizator
 
             Returns:
-                  vector of probabilities (array)
+                  dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
         """
 
         # process layout circuit
@@ -322,11 +323,10 @@ class MrAndersonSimulator(object):
         return new_probs
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
-        """Given a wave function of a state, this function measure only some fixed qubits 
-            returning the probabilities of measure one of the possible states.
+        """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probailities of the possible outcomes.
 
         Args:
-            psi (np.array): wave function of the state
+            prob (np.array): probabilities after the application of all the gates 
             q_meas_list (list): list of tuples, where each tuples indicate the qubit measured and the corresponding classic bit 
             n_qubit (int): total number of qubits 
             qubit_layout(list): qubit layout after the transpilation 
