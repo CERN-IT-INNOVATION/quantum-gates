@@ -110,12 +110,11 @@ probs = sim.run(
     device_param=device_param_lookup,
     nqubit=2)
 
-counts_ng = {format(i, 'b').zfill(2): probs[i] for i in range(0, 4)}
 ```
 ... and analyse the result. 
 
 ```python
-plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+plot_histogram(probs, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
 
 If you want to use a non-linear topology you must use the BinaryCircuit and slightly modify the code.
@@ -158,12 +157,11 @@ probs = sim.run(
     device_param=device_param_lookup,
     nqubit=2)
 
-counts_ng = {format(i, 'b').zfill(2): probs[i] for i in range(0, 4)}
 ```
 ... and analyse the result. 
 
 ```python
-plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+plot_histogram(probs, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
 
 Remember that the ouput of the simulator follows the Big-Endian order, if you want to switch to Little-Endian order, which is the standard for Qiskit, you can use the command
@@ -171,8 +169,8 @@ Remember that the ouput of the simulator follows the Big-Endian order, if you wa
 ```python
 from quantum_gates.utilities import fix_counts
 
-counts_ng = fix_counts(probs, n_measured_qubit)
-plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+probs_little_endian = fix_counts(probs, n_measured_qubit)
+plot_histogram(probs_little_endian, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
 
 
