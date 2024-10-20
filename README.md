@@ -27,6 +27,8 @@ and install a working version of the library.
 
 
 ## Quickstart 
+You can find this quickstart implemented in the tutorial notebook [here](docs/tutorials/notebooks/tutorial_quantum_gates.ipynb).
+
 Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token. 
 
 
