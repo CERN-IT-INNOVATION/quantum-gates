@@ -43,13 +43,38 @@ The library is available on the |pip_link| with ``pip install quantum-gates``.
 Installation as a contributor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-For users who want to have access to the source code, we recommend cloning 
-the repository from |github_link|.
+For users who want to contribute to the project or work with the latest source code, we recommend the following steps:
+
+1. Clone the Repository from |github_link|:
+
+   .. code-block:: bash
+
+      git clone https://github.com/CERN-IT-INNOVATION/quantum-gates.git
+
+2. Navigate to the project directory:
+
+   .. code-block:: bash
+
+      cd quantum-gates
+
+3. Create and activate a virtual environment
+
+   .. code-block:: bash
+
+      python -m venv venv
+      source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+
+4. Install the package in editable Mode:
+
+   .. code-block:: bash
+
+      pip install -e .
+
+   Installing in editable mode allows you to work directly with the source code. Any changes you make will be reflected immediately without the need to reinstall the package.
 
 .. |github_link| raw:: html
 
    <a href="https://github.com/CERN-IT-INNOVATION/quantum-gates" target="_blank">Github</a>
-
 
 Functionality
 --------------
