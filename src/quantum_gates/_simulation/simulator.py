@@ -76,7 +76,7 @@ class MrAndersonSimulator(object):
                 shots: number of realizations (int)
                 device_param: noise and device configurations as dict with the keys specified by DeviceParameters (dict)
                 nqubit: number of qubits used in the circuit, must be compatible with psi0 (int)
-                level_opt (int): Level of optimization for the circuit optimizator
+                level_opt (int): Level of optimization for the circuit optimizator for BinaryCircuit only
 
             Returns:
                   dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)

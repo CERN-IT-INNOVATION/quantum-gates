@@ -108,7 +108,8 @@ probs = sim.run(
     psi0=np.array(run_config["psi0"]), 
     shots=run_config["shots"], 
     device_param=device_param_lookup,
-    nqubit=2)
+    nqubit=2,
+    level_opt = 0)
 
 ```
 ... and analyse the result. 
@@ -155,7 +156,8 @@ probs = sim.run(
     psi0=np.array(run_config["psi0"]), 
     shots=run_config["shots"], 
     device_param=device_param_lookup,
-    nqubit=2)
+    nqubit=2,
+    level_opt = 4)
 
 ```
 ... and analyse the result. 
