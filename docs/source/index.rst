@@ -87,7 +87,7 @@ pulse shapes. This is handled by the :doc:`integrator <integrators>`.
 Simulators
 ~~~~~~~~~~
 
-The :doc:`LegacyMrAndersonSimulator <simulators>` can be used to simulate
+The :doc:`MrAndersonSimulator <simulators>` can be used to simulate
 a quantum circuit transpiled with Qiskit with a specific 
 :doc:`noisy gate set <gates>`.
 
