@@ -194,6 +194,47 @@ Build the wheel with the command `python3 -m build --sdist --wheel .` and naviga
 Use `ls` to display the name of the wheel, and run `pip install <filename>.whl` with the correct filename. 
 Now you can use your version of the library. 
 
+## Building the documentation
+
+The documentation for Noisy Quantum Gates is built using Sphinx and is hosted on 
+[ReadTheDocs](https://quantum-gates.readthedocs.io/en/latest/index.html). If you wish to build and view the 
+documentation locally, follow these steps:
+
+1. Navigate to the `docs` directory:
+
+From the root of the project, navigate to the `docs` folder:
+
+```bash
+cd docs
+```
+
+2. Install the documentation requirements:
+
+```bash
+pip install -r requirements.txt
+```
+Note: It's recommended to perform this step in your virtual environment.
+
+3. Build the HTML documentation:
+
+Use the make command to build the HTML version of the documentation:
+
+```bash
+make html
+```
+
+4. View and check the documentation locally
+
+Open the generated index.html file in your web browser to view the documentation:
+
+```bash
+open build/html/index.html      # On macOS
+xdg-open build/html/index.html  # On Linux
+start build\html\index.html     # On Windows (Command Prompt)
+```
+
+Or manually navigate to the build/html directory and open index.html with your preferred web browser.
+
 
 # Credits
 Please cite the work using the following BibTex entry:
