@@ -9,6 +9,8 @@ from ._utility.simulations_utility import (
     setup_backend,
     post_process_split,
     compute_Hellinger_distance as hellinger_distance,
+    create_random_quantum_circuit,
+    transpile_qiskit_circuit
 )
 
 from ._utility.circ_optimizator import Optimizator
