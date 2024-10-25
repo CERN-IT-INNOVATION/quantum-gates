@@ -22,7 +22,8 @@ backend_config = {
 
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
-location = "helpers/device_parameters/ibm_kyiv/"
+location = "tests/helpers/device_parameters/ibm_kyiv/"
+
 
 def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0: np.array, sim: MrAndersonSimulator):
     bb = BinaryBackend(n)

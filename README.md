@@ -239,6 +239,15 @@ testing with (the on set in tests/simulation/test_anderson_simulator.py) is avai
 parameters are prepared in the tests/utility/device_parameters folder. In the future we might upgrade the tests and mock 
 these dependencies.
 
+Afer activating your virtual environment, you can run the tests from root with 
+
+```bash
+python -m "pytest"
+```
+
+Using this command instead of just typing `pytest` will make sure that you are using
+the right Python version to run pytest.
+
 
 # How to contribute
 Contributions are welcomed and should apply the usual git-flow: fork this repo, create a local branch named 
