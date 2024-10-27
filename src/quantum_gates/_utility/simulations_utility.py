@@ -274,8 +274,3 @@ def transpile_qiskit_circuit(circ : QuantumCircuit, init_layout: list, seed: int
 
         return t_circ
 
-
-    
-
-
-

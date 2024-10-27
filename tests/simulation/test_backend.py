@@ -134,7 +134,7 @@ def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: i
 
 @pytest.mark.parametrize("nqubits, steps", [(n, s) for n in [2, 3, 4, 6, 8, 9, 10] for s in [5]])
 def test_backends_get_same_result_with_random_matrix_products(nqubits, steps):
-    mp_list,mp_list_b = generate_random_matrix_products(nqubits, steps=steps)
+    mp_list, mp_list_b = generate_random_matrix_products(nqubits, steps=steps)
 
     qubit_layout = np.arange(nqubits)
 

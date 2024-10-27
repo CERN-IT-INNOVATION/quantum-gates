@@ -117,7 +117,4 @@ def test_non_close_gate_binary_circuit():
     psi1 = circ.statevector(psi0, 0, qubit_layout)
     exp = np.array([0,0,0,0,0,1,0,0])
     assert all(psi1[i] == exp[i] for i in range(2**n_qubit))
-
-
-
-    
+        

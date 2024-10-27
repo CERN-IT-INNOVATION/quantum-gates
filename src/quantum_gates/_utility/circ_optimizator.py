@@ -8,7 +8,7 @@ Pay attention that it is designend mainly to work with BinaryCircuit and BinaryB
 import numpy as np
 
 class Optimizator(object):
-    """This class implements an algorithm used before calculate the statevector in BinaryBackedn to optimize the output coming from the BinaryCircuit class. 
+    """This class implements an algorithm used before calculate the statevector in BinaryBackend to optimize the output coming from the BinaryCircuit class. 
     The output is the list of gate and the qubit(s) on which it's applied. The idea is to reduce the lentgh of the list watching at the pattern of near 
     gates and compress them in less gate.
     The algorithm works on 4 different levels, higher the level is and more it's expected that the length will be reduced.
@@ -77,7 +77,6 @@ class Optimizator(object):
         elif level == 2:
             result_1 = self.opt_level_1(gate_list=self.circ_list)
             result_2 = self.opt_level_2(gate_list=result_1)
-            result_3 = self.opt_level_3(gate_list=result_2)
             return result_2
         
         elif level == 3:
@@ -156,29 +155,29 @@ class Optimizator(object):
         if q2_gate > 0: # check that exists almost one two qubit gate 
             for i in range(q2_gate): # iterate over the number of  two qubit gate
                 
-                # create the snip
-                _snip = []
+                # create the snippet
+                _snippet = []
                 counter = 0
                 while len(gate_list[counter][1]) != 2:
 
-                    _snip.append(gate_list[counter])
+                    _snippet.append(gate_list[counter])
                     counter += 1
-                _snip.append(gate_list[counter]) # append the 2q gate
+                _snippet.append(gate_list[counter]) # append the 2q gate
                 if len(gate_list) > counter+1: # assert that there are gate after the one considered
                     if len(gate_list[counter+1][1]) == 1: # append the right after gate if it is a 1 q gate
-                        _snip.append(gate_list[counter+1])
+                        _snippet.append(gate_list[counter+1])
                         if len(gate_list[counter+2][1]) == 1: # if it's appended the first closer whatch if append the second after gate if it is a 1 q gate
-                            _snip.append(gate_list[counter+2])
-                # the snip now is done
+                            _snippet.append(gate_list[counter+2])
+                # the snippet now is done
 
-                # remove from result the snipped
-                gate_list = gate_list[len(_snip):]            
+                # remove from result the snippet
+                gate_list = gate_list[len(_snippet):]            
 
-                # process the snip
-                processed_snip = self.proces_snipped(snip = _snip)
+                # process the snippet
+                processed_snippet = self.process_snippet(snippet = _snippet)
                 
-                # append to result_2 the processed snipped
-                result_2 += processed_snip
+                # append to result_2 the processed snippet
+                result_2 += processed_snippet
 
             # process the last part of the gate_list which are only single qubit gates.
             result_2 += gate_list
@@ -317,11 +316,11 @@ class Optimizator(object):
                 result_4 = last_part[::-1]
         return result_4
     
-    def proces_snipped(self, snip: list) -> list:
-        """This is an auxiliary function used in the second level to isolate and analyze each two qubit gates and its neighbour if there are single qubit gates that on the same qubits
+    def process_snippet(self, snippet: list) -> list:
+        """This is an auxiliary function used at the second level to isolate and analyze each two-qubit gate along with any neighboring single-qubit gates that act on the same qubits.
 
         Args:
-            snip (list): Little list of gate that contain the two qubit gate and its neighbour
+            snippet (list): Little list of gate that contain the two qubit gate and its neighbour
 
         Raises:
             ValueError: If the gate is not a two qubit gate is raised an error
@@ -329,163 +328,176 @@ class Optimizator(object):
         Returns:
             list: Processed list 
         """
-        loc = 0 # index of the 2q gates in the snip
-        n_elem = len(snip) -1 # number of elements in the snip starting from 0
-        proces_snip = [] 
+        loc = 0 # Index of the 2q gates in the snippet
+        n_elem = len(snippet) -1 # Number of elements in the snippet starting from 0
+        proces_snippet = [] 
 
-        # find the index of the 2q gates in the snipped
-        for i,item in enumerate(snip):
+        # Find the index of the 2q gates in the snippet
+        for i,item in enumerate(snippet):
             if len(item[1]) ==  2:
                 loc = i
 
-        #before the two qubit gate
-        if loc - 2 >= 0: # check there are almost two gate before the 2q gate
-            #print("before 1")
-            if snip[loc-2][1][0] == snip[loc][1][0] and snip[loc-1][1][0] == snip[loc][1][1]: # check if the two gates before are compatible with the 2q gate
-                #print("before 1.1")
-                gate = snip[loc][0] @ np.kron(snip[loc-2][0],snip[loc-1][0])
-                qubits = snip[loc][1]
-                if loc - 2 > 0: # check if there are gate before the ones used 
-                    for i in range(loc-2):# append in the process snip all the gate before the that ones used before
-                        proces_snip.append(snip[i])
-                    proces_snip.append([gate,qubits])
+        # Before the two qubit gate
+
+        # Check there are almost two gate before the 2q gate
+        if loc - 2 >= 0: 
+
+            # Check if the two gates before are compatible with the 2q gate
+            if snippet[loc-2][1][0] == snippet[loc][1][0] and snippet[loc-1][1][0] == snippet[loc][1][1]: 
+                gate = snippet[loc][0] @ np.kron(snippet[loc-2][0],snippet[loc-1][0])
+                qubits = snippet[loc][1]
+
+                # Check if there are gate before the ones used 
+                if loc - 2 > 0: 
+                    for i in range(loc-2):
+                        proces_snippet.append(snippet[i])
+                    proces_snippet.append([gate,qubits])
                 else:
-                    proces_snip.append([gate,qubits])
-            elif snip[loc-2][1][0] == snip[loc][1][1] and snip[loc-1][1][0] == snip[loc][1][0]: # check if the two gates before are compatible with the 2q gate with inverted qubit
-                #print("before 1.2")
-                gate = snip[loc][0] @ np.kron(snip[loc-1][0],snip[loc-2][0])
-                qubits = snip[loc][1]
-                if loc - 2 > 0: # check if there are gate before the ones used 
-                    for i in range(loc-2):# append in the process snip all the gate before the that ones used before
-                        proces_snip.append(snip[i])
-                    proces_snip.append([gate,qubits])
+                    proces_snippet.append([gate,qubits])
+
+            # Check if the two gates before are compatible with the 2q gate with inverted qubit
+            elif snippet[loc-2][1][0] == snippet[loc][1][1] and snippet[loc-1][1][0] == snippet[loc][1][0]: 
+                gate = snippet[loc][0] @ np.kron(snippet[loc-1][0],snippet[loc-2][0])
+                qubits = snippet[loc][1]
+
+                # Check if there are gate before the ones used 
+                if loc - 2 > 0: 
+                    for i in range(loc-2):
+                        proces_snippet.append(snippet[i])
+                    proces_snippet.append([gate,qubits])
                 else:
-                    proces_snip.append([gate,qubits])
-            elif snip[loc-1][1][0] == snip[loc][1][0]: # the closest gate is compatible with control qubit, but not the second closer
-                #print("before 1.3")
-                gate = snip[loc][0] @ np.kron(snip[loc-1][0],np.identity(2))
-                qubits = snip[loc][1]
+                    proces_snippet.append([gate,qubits])
+
+            # The closest gate is compatible with control qubit, but not the second closer
+            elif snippet[loc-1][1][0] == snippet[loc][1][0]: 
+                gate = snippet[loc][0] @ np.kron(snippet[loc-1][0],np.identity(2))
+                qubits = snippet[loc][1]
                 for i in range(loc-1):
-                    proces_snip.append(snip[i]) # append in the process snip all the gate before the that ones used before
-                proces_snip.append([gate,qubits])
-            elif snip[loc-1][1][0] == snip[loc][1][1]: # the closest gate is compatible with target qubit, but not the second closer
-                #print("before 1.4")
-                gate = snip[loc][0] @ np.kron(np.identity(2),snip[loc-1][0])
-                qubits = snip[loc][1]
+                    proces_snippet.append(snippet[i]) 
+                proces_snippet.append([gate,qubits])
+
+            # The closest gate is compatible with target qubit, but not the second closer
+            elif snippet[loc-1][1][0] == snippet[loc][1][1]: 
+                gate = snippet[loc][0] @ np.kron(np.identity(2),snippet[loc-1][0])
+                qubits = snippet[loc][1]
                 for i in range(loc-1):
-                    proces_snip.append(snip[i]) # append in the process snip all the gate before the that ones used before
-                proces_snip.append([gate,qubits])
-            else: # no one of the item before match with the 2q gate
-                #print("before 1.5")
+                    proces_snippet.append(snippet[i]) 
+                proces_snippet.append([gate,qubits])
+            
+            # No one of the item before match with the 2q gate
+            else: 
                 for i in range(loc+1):
-                    proces_snip.append(snip[i])
-        elif loc -1 >= 0: # check if there is one gate before the 2q gate
-            #print("before 2")
-            if snip[loc-1][1][0] == snip[loc][1][0]: # the closer gate is compatible with control qubit
-                #print("before 2.1")
-                gate = snip[loc][0] @ np.kron(snip[loc-1][0],np.identity(2))
-                qubits = snip[loc][1]
-                if loc - 1 > 0:
-                    for i in range(loc-1):# append in the process snip all the gate before the that ones used before
-                        proces_snip.append(snip[i])
-                    proces_snip.append([gate,qubits])
-                else:
-                    proces_snip.append([gate,qubits])
-
-            elif snip[loc-1][1][0] == snip[loc][1][1]: # the closer gate is compatible with target qubit
-                #print("before 2.2")
-                gate = snip[loc][0] @ np.kron(np.identity(2),snip[loc-1][0])
-                qubits = snip[loc][1]
-                if loc - 1 > 0:
-                    for i in range(loc-1):# append in the process snip all the gate before the that ones used before
-                        proces_snip.append(snip[i])
-                    proces_snip.append([gate,qubits])
-                else:
-                    proces_snip.append([gate,qubits])
-            else: # the closer gate is neither compatible with the targer nor the control qubit
-                #print("before 2.3")
-                for i in range(loc+1):
-                    proces_snip.append(snip[i])
-        else: # if there aren't items before the 2q qubit just append the item
-            #print("before 3")
-            proces_snip.append(snip[0]) 
-            if len(snip[0][1]) != 2:
-                raise ValueError(f"Expected an item that act on 2 qubit, gate with {snip[0][1]} qubit found")
-
-        #after the two qubit gate
-        if loc + 2 <= n_elem: # check if there are two items before the 2q gate
-            #print("after 1")
-            if snip[loc+2][1][0] == snip[loc][1][0] and snip[loc+1][1][0] == snip[loc][1][1]: # check if the two gates before are compatible with the 2q gate
-                #print("after 1.1")
-                gate = np.kron(snip[loc+2][0],snip[loc+1][0]) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-
-            elif snip[loc+2][1][0] == snip[loc][1][1] and snip[loc+1][1][0] == snip[loc][1][0]: # check if the two gates before are compatible with the 2q gate with inverted qubit
-                #print("after 1.2")
-                gate = np.kron(snip[loc+1][0],snip[loc+2][0]) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-
-            elif snip[loc+2][1][0] == snip[loc][1][0] and snip[loc+1][1][0] != snip[loc][1][1]: #the second closest gate is compatible with the control qubti not the first gate
-                #print("after 1.3")
-                gate = np.kron(snip[loc+2][0],np.identity(2)) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-                proces_snip.append(snip[loc+1])
-
-            elif snip[loc+2][1][0] == snip[loc][1][1] and snip[loc+1][1][0] != snip[loc][1][0]: #the second closest gate is compatible with the control qubti not the first gate
-                #print("after 1.4")
-                gate = np.kron(np.identity(2),snip[loc+2][0]) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-                proces_snip.append(snip[loc+1])
-
-            elif snip[loc+1][1][0] == snip[loc][1][0]: # the closest gate is compatible with control qubit, not the second
-                #print("after 1.5")
-                gate = np.kron(snip[loc+1][0],np.identity(2)) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-                proces_snip.append(snip[loc+2])
-
-            elif snip[loc+1][1][0] == snip[loc][1][1]: # the closest gate is compatible with target qubit, not the second
-                #print("after 1.6")
-                gate = np.kron(np.identity(2),snip[loc+1][0]) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-                proces_snip.append(snip[loc+2]) 
-            else: # nor the first or the second after is compatible with the 2q gate
-                #print("after 1.7")
-                proces_snip.append(snip[loc+1])
-                proces_snip.append(snip[loc+2])
-        elif loc+1 <= n_elem:  # check if there is one item before the 2q gate
-            #print("after 2")
-            if snip[loc+1][1][0] == snip[loc][1][0]: # the closest gate is compatible with control qubit
-                #print("after 2.1")
-                gate = np.kron(snip[loc+1][0],np.identity(2)) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits]) 
-
-            elif snip[loc-1][1][0] == snip[loc][1][1]: # the closest gate is compatible with target qubit
-                #print("after 2.2")
-                gate = np.kron(np.identity(2),snip[loc+1][0]) @ proces_snip[-1][0]
-                qubits = proces_snip[-1][1]
-                proces_snip = proces_snip[:-1]
-                proces_snip.append([gate,qubits])
-            else: # the closest 
-                #print("after 2.2")
-                proces_snip.append(snip[loc+1])
+                    proces_snippet.append(snippet[i])
         
-        return proces_snip
-    
+        # Check if there is one gate before the 2q gate
+        elif loc -1 >= 0: 
 
+            # The closer gate is compatible with control qubit
+            if snippet[loc-1][1][0] == snippet[loc][1][0]: 
+                gate = snippet[loc][0] @ np.kron(snippet[loc-1][0],np.identity(2))
+                qubits = snippet[loc][1]
+                if loc - 1 > 0:
+                    for i in range(loc-1):
+                        proces_snippet.append(snippet[i])
+                    proces_snippet.append([gate,qubits])
+                else:
+                    proces_snippet.append([gate,qubits])
 
+            # The closer gate is compatible with target qubit
+            elif snippet[loc-1][1][0] == snippet[loc][1][1]: 
+                gate = snippet[loc][0] @ np.kron(np.identity(2),snippet[loc-1][0])
+                qubits = snippet[loc][1]
+                if loc - 1 > 0:
+                    for i in range(loc-1):
+                        proces_snippet.append(snippet[i])
+                    proces_snippet.append([gate,qubits])
+                else:
+                    proces_snippet.append([gate,qubits])
 
-    
+            # The closer gate is neither compatible with the targer nor the control qubit
+            else: 
+                for i in range(loc+1):
+                    proces_snippet.append(snippet[i])
+
+        # If there aren't items before the 2q qubit just append the item
+        else: 
+            proces_snippet.append(snippet[0]) 
+            if len(snippet[0][1]) != 2:
+                raise ValueError(f"Expected an item that act on 2 qubit, gate with {snippet[0][1]} qubit found")
+
+        # After the two qubit gate
+
+        # Check if there are two items before the 2q gate
+        if loc + 2 <= n_elem: 
+
+            # Check if the two gates before are compatible with the 2q gate
+            if snippet[loc+2][1][0] == snippet[loc][1][0] and snippet[loc+1][1][0] == snippet[loc][1][1]: 
+                gate = np.kron(snippet[loc+2][0],snippet[loc+1][0]) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+
+            # Check if the two gates before are compatible with the 2q gate with inverted qubit
+            elif snippet[loc+2][1][0] == snippet[loc][1][1] and snippet[loc+1][1][0] == snippet[loc][1][0]: 
+                gate = np.kron(snippet[loc+1][0],snippet[loc+2][0]) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+
+            # The second closest gate is compatible with the control qubti not the first gate
+            elif snippet[loc+2][1][0] == snippet[loc][1][0] and snippet[loc+1][1][0] != snippet[loc][1][1]: 
+                gate = np.kron(snippet[loc+2][0],np.identity(2)) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+                proces_snippet.append(snippet[loc+1])
+
+            # The second closest gate is compatible with the control qubti not the first gate
+            elif snippet[loc+2][1][0] == snippet[loc][1][1] and snippet[loc+1][1][0] != snippet[loc][1][0]: 
+                gate = np.kron(np.identity(2),snippet[loc+2][0]) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+                proces_snippet.append(snippet[loc+1])
+
+            # The closest gate is compatible with control qubit, not the second
+            elif snippet[loc+1][1][0] == snippet[loc][1][0]: 
+                gate = np.kron(snippet[loc+1][0],np.identity(2)) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+                proces_snippet.append(snippet[loc+2])
+
+            # The closest gate is compatible with target qubit, not the second
+            elif snippet[loc+1][1][0] == snippet[loc][1][1]: 
+                gate = np.kron(np.identity(2),snippet[loc+1][0]) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+                proces_snippet.append(snippet[loc+2]) 
+
+             # Nor the first or the second after is compatible with the 2q gate  
+            else:
+                proces_snippet.append(snippet[loc+1])
+                proces_snippet.append(snippet[loc+2])
+
+        # Check if there is one item before the 2q gate        
+        elif loc+1 <= n_elem: 
+
+            # The closest gate is compatible with control qubit
+            if snippet[loc+1][1][0] == snippet[loc][1][0]: 
+                gate = np.kron(snippet[loc+1][0],np.identity(2)) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits]) 
+
+            # The closest gate is compatible with target qubit
+            elif snippet[loc-1][1][0] == snippet[loc][1][1]: 
+                gate = np.kron(np.identity(2),snippet[loc+1][0]) @ proces_snippet[-1][0]
+                qubits = proces_snippet[-1][1]
+                proces_snippet = proces_snippet[:-1]
+                proces_snippet.append([gate,qubits])
+            else: 
+                proces_snippet.append(snippet[loc+1])
+        
+        return proces_snippet

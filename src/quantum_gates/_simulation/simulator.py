@@ -3,6 +3,7 @@
 import numpy as np
 import copy
 import typing
+from typing import List, Tuple
 
 from qiskit import QuantumCircuit
 
@@ -40,12 +41,24 @@ class MrAndersonSimulator(object):
                parallel=False
            )
 
-           sim.run(t_qiskit_circ=...,
-                   qubits_layout=...,
-                   psi0=np.array([1.0, 0.0, 0.0, 0.0]),
-                   shots=1000,
-                   device_param=...,
-                   nqubit=2)
+           probs = sim.run(t_qiskit_circ=...,
+                        qubits_layout=...,
+                        psi0=np.array([1.0, 0.0, 0.0, 0.0]),
+                        shots=1000,
+                        device_param=...,
+                        nqubit=2)
+        
+            print(probs)
+
+        Expected output:
+
+        .. code-block:: text
+
+           {'00': 0.014743599038964704,
+            '01': 0.000334214280332552,
+            '10': 0.9612000084536643,
+            '11': 0.02372217822703839}
+
 
     Attributes:
         gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
@@ -80,9 +93,12 @@ class MrAndersonSimulator(object):
 
             Returns:
                   dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
+            
+            Note: The output follow the Big Endian order for the bit strings
+                  
         """
 
-        # process layout circuit
+        # Process layout circuit
         qubits_layout_t, qubit_bit, n_qubit_t = self._process_layout(t_qiskit_circ)
 
         n_measured_qubit = len(qubit_bit) # number of measured qubit
@@ -98,8 +114,6 @@ class MrAndersonSimulator(object):
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, level_opt)
 
-        # Reorder the probabilities to take the swaps into account
-        #reordered_probs = self._fix_probabilities(probs, swap_detector, nqubit)
 
         # Normalize the result
         reordered_arr = np.array(probs)
@@ -111,7 +125,7 @@ class MrAndersonSimulator(object):
 
         return counts_ng
 
-    def _process_layout(self, circ : QuantumCircuit):
+    def _process_layout(self, circ : QuantumCircuit) -> Tuple[List, List, int]:
         """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
         information is stored
 
@@ -300,30 +314,9 @@ class MrAndersonSimulator(object):
         r_var = r_square_sum / shots - np.square(r_mean)
 
         return r_mean
-
-    def _fix_probabilities(self, wrong_probs: np.array, qubits_order: list, nqubit: int):
-        """ This function fix the final probabilities in the right way (in case of swaps in the circuit)
-        """
-        wrong_counts = {format(i, 'b').zfill(nqubit): wrong_probs[i] for i in range(2**nqubit)}
-        a = list(wrong_counts.keys())
-        a2 = [0 for i in range(2**nqubit)]
-
-        for k in range(2**nqubit):
-            b = {i: j for i, j in zip(qubits_order, a[k])}
-            c = sorted(b.items())
-            x = ''
-            for i in range(nqubit):
-                x = x + c[i][1]
-            a2[k] = x
-
-        right_counts = {a2[k]:wrong_counts[a[k]] for k in range(2**nqubit)}
-        d = sorted(right_counts.items())
-        new_probs = [d[j][1] for j in range(2**nqubit)]
-
-        return new_probs
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
-        """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probailities of the possible outcomes.
+        """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probabilities of the possible outcomes.
 
         Args:
             prob (np.array): probabilities after the application of all the gates 
@@ -332,7 +325,7 @@ class MrAndersonSimulator(object):
             qubit_layout(list): qubit layout after the transpilation 
 
         Returns:
-            dict: the keys are the possible states and the value the probabilities of measurament each state.
+            dict: the keys are the possible states and the value the probabilities of measurement each state.
         """
 
         # create the vector with the bit strings
@@ -434,7 +427,7 @@ def _apply_gates_on_circuit(
                 for k in range(nqubit):
                     if k == q_ctr_v:
                         circ.CNOT(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
-                    elif k == q_trg:
+                    elif k == q_trg_v:
                         pass
             
             if data[j][0].name == 'delay':
@@ -537,5 +530,3 @@ def _single_shot(args: dict) -> np.array:
     shot_result = np.square(np.absolute(psi))
 
     return shot_result
-
-

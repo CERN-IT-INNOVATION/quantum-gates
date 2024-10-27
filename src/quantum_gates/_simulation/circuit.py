@@ -657,7 +657,7 @@ class BinaryCircuit(object):
         the_info = [gate, qubit]
         self._info_gates_list.append(the_info)
             
-    def statevector(self, psi0 : np.array, level_opt:int, qubit_layout:list) -> np.array:
+    def statevector(self, psi0: np.array, level_opt: int, qubit_layout: list) -> np.array:
         """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
         """
         # Handle the trivial case in which no gates were applied.

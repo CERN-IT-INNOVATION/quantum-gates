@@ -1,6 +1,6 @@
 import pytest
-import numpy as np
 import random
+import numpy as np
 
 
 from src.quantum_gates.utilities import create_random_quantum_circuit, transpile_qiskit_circuit, setup_backend,fix_counts
@@ -30,12 +30,12 @@ def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0
     opt_ = Optimizator(level_opt=level, circ_list=result, qubit_list=q)
     result_ = opt_.optimize()
     psi_result_1 = bb.statevector(mp_list=result_ , psi0 = psi0,level_opt= 0, qubit_layout=q)
-    probs_ = np.square(np.absolute(psi_result_1))
-    sums_ = sim._measurament(prob=probs_, q_meas_list=qc, n_qubit=n, qubits_layout=q)
-    goal_ = dict(fix_counts(sums_, len(qc)))
-    goal_list_ = np.array([value for key, value in goal_.items()])
+    probs = np.square(np.absolute(psi_result_1))
+    sums = sim._measurament(prob=probs, q_meas_list=qc, n_qubit=n, qubits_layout=q)
+    goal = dict(fix_counts(sums, len(qc)))
+    goal_list = np.array([value for key, value in goal.items()])
 
-    return goal_list_
+    return goal_list
 
 
 @pytest.mark.parametrize(
@@ -190,6 +190,3 @@ def test_optimization_algorithm_random_layout(nqubits: int, depth: int, seed: in
     assert all((i < 10e-12 for i in check_02)), f"Results from level 0 and 2 mismatch"
     assert all((i < 10e-12 for i in check_03)), f"Results from level 0 and 3 mismatch"
     assert all((i < 10e-12 for i in check_04)), f"Results from level 0 and 4 mismatch"
-
-
-
