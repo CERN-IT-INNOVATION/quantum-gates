@@ -338,10 +338,13 @@ def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
         p_one = main(CircuitClass=OneCircuit, **args)
         time_one_circuit += time.time()
 
+    v_eff = np.array(list(p_eff.values()))
+    v_one = np.array(list(p_one.values()))
+
     print(f"time_efficient_circuit: {time_efficient_circuit} s")
     print(f"time_one_circuit: {time_one_circuit} s")
 
-    assert helper_functions.vector_almost_equal(p_eff, p_one, nqubits, abstol), \
+    assert helper_functions.vector_almost_equal(v_eff, v_one, nqubits, abstol), \
         "OneCircuit and EfficientCircuit did not produce the same result"
 
     assert time_one_circuit < time_efficient_circuit, "OneCircuit was slower than EfficientCircuit."

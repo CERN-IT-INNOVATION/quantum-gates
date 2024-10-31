@@ -4,7 +4,7 @@ import numpy as np
 
 
 from src.quantum_gates.utilities import create_random_quantum_circuit, transpile_qiskit_circuit, setup_backend,fix_counts
-from src.quantum_gates.utilities import Optimizator
+from src.quantum_gates.utilities import Optimizer
 from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT
 from src.quantum_gates.utilities import DeviceParameters
 from src.quantum_gates.simulators import MrAndersonSimulator
@@ -27,10 +27,10 @@ location = "tests/helpers/device_parameters/ibm_kyiv/"
 
 def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0: np.array, sim: MrAndersonSimulator):
     bb = BinaryBackend(n)
-    opt_ = Optimizator(level_opt=level, circ_list=result, qubit_list=q)
-    result_ = opt_.optimize()
-    psi_result_1 = bb.statevector(mp_list=result_ , psi0 = psi0,level_opt= 0, qubit_layout=q)
-    probs = np.square(np.absolute(psi_result_1))
+    opt = Optimizer(level_opt=level, circ_list=result, qubit_list=q)
+    result = opt.optimize()
+    psi_result = bb.statevector(mp_list=result , psi0 = psi0,level_opt= 0, qubit_layout=q)
+    probs = np.square(np.absolute(psi_result))
     sums = sim._measurament(prob=probs, q_meas_list=qc, n_qubit=n, qubits_layout=q)
     goal = dict(fix_counts(sums, len(qc)))
     goal_list = np.array([value for key, value in goal.items()])

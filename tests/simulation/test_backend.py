@@ -206,7 +206,7 @@ def test_backends_hard_against_each_other():
 
 @pytest.mark.parametrize("nqubits, steps", [(n,s) for n in [7, 8, 10] for s in [5, 100]])
 def test_backend_is_faster_than_standard_backend(nqubits: int, steps: int):
-    mp_list = generate_random_matrix_products(nqubits, steps=steps)
+    mp_list, _ = generate_random_matrix_products(nqubits, steps=steps)
 
     # Time Backend
     start = time.time()
@@ -230,7 +230,7 @@ def test_backend_is_faster_than_standard_backend(nqubits: int, steps: int):
 
 @pytest.mark.parametrize("nqubits, steps", [(n,s) for n in range(6, 18) for s in [500]])
 def test_one_backend_is_faster_than_efficient_backend(nqubits: int, steps: int):
-    mp_list = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=1/nqubits, many_identites=True)
+    mp_list, _ = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=1/nqubits, many_identites=True)
 
     # Time EfficientBackend
     start = time.time()
@@ -263,7 +263,7 @@ def test_one_backend_is_faster_than_efficient_backend(nqubits: int, steps: int):
     [(n,s, prob_cnot) for n in [7, 8, 9, 10, 11, 12, 13, 14] for s in [100] for prob_cnot in [0.0, 0.5]]
 )
 def test_backend_performance_just_fail_and_print(nqubits: int, steps: int, prob_cnot):
-    mp_list = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=prob_cnot)
+    mp_list, _ = generate_random_matrix_products(nqubits, steps=steps, prob_cnot=prob_cnot)
 
     start = time.time()
     tb = EfficientBackend(nqubits)
