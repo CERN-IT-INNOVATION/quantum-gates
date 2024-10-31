@@ -109,7 +109,7 @@ class MrAndersonSimulator(object):
         self._validate_input_of_run(t_qiskit_circ, qubits_layout_t, psi0, shots, device_param, nqubit)
 
         # Count rz gates, construct swap lookup, generate data (representation of circuit compatible with simulation)
-        n_rz, swap_detector, data = self._preprocess_circuit(t_qiskit_circ, qubits_layout_t, nqubit)
+        n_rz, _ , data = self._preprocess_circuit(t_qiskit_circ, qubits_layout_t, nqubit)
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, level_opt)
@@ -141,20 +141,20 @@ class MrAndersonSimulator(object):
         measure_qc = []
 
         for x in circ.data:
-            if x[0].name != 'delay':
-                if len(x[1]) == 1:
-                    q = x[1][0]._index
+            if x.operation.name != 'delay':
+                if len(x.qubits) == 1:
+                    q = x.qubits[0]._index
                     if q not in used_q:
                         used_q.append(q)
-                elif len(x[1]) == 2:
-                    q1 = x[1][0]._index
-                    q2 = x[1][1]._index
+                elif len(x.qubits) == 2:
+                    q1 = x.qubits[0]._index
+                    q2 = x.qubits[1]._index
                     if q1 not in used_q:
                         used_q.append(q1)
                     if q2 not in used_q:
                         used_q.append(q2)
-                if x[0].name == 'measure':
-                    measure_qc.append((x[1][0]._index, x[2][0]._index))
+                if x.operation.name == 'measure':
+                    measure_qc.append((x.qubits[0]._index, x.clbits[0]._index))
         n_qubit = len(used_q)
         
         return used_q, measure_qc, n_qubit
@@ -208,35 +208,35 @@ class MrAndersonSimulator(object):
         raw_data = t_qiskit_circ.data
 
         for i in range(t_qiskit_circ.__len__()):
-            if raw_data[i][0].name == 'ecr':
-                q_ctr = raw_data[i][1][0]._index
-                q_trg = raw_data[i][1][1]._index
+            if raw_data[i].operation.name == 'ecr':
+                q_ctr = raw_data[i].qubits[0]._index
+                q_trg = raw_data[i].qubits[1]._index
                 if q_ctr in qubits_layout and q_trg in qubits_layout:
-                    raw_data[i][1][0] = qubits_layout.index(q_ctr)
-                    raw_data[i][1][1] = qubits_layout.index(q_trg)  # TODO: Change such shared raw_data is not modified.
+                    #raw_data[i][1][0] = qubits_layout.index(q_ctr)
+                    #raw_data[i][1][1] = qubits_layout.index(q_trg)  # TODO: Change such shared raw_data is not modified.
                     data.append(raw_data[i])
 
-            elif raw_data[i][0].name == 'cx':
-                q_ctr = raw_data[i][1][0]._index
-                q_trg = raw_data[i][1][1]._index
+            elif raw_data[i].operation.name == 'cx':
+                q_ctr = raw_data[i].qubits[0]._index
+                q_trg = raw_data[i].qubits[1]._index
                 if q_ctr in qubits_layout and q_trg in qubits_layout:
-                    raw_data[i][1][0] = qubits_layout.index(q_ctr)
-                    raw_data[i][1][1] = qubits_layout.index(q_trg)  # TODO: Change such shared raw_data is not modified.
+                    #raw_data[i][1][0] = qubits_layout.index(q_ctr)
+                    #raw_data[i][1][1] = qubits_layout.index(q_trg)  # TODO: Change such shared raw_data is not modified.
                     data.append(raw_data[i])
 
-            elif raw_data[i][0].name == 'measure':
-                q = raw_data[i][1][0]._index
+            elif raw_data[i].operation.name == 'measure':
+                q = raw_data[i].qubits[0]._index
                 q = qubits_layout.index(q)
-                c = raw_data[i][2][0]._index
+                c = raw_data[i].clbits[0]._index
                 data_measure.append((q, c))
 
             else:
-                q = raw_data[i][1][0]._index
+                q = raw_data[i].qubits[0]._index
                 if q in qubits_layout:
-                    if raw_data[i][0].name == 'rz':
+                    if raw_data[i].operation.name == 'rz':
                         n_rz = n_rz + 1
-                    if raw_data[i][0].name != 'measure' and raw_data[i][0].name != 'barrier':
-                        raw_data[i][1][0] = qubits_layout.index(q)
+                    if raw_data[i].operation.name != 'measure' and raw_data[i].operation.name != 'barrier':
+                        #raw_data[i][1][0] = qubits_layout.index(q)
                         data.append(raw_data[i])
 
         for i in range(len(data_measure)):
@@ -388,29 +388,29 @@ def _apply_gates_on_circuit(
     if isinstance(circ, BinaryCircuit): # if the class of circuit is Binary class the application is different
         # Apply gates
         for j in range(len(data)):
-            if data[j][0].name == 'rz':
-                theta = float(data[j][0].params[0])
-                q_r = data[j][1][0]._index #real qubit
+            if data[j].operation.name == 'rz':
+                theta = float(data[j].operation.params[0])
+                q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
                 circ.Rz(q_v, theta)
 
-            if data[j][0].name == 'sx':
-                q_r = data[j][1][0]._index #real qubit
+            if data[j].operation.name == 'sx':
+                q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
                 for k in range(nqubit):
                     if k == q_v:
                         circ.SX(q_v, p[q_r], T1[q_r], T2[q_r])
 
-            if data[j][0].name == 'x':
-                q_r = data[j][1][0]._index #real qubit
+            if data[j].operation.name == 'x':
+                q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
                 for k in range(nqubit):
                     if k == q_v:
                         circ.X(q_v, p[q_r], T1[q_r], T2[q_r])
 
-            if data[j][0].name == 'ecr':
-                q_ctr_r = data[j][1][0]._index # index control real qubit
-                q_trg_r = data[j][1][1]._index # index target real qubit
+            if data[j].operation.name == 'ecr':
+                q_ctr_r = data[j].qubits[0]._index # index control real qubit
+                q_trg_r = data[j].qubits[1]._index # index target real qubit
                 q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
                 q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
                 for k in range(nqubit):
@@ -419,9 +419,9 @@ def _apply_gates_on_circuit(
                     elif k == q_trg_v:
                         pass
 
-            if data[j][0].name == 'cx':
-                q_ctr_r = data[j][1][0]._index # index control real qubit
-                q_trg_r = data[j][1][1]._index # index target real qubit
+            if data[j].operation.name == 'cx':
+                q_ctr_r = data[j].qubits[0]._index # index control real qubit
+                q_trg_r = data[j].qubits[1]._index # index target real qubit
                 q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
                 q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
                 for k in range(nqubit):
@@ -430,10 +430,10 @@ def _apply_gates_on_circuit(
                     elif k == q_trg_v:
                         pass
             
-            if data[j][0].name == 'delay':
-                q_r = data[j][1][0]._index #real qubit
+            if data[j].operation.name == 'delay':
+                q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
-                time = data[j][0].duration * dt
+                time = data[j].operation.duration * dt
                 for k in range(nqubit):
                     if k == q_v:
                         circ.relaxation(q_v, time, T1[q_r], T2[q_r])
@@ -446,30 +446,30 @@ def _apply_gates_on_circuit(
         # Apply gates
         for j in range(len(data)):
 
-            if data[j][0].name == 'rz':
-                theta = float(data[j][0].params[0])
-                q = data[j][1][0]._index
+            if data[j].operation.name == 'rz':
+                theta = float(data[j].operation.params[0])
+                q = data[j].qubits[0]._index
                 circ.Rz(q, theta)
 
-            if data[j][0].name == 'sx':
-                q = data[j][1][0]._index
+            if data[j].operation.name == 'sx':
+                q = data[j].qubits[0]._index
                 for k in range(nqubit):
                     if k == q:
                         circ.SX(k, p[k], T1[k], T2[q])
                     else:
                         circ.I(k)
 
-            if data[j][0].name == 'x':
-                q = data[j][1][0]._index
+            if data[j].operation.name == 'x':
+                q = data[j].qubits[0]._index
                 for k in range(nqubit):
                     if k == q:
                         circ.X(k, p[k], T1[k], T2[q])
                     else:
                         circ.I(k)
 
-            if data[j][0].name == 'ecr':
-                q_ctr = data[j][1][0]._index # index control qubit
-                q_trg = data[j][1][1]._index # index target qubit
+            if data[j].operation.name == 'ecr':
+                q_ctr = data[j].qubits[0]._index # index control qubit
+                q_trg = data[j].qubits[1]._index # index target qubit
                 for k in range(nqubit):
                     if k == q_ctr:
                         circ.ECR(k, q_trg, t_int[k][q_trg], p_int[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
@@ -478,9 +478,9 @@ def _apply_gates_on_circuit(
                     else:
                         circ.I(k)
 
-            if data[j][0].name == 'cx':
-                q_ctr = data[j][1][0]._index # index control qubit
-                q_trg = data[j][1][1]._index # index target qubit
+            if data[j].operation.name == 'cx':
+                q_ctr = data[j].qubits[0]._index # index control qubit
+                q_trg = data[j].qubits[1]._index # index target qubit
                 for k in range(nqubit):
                     if k == q_ctr:
                         circ.CNOT(k, q_trg, t_int[k][q_trg], p_int[k][q_trg], p[k], p[q_trg], T1[k], T2[k], T1[q_trg], T2[q_trg])
@@ -489,9 +489,9 @@ def _apply_gates_on_circuit(
                     else:
                         circ.I(k)
             
-            if data[j][0].name == 'delay':
-                q = data[j][1][0]._index
-                time = data[j][0].duration * dt
+            if data[j].operation.name == 'delay':
+                q = data[j].qubits[0]._index
+                time = data[j].operation.duration * dt
                 for k in range(nqubit):
                     if k == q:
                         circ.relaxation(k, time, T1[k], T2[k])

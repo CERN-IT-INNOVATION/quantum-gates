@@ -13,4 +13,4 @@ from ._utility.simulations_utility import (
     transpile_qiskit_circuit
 )
 
-from ._utility.circ_optimizator import Optimizator
+from ._utility.circ_optimizer import Optimizer

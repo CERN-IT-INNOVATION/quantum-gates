@@ -7,7 +7,7 @@ Pay attention that it is designend mainly to work with BinaryCircuit and BinaryB
 
 import numpy as np
 
-class Optimizator(object):
+class Optimizer(object):
     """This class implements an algorithm used before calculate the statevector in BinaryBackend to optimize the output coming from the BinaryCircuit class. 
     The output is the list of gate and the qubit(s) on which it's applied. The idea is to reduce the lentgh of the list watching at the pattern of near 
     gates and compress them in less gate.

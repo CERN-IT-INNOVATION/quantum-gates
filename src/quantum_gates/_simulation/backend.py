@@ -21,7 +21,7 @@ import string
 from scipy.sparse import coo_matrix
 from typing import Union
 import time
-from .._utility.circ_optimizator import Optimizator
+from .._utility.circ_optimizer import Optimizer
 
 
 class StandardBackend(object):
@@ -261,7 +261,7 @@ class BinaryBackend(object):
         assert len(mp_list) > 0, f"Expected non empty matrix product list, but found {mp_list}."
         psi1 = copy.deepcopy(psi0)
  
-        mp_list_opt = Optimizator(level_opt= level_opt, circ_list= mp_list, qubit_list=qubit_layout).optimize()
+        mp_list_opt = Optimizer(level_opt= level_opt, circ_list= mp_list, qubit_list=qubit_layout).optimize()
 
         for item in mp_list_opt:
 
