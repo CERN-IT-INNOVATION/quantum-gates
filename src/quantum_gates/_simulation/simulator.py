@@ -397,46 +397,32 @@ def _apply_gates_on_circuit(
             if data[j].operation.name == 'sx':
                 q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
-                for k in range(nqubit):
-                    if k == q_v:
-                        circ.SX(q_v, p[q_r], T1[q_r], T2[q_r])
-
+                circ.SX(q_v, p[q_r], T1[q_r], T2[q_r])
+                        
             if data[j].operation.name == 'x':
                 q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
-                for k in range(nqubit):
-                    if k == q_v:
-                        circ.X(q_v, p[q_r], T1[q_r], T2[q_r])
-
+                circ.X(q_v, p[q_r], T1[q_r], T2[q_r])
+                        
             if data[j].operation.name == 'ecr':
                 q_ctr_r = data[j].qubits[0]._index # index control real qubit
                 q_trg_r = data[j].qubits[1]._index # index target real qubit
                 q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
                 q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
-                for k in range(nqubit):
-                    if k == q_ctr_v:
-                        circ.ECR(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
-                    elif k == q_trg_v:
-                        pass
+                circ.ECR(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
 
             if data[j].operation.name == 'cx':
                 q_ctr_r = data[j].qubits[0]._index # index control real qubit
                 q_trg_r = data[j].qubits[1]._index # index target real qubit
                 q_ctr_v = qubit_layout.index(q_ctr_r) # index control virtual qubit
                 q_trg_v = qubit_layout.index(q_trg_r) # index control virtual qubit
-                for k in range(nqubit):
-                    if k == q_ctr_v:
-                        circ.CNOT(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
-                    elif k == q_trg_v:
-                        pass
+                circ.CNOT(q_ctr_v, q_trg_v, t_int[q_ctr_r][q_trg_r], p_int[q_ctr_r][q_trg_r], p[q_ctr_r], p[q_trg_r], T1[q_ctr_r], T2[q_ctr_r], T1[q_trg_r], T2[q_trg_r])
             
             if data[j].operation.name == 'delay':
                 q_r = data[j].qubits[0]._index #real qubit
                 q_v = qubit_layout.index(q_r) #virtual qubit
                 time = data[j].operation.duration * dt
-                for k in range(nqubit):
-                    if k == q_v:
-                        circ.relaxation(q_v, time, T1[q_r], T2[q_r])
+                circ.relaxation(q_v, time, T1[q_r], T2[q_r])              
 
         for k in range(nqubit):
             q_r = qubit_layout[k]

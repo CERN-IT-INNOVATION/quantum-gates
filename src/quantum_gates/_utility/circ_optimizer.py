@@ -132,7 +132,7 @@ class Optimizer(object):
         
         return result_1
     
-    def opt_level_2(self, gate_list:list) -> list:
+    def opt_level_2(self, gate_list: list) -> list:
         """This is the second level of optimization. It watch at the two single qubit gate before and after a two qubit gate:
         If there are one or two single qubit gate before a two qubit gate that act on the same qubit then there are multiplicate together.
         The same is done if there are one or two single qubit gate after the two qubit gate.
@@ -185,7 +185,7 @@ class Optimizer(object):
             result_2 = gate_list
         return result_2
     
-    def opt_level_3(self, gate_list:list) -> list:
+    def opt_level_3(self, gate_list: list) -> list:
         """This is the third level of optimization. It watch at the near two qubit gates.
         If there are two or more closed gates that act on the same qubits then they are multiplicated together to obtain a single two qubit gate.
 
@@ -229,7 +229,7 @@ class Optimizer(object):
         
         return result_3
     
-    def opt_level_4(self, gate_list:list) -> list:
+    def opt_level_4(self, gate_list: list) -> list:
         """This is the fourth level of optimization. It watch at the last part after the last two qubit gate of the list where there are only single qubit gate:
         Considering the used qubit it scan all the last single qubit gates and if there are two or more gates that act on the same qubit they are multiplicated together
 
