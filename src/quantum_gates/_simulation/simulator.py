@@ -2,7 +2,6 @@
 """
 import numpy as np
 import copy
-import typing
 from typing import List, Tuple
 
 from qiskit import QuantumCircuit

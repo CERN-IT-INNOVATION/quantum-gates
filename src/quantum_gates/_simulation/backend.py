@@ -19,8 +19,7 @@ import opt_einsum as oe
 import copy
 import string
 from scipy.sparse import coo_matrix
-from typing import Union
-import time
+
 from .._utility.circ_optimizer import Optimizer
 
 
