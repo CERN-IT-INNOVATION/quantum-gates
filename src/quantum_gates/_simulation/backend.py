@@ -214,10 +214,12 @@ class EfficientBackend(object):
             return chunks[:-1]
         return chunks
 
+
 class BinaryBackend(object):
     """Evaluate the quantum circuit through the list of gate coming from the BinaryCircuit class.
-    This backend use an algorithm usefull to go beyond the linear topology considering the indices of the gates in a smart way.
-    If you are running a circuit with at most two qubit then it's made a dense matrix otherwise a sparse one. This to optimize the calculation
+    This backend use an algorithm usefull to go beyond the linear topology considering the indices of the gates in a
+    smart way. If you are running a circuit with at most two qubit then it's made a dense matrix otherwise a sparse one.
+    This to optimize the calculation.
 
     Args:
         nqubit (int): Total number of qubit used in the circuit
@@ -242,17 +244,17 @@ class BinaryBackend(object):
 
     """
 
-    def __init__(self, nqubit : int):
+    def __init__(self, nqubit: int):
         self.nqubit = nqubit
 
-    def statevector(self, mp_list: list, psi0: np.array, level_opt:int, qubit_layout:list) -> np.array:
+    def statevector(self, mp_list: list, psi0: np.array, level_opt: int, qubit_layout: list) -> np.array:
         """Propagates a statevector based on a list of matrix products.
 
         Args:
              mp_list (list[list]): List of list that contain the gates as np.array and the qubit where they act.
              psi0 (np.array): Statevector to be propagated.
-             level_opt(int): Level of optimization for the circuit optimizator
-             qubit_layout(list): Layout of the qubit used in the optimizator
+             level_opt(int): Level of optimization for the circuit optimizer
+             qubit_layout(list): Layout of the qubit used in the optimizer
 
         Returns:
             The propagated statevector.
@@ -281,16 +283,16 @@ class BinaryBackend(object):
             k = len(q_n_used)
 
             if k == 0: # in case of 1 or 2 qubits circuit
-                U = self.create_dense(item =item, q_used = q_used, q_n_used = q_n_used)
+                U = self.create_dense(item=item, q_used=q_used, q_n_used=q_n_used)
                 psi1 = U @ psi1
 
             elif k > 0:
-                U = self.create_sparse(item = item, q_n_used = q_n_used, q_used = q_used, N = self.nqubit)
+                U = self.create_sparse(item=item, q_n_used=q_n_used, q_used=q_used, N=self.nqubit)
                 psi1 = U.dot(psi1)
 
         return psi1
     
-    def create_sparse(self, item : list, q_n_used : list , q_used : list, N : int):
+    def create_sparse(self, item: list, q_n_used: list, q_used: list, N: int):
         """Given a gate applied on some qubits the function return a sparse array to use in the statevector function
 
         Args:
@@ -310,18 +312,22 @@ class BinaryBackend(object):
         m = len(q_used) # m = n-k number of used qubit
 
         if k+m != N:
-            raise ValueError(f"You lose some qubit along the way, total number of qubit is {N} and the sum of used and not used qubit is {k+m}")
+            raise ValueError(
+                f"You lose some qubit along the way, total number of qubit is {N} "
+                f"and the sum of used and not used qubit is {k+m}"
+            )
 
-        # quantities for the sparse matrix
+        # Quantities for the sparse matrix
         data = []
         row_indices = []
         col_indices = []
 
-        for i in range(2**k): # generate only the non zero element in the matrix according to the number of not used qubit
+        # Generate only the non zero element in the matrix according to the number of not used qubit
+        for i in range(2**k):
                 k_str = f"{i*(2**k+1):0{2*k}b}"
                 for j in range(2**(2*(m))):
                     m_str = f"{j:0{2*(m)}b}"
-                    n_str = self.join_str(k_str, m_str, q_n_used, q_used ,k ,m) # merge string
+                    n_str = self.join_str(k_str, m_str, q_n_used, q_used, k, m) # merge string
                     row_indices.append(int(n_str[:N],2)) # row index
                     col_indices.append(int(n_str[N:],2)) # column index
                     d = 1
@@ -343,13 +349,13 @@ class BinaryBackend(object):
 
         return csr
     
-    def join_str(self, k_str : str, m_str : str, q_n_used : tuple, q_used : tuple, k: int ,m: int) ->  str:
+    def join_str(self, k_str: str, m_str: str, q_n_used: list[int], q_used: list[int], k: int, m: int) -> str:
         """Join the list of the identities coming from the not used qubit and the list of the used qubit
         Args:
             k_str (str): indexes of not used qubit in binary form different from 0
             m_str (str): indexes of used qubit from the gates
-            q_n_used (tuple): list of not used qubit
-            q_used (tuple): list of used qubit
+            q_n_used (list[int]): list of not used qubit
+            q_used (list[int]): list of used qubit
             k (int): number of not used qubit 
             m (int): number of used qubit
 
@@ -358,7 +364,7 @@ class BinaryBackend(object):
         """
         n = k+m
         tot_str = [0] * 2*n
-        if (len(q_n_used) != k or len(q_used) != m):
+        if len(q_n_used) != k or len(q_used) != m:
             raise ValueError("Mismatch number of qubit provided and number of qubit in the lists")
 
         for i, q in enumerate(q_n_used):
@@ -371,7 +377,7 @@ class BinaryBackend(object):
 
         return ''.join(map(str, tot_str))
     
-    def create_dense(self, item : list, q_used : tuple, q_n_used: tuple) -> np.array:
+    def create_dense(self, item : list, q_used: tuple, q_n_used: tuple) -> np.array:
         """Convert the moment in the matrix that acts in the statevector. This function use an algorithm that calculate only the non zero value
         If I have N qubit and I don't use k of it, than the complexity is 2**(2*n-k)
 
@@ -411,6 +417,7 @@ class BinaryBackend(object):
                     D[i,j] *= gate[index1,index2]
             
         return D
+
 
 class BackendForOnes(object):
     """Version of the backend which is optimized for circuits that contain many identities.
@@ -650,4 +657,3 @@ class BackendForOnes(object):
 
         psi_many_leggs = psi.view().reshape(shape)
         return oe.contract(cs, *non_one_chunks,  psi_many_leggs).reshape(psi.shape)
-

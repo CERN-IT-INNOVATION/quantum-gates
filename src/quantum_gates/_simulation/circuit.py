@@ -352,7 +352,7 @@ class AlternativeCircuit(object):
         phi (list[float]): Phases of the qubits.
     """
 
-    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend): # type: ignore
+    def __init__(self, nqubit: int, gates: Gates, BackendClass: StandardBackend or EfficientBackend):
         self.nqubit = nqubit                        # Number of qubits
         self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
         self._backend = BackendClass(nqubit)        # Backend for tensor contractions
