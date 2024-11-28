@@ -604,6 +604,8 @@ class BinaryCircuit(object):
         nqubit (int): Number of qubits.
         depth (int): Depth of the circuit (Doesn't use, but leave here to follow the structure of the previous Circuit Class)
         gates (int): Gateset from which the noisy quantum gates should be sampled.
+        BackendClass (class): Will be ignored as we always use the BinaryBackend in the BinaryCircuit.
+        qubit_layout (np.array): Qubit layout in the case of non-linear topology. If not set, a linear topology will be assumed.
 
     Example:
         .. code:: python
@@ -632,38 +634,52 @@ class BinaryCircuit(object):
 
     """
 
-    def __init__(self, nqubit: int, depth: int, gates: Gates): 
-        self.nqubit = nqubit                        # Number of qubits
-        self.gates = gates                          # Gate set to be used (specifies the noisy behaviour)
-        self._backend = BinaryBackend(nqubit)       # Backend for tensor contractions
+    def __init__(self,
+                 nqubit: int,
+                 depth: int,
+                 gates: Gates,
+                 BackendClass: type(BinaryBackend),
+                 qubit_layout: np.array=None):
+        self.nqubit: int = nqubit                   # Number of qubits
+        self.gates: Gates = gates                   # Gate set to be used (specifies the noisy behaviour)
+        self._backend = BinaryBackend(nqubit)       # Backend for the computations
+        self._BackendClass = BinaryBackend          # Always BinaryBackend
+        self.qubit_layout = qubit_layout if qubit_layout else np.arange(self.nqubit)
 
         # Bookkeeping
         self.phi = [0 for i in range(nqubit)]       # Phases
-        self._info_gates_list = []                  # List that contain all the info about the gates applied in the circuit and in which qubits
+        # List that contain all the info about the gates applied in the circuit and in which qubits
+        self._info_gates_list: list[list[np.ndarray, np.ndarray]] = []
 
-    def update_circuit_list(self, gate : np.ndarray , qubit : list):
+    def apply(self, gate: np.ndarray, i: int, j: int=-1):
         """Update the list of info_gates of the circuit
 
         Args:
             gate (np.array): The matrix representation of the noisy gate
-            i (list): index of the qubit or qubits in which the gate is applied
+            i (int): index of the first qubit on which the gate is applied
+            j (int): index of the second qubit in case of a two qubit gate
         """
         if not isinstance(gate, np.ndarray):
             raise ValueError(f"Circuit.update_circuit_list() expected gate to be a numpy array but found type {type(gate)}.")
         
-        if gate.shape == (4, 4) and len(qubit) != 2:
-            raise ValueError(f"Circuit.update_circuit_list() expected 2 qubit for a two qubit gates but found {len(qubit)} qubits.")
+        if gate.shape == (4, 4) and j == -1:
+            raise ValueError(f"Circuit.update_circuit_list() expected i and j to be set for a two qubit gate.")
 
-        the_info = [gate, qubit]
+        the_info = [gate, np.array([i,j])]
         self._info_gates_list.append(the_info)
             
-    def statevector(self, psi0: np.array, level_opt: int, qubit_layout: list) -> np.array:
+    def statevector(self, psi0: np.array, level_opt: int) -> np.array:
         """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
         """
         # Handle the trivial case in which no gates were applied.
         if len(self._info_gates_list) == 0:
             return psi0
-        return self._backend.statevector(self._info_gates_list, psi0, level_opt, qubit_layout)
+        return self._backend.statevector(
+            mp_list=self._info_gates_list,
+            psi0=psi0,
+            level_opt=level_opt,
+            qubit_layout=self.qubit_layout,
+        )
 
     def I(self, i: int):
         """Apply identity gate on qubit i
@@ -675,7 +691,7 @@ class BinaryCircuit(object):
              None
         """
         identity_matrix = np.array([[1, 0], [0, 1]])
-        self.update_circuit_list(gate=identity_matrix, qubit=[i])
+        self.apply(gate=identity_matrix, i=i)
 
     def Rz(self, i: int, theta: float):
         """Update the phase to implement virtual Rz(theta) gate on qubit i
@@ -701,7 +717,7 @@ class BinaryCircuit(object):
         Returns:
              None
         """
-        self.update_circuit_list(gate=self.gates.bitflip(tm, rout), qubit=[i])
+        self.apply(gate=self.gates.bitflip(tm, rout), i=i)
 
     def relaxation(self, i: int, Dt: float, T1: float, T2: float):
         """Apply relaxation noise gate on qubit i. Add on idle-qubits.
@@ -715,7 +731,7 @@ class BinaryCircuit(object):
         Returns:
              None
         """
-        self.update_circuit_list(gate=self.gates.relaxation(Dt, T1, T2), qubit=[i])
+        self.apply(gate=self.gates.relaxation(Dt, T1, T2), i=i)
 
     def depolarizing(self, i: int, Dt: float, p: float):
         """Apply depolarizing noise gate on qubit i. Add on idle-qubits.
@@ -728,7 +744,7 @@ class BinaryCircuit(object):
         Returns:
              None
         """
-        self.update_circuit_list(gate=self.gates.depolarizing(Dt, p), qubit=[i])
+        self.apply(gate=self.gates.depolarizing(Dt, p), i=i)
 
     def X(self, i: int, p: float, T1: float, T2: float) -> np.array:
         """
@@ -744,7 +760,7 @@ class BinaryCircuit(object):
         Returns:
               None
         """
-        self.update_circuit_list(gate=self.gates.X(-self.phi[i], p, T1, T2), qubit=[i])
+        self.apply(gate=self.gates.X(-self.phi[i], p, T1, T2), i=i)
 
     def SX(self, i: int, p: float, T1: float, T2: float):
         """
@@ -760,7 +776,7 @@ class BinaryCircuit(object):
         Returns:
               None
         """
-        self.update_circuit_list(gate=self.gates.SX(-self.phi[i], p, T1, T2), qubit=[i])
+        self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
 
     def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
@@ -792,7 +808,7 @@ class BinaryCircuit(object):
             )
             self.phi[i] = self.phi[i] - np.pi/2
 
-            self.update_circuit_list(gate=the_gate, qubit=[i,k])
+            self.apply(gate=the_gate, i=i, j=k)
         else:
             # Control i
             the_gate = self.gates.CNOT_inv(
@@ -804,7 +820,7 @@ class BinaryCircuit(object):
             # Target k
             self.phi[k] = self.phi[k] + np.pi/2
 
-            self.update_circuit_list(gate=the_gate, qubit=[i,k])
+            self.apply(gate=the_gate, i=i, j=k)
 
         return
 
@@ -837,7 +853,7 @@ class BinaryCircuit(object):
                 self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
-            self.update_circuit_list(gate=the_gate, qubit=[i,k])
+            self.apply(gate=the_gate, i=i, j=k)
 
         else:
             # Control i
@@ -845,7 +861,7 @@ class BinaryCircuit(object):
                 self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
-            self.update_circuit_list(gate=the_gate, qubit=[k,i])
+            self.apply(gate=the_gate, i=k, j=i)
 
         return
 
@@ -853,7 +869,7 @@ class BinaryCircuit(object):
         """ Reset the circuit to the initial state. """
         self.phi = [0 for i in range(self.nqubit)]
         self._backend = self._BackendClass(self.nqubit)
-        self._info_gates_list = [] 
+        self._info_gates_list = []
         self.phi = [0 for i in range(self.nqubit)]
 
 
