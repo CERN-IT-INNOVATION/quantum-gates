@@ -29,8 +29,34 @@ def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0
     bb = BinaryBackend(n)
     opt = Optimizer(level_opt=level, circ_list=result, qubit_list=q)
     result = opt.optimize()
-    psi_result = bb.statevector(mp_list=result , psi0 = psi0,level_opt= 0, qubit_layout=q)
-    probs = np.square(np.absolute(psi_result))
+
+    for item in result:
+
+            q_list = list(range(bb.nqubit)) # list of indexes of all qubit in the circuit
+            q_used = item[1] # list of indexes of the qubit used in this moment
+
+            if len(item[1]) == 1: # check if the current is a 1 qubit
+                q0 = item[1][0]
+                q_list.remove(q0) # remove index of the qubit from the list
+            elif len(item[1]) == 2: # check if the current is a 2 qubit gates
+                q1 = item[1][0]
+                q2 = item[1][1]
+                q_list.remove(q1) # remove index of the qubit from the list
+                q_list.remove(q2)
+
+            q_n_used = q_list
+
+            k = len(q_n_used)
+
+            if k == 0: # in case of 1 or 2 qubits circuit
+                U = bb.create_dense(item=item, q_used=q_used, q_n_used=q_n_used)
+                psi0 = U @ psi0
+
+            elif k > 0:
+                U = bb.create_sparse(item=item, q_n_used=q_n_used, q_used=q_used, N=bb.nqubit)
+                psi0 = U.dot(psi0)
+
+    probs = np.square(np.absolute(psi0))
     sums = sim._measurament(prob=probs, q_meas_list=qc, n_qubit=n, qubits_layout=q)
     goal = dict(fix_counts(sums, len(qc)))
     goal_list = np.array([value for key, value in goal.items()])

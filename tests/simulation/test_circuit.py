@@ -30,14 +30,9 @@ def test_circuit_init(CircuitClass):
 @pytest.mark.parametrize("CircuitClass", circuit_classes)
 def test_circuit_apply(CircuitClass):
     circ = CircuitClass(nqubit=2, depth=1, gates=standard_gates)
-    if isinstance(circ, BinaryCircuit):
-        circ.apply(gate=helper_gates.X, i=[0])
-        circ.apply(gate=helper_gates.X, i=[1])
-        psi1 = circ.statevector(np.array([1, 0, 0, 0]), 0, [0,1])
-    else:
-        circ.apply(gate=helper_gates.X, i=0)
-        circ.apply(gate=helper_gates.X, i=1)
-        psi1 = circ.statevector(np.array([1, 0, 0, 0]))
+    circ.apply(gate=helper_gates.X, i=0)
+    circ.apply(gate=helper_gates.X, i=1)
+    psi1 = circ.statevector(np.array([1, 0, 0, 0]))
     expected_psi = np.array([0, 0, 0, 1])
     assert all(psi1[i] == expected_psi[i] for i in range(4))
 
@@ -56,20 +51,14 @@ def test_alternative_circuit_apply(BackendClass):
 def test_circuit_apply_None_raises_ValueError(CircuitClass):
     with pytest.raises(ValueError):
         circ = CircuitClass(nqubit=2, depth=1, gates=standard_gates)
-        if isinstance(circ, BinaryCircuit):
-            circ.apply(gate=None, i=[0])
-        else:
-            circ.apply(gate=None, i=0)
+        circ.apply(gate=None, i=0)
 
 
 @pytest.mark.parametrize("CircuitClass", circuit_classes)
 def test_circuit_apply_2qubit_gate_raises_ValueError(CircuitClass):
     with pytest.raises(ValueError):
         circ = CircuitClass(nqubit=2, depth=1, gates=standard_gates)
-        if isinstance(circ, BinaryCircuit):
-            circ.apply(gate=helper_gates.CNOT, i=[0])
-        else:
-            circ.apply(gate=helper_gates.CNOT, i=0) # Use apply for 2 qubit (CNOT) gate.
+        circ.apply(gate=helper_gates.CNOT, i=0) # Use apply for 2 qubit (CNOT) gate.
 
 
 @pytest.mark.parametrize("BackendClass", backend_classes)
@@ -112,9 +101,9 @@ def test_non_close_gate_binary_circuit():
     psi0 = [1] + [0] * (2**n_qubit-1)
     qubit_layout = [0,1,14]
     circ = BinaryCircuit(nqubit = n_qubit, depth=1, gates= standard_gates)
-    circ.apply(gate=helper_gates.X, i=[0])
-    circ.apply(gate=helper_gates.CNOT, i=[0, 2])
-    psi1 = circ.statevector(psi0, 0, qubit_layout)
+    circ.apply(gate=helper_gates.X, i=0)
+    circ.apply(gate=helper_gates.CNOT, i=0, j=2)
+    psi1 = circ.statevector(psi0)
     exp = np.array([0,0,0,0,0,1,0,0])
     assert all(psi1[i] == exp[i] for i in range(2**n_qubit))
         

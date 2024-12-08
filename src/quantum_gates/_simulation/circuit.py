@@ -614,11 +614,13 @@ class BinaryCircuit(object):
             from quantum_gates.gates import standard_gates
 
             n_qubit = 3
+            qubit_layout = [0,1,2]
 
             circuit = BinaryCircuit(
                 nqubit=n_qubit,
                 depth=1,
                 gates=standard_gates,
+                qubit_layout=qubit_layout
             )
 
             X, CNOT = ...
@@ -629,8 +631,7 @@ class BinaryCircuit(object):
 
             # calculate the statevector
             psi0 = [1] + [0] * (2**n_qubit-1)
-            qubit_layout = [0,1,2]
-            psi1 = circ.statevector(psi0 = psi0, 0, qubit_layout)
+            psi1 = circ.statevector(psi0 = psi0)
 
     """
 
@@ -638,7 +639,7 @@ class BinaryCircuit(object):
                  nqubit: int,
                  depth: int,
                  gates: Gates,
-                 BackendClass: type(BinaryBackend),
+                 BackendClass: type(BinaryBackend) = BinaryBackend,
                  qubit_layout: np.array=None):
         self.nqubit: int = nqubit                   # Number of qubits
         self.gates: Gates = gates                   # Gate set to be used (specifies the noisy behaviour)
@@ -665,10 +666,10 @@ class BinaryCircuit(object):
         if gate.shape == (4, 4) and j == -1:
             raise ValueError(f"Circuit.update_circuit_list() expected i and j to be set for a two qubit gate.")
 
-        the_info = [gate, np.array([i,j])]
+        the_info = [gate, [i,j]]
         self._info_gates_list.append(the_info)
             
-    def statevector(self, psi0: np.array, level_opt: int) -> np.array:
+    def statevector(self, psi0: np.array) -> np.array:
         """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
         """
         # Handle the trivial case in which no gates were applied.
@@ -677,10 +678,9 @@ class BinaryCircuit(object):
         return self._backend.statevector(
             mp_list=self._info_gates_list,
             psi0=psi0,
-            level_opt=level_opt,
             qubit_layout=self.qubit_layout,
         )
-
+    
     def I(self, i: int):
         """Apply identity gate on qubit i
 

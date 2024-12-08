@@ -67,6 +67,12 @@ class Optimizer(object):
         else:
             level = self.level_opt
 
+        for i in self.circ_list:
+            if len(i[1]) == 2:
+                if i[1][1] == -1:
+                    i[1] = [i[1][0]]
+                i[1] = list(i[1])    
+
         if level == 0:
             return self.circ_list
 

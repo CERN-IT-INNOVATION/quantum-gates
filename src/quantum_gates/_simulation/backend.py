@@ -247,13 +247,12 @@ class BinaryBackend(object):
     def __init__(self, nqubit: int):
         self.nqubit = nqubit
 
-    def statevector(self, mp_list: list, psi0: np.array, level_opt: int, qubit_layout: list) -> np.array:
+    def statevector(self, mp_list: list, psi0: np.array, qubit_layout: list) -> np.array:
         """Propagates a statevector based on a list of matrix products.
 
         Args:
              mp_list (list[list]): List of list that contain the gates as np.array and the qubit where they act.
              psi0 (np.array): Statevector to be propagated.
-             level_opt(int): Level of optimization for the circuit optimizer
              qubit_layout(list): Layout of the qubit used in the optimizer
 
         Returns:
@@ -262,7 +261,7 @@ class BinaryBackend(object):
         assert len(mp_list) > 0, f"Expected non empty matrix product list, but found {mp_list}."
         psi1 = copy.deepcopy(psi0)
  
-        mp_list_opt = Optimizer(level_opt= level_opt, circ_list= mp_list, qubit_list=qubit_layout).optimize()
+        mp_list_opt = Optimizer(level_opt= 4, circ_list= mp_list, qubit_list=qubit_layout).optimize()
 
         for item in mp_list_opt:
 

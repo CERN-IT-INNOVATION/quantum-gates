@@ -76,8 +76,7 @@ class MrAndersonSimulator(object):
             psi0: np.array,
             shots: int,
             device_param: dict,
-            nqubit: int,
-            level_opt:int = 4) -> dict:
+            nqubit: int,) -> dict:
         """
             Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
             and runs noisy quantum gates.
@@ -88,7 +87,6 @@ class MrAndersonSimulator(object):
                 shots: number of realizations (int)
                 device_param: noise and device configurations as dict with the keys specified by DeviceParameters (dict)
                 nqubit: number of qubits used in the circuit, must be compatible with psi0 (int)
-                level_opt (int): Level of optimization for the circuit optimizator for BinaryCircuit only
 
             Returns:
                   dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
@@ -111,7 +109,7 @@ class MrAndersonSimulator(object):
         n_rz, _ , data = self._preprocess_circuit(t_qiskit_circ, qubits_layout_t, nqubit)
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
-        probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, level_opt)
+        probs = self._perform_simulation(shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t)
 
 
         # Normalize the result
@@ -250,8 +248,7 @@ class MrAndersonSimulator(object):
                             nqubit: int,
                             device_param: dict,
                             psi0: np.array,
-                            qubit_layout: list,
-                            level_opt:int) -> np.array:
+                            qubit_layout: list,) -> np.array:
         """ Performs the simulation shots many times and returns the resulting probability distribution.
         """
 
@@ -270,7 +267,6 @@ class MrAndersonSimulator(object):
                 "device_param": copy.deepcopy(device_param),
                 "psi0": copy.deepcopy(psi0),
                 "qubit_layout": copy.deepcopy(qubit_layout),
-                "level_opt": copy.deepcopy(level_opt)
             } for i in range(shots)
         ]
 
@@ -500,16 +496,12 @@ def _single_shot(args: dict) -> np.array:
     device_param = args["device_param"]
     psi0 = args["psi0"]
     qubit_layout = args["qubit_layout"]
-    level_opt = args["level_opt"]
 
     # Apply gates on the circuit.
     _apply_gates_on_circuit(data, circ, device_param, qubit_layout)
 
     # Propagate psi with  the state vector method
-    if isinstance(circ, BinaryCircuit):
-        psi = circ.statevector(psi0, level_opt, qubit_layout)
-    else:
-        psi = circ.statevector(psi0)
+    psi = circ.statevector(psi0)
 
     # Calculate probabilities with the Born rule.
     shot_result = np.square(np.absolute(psi))
