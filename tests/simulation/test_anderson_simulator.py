@@ -83,7 +83,6 @@ def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
         shots=args['shots'],
         device_param=args['device_param'],
         nqubit=nqubit,
-        level_opt=4
     )
     return p_ng
 
