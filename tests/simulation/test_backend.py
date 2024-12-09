@@ -35,8 +35,7 @@ def test_backend_eye(nqubits, Backend):
     psi0 = np.random.rand(2**nqubits)
     if isinstance(tb, BinaryBackend):
         mp_list = [[np.eye(2),[i]] for i in range(nqubits)]
-        qubit_layout = np.arange(nqubits)
-        psi1 = tb.statevector(mp_list, psi0, 4, qubit_layout)
+        psi1 = tb.statevector(mp_list, psi0)
     else:
         mp = [np.eye(2) for i in range(nqubits)]
         mp_list = [mp]
@@ -54,8 +53,7 @@ def test_backend_x(nqubits, Backend):
 
     if isinstance(tb, BinaryBackend):
         mp_list = [[np.fliplr((np.eye(2))),[i]] for i in range(nqubits)]
-        qubit_layout = np.arange(nqubits)
-        psi1 = tb.statevector(mp_list, psi0, 4, qubit_layout)
+        psi1 = tb.statevector(mp_list, psi0)
     else:
         mp = [np.fliplr(np.eye(2)) for i in range(nqubits)]
         mp_list = [mp]
@@ -79,7 +77,7 @@ def test_backend_result_x_and_many_cnot(nqubits, Backend):
         cnots = [[CNOT,[i,i+1]] for i in range(nqubits-1)]
         mp_list = mp_list + cnots
         qubit_layout = np.arange(nqubits)
-        psi1 = tb.statevector(mp_list, psi0, 4, qubit_layout)
+        psi1 = tb.statevector(mp_list, psi0)
     else:
 
         mp_list = [[X] + [identity for i in range(nqubits - 1)]]
@@ -105,7 +103,7 @@ def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: i
     mp = [gate for i in range(nqubits)]
     mp_list = [mp for step in range(steps)]
 
-    mp_list_b = [[gate ,[i]] for step in range(steps) for i in range(nqubits)]
+    mp_list_b = [[gate, [i]] for step in range(steps) for i in range(nqubits)]
 
     qubit_layout = np.arange(nqubits)
 
@@ -119,7 +117,7 @@ def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: i
     psi_one = one_tb.statevector(mp_list, psi0)
     psi_efficient = efficient_tb.statevector(mp_list, psi0)
     psi_standard = standard_tb.statevector(mp_list, psi0)
-    psi_binary = binary_tb.statevector(mp_list_b, psi0, 4, qubit_layout)
+    psi_binary = binary_tb.statevector(mp_list_b, psi0)
 
     # Evaluate
     assert vector_almost_equal(psi_efficient, psi_standard, nqubits), \
@@ -150,8 +148,7 @@ def test_backends_get_same_result_with_random_matrix_products(nqubits, steps):
     one_psi1 = one_tb.statevector(mp_list, psi0)
     efficient_psi1 = efficient_tb.statevector(mp_list, psi0)
     trivial_psi1 = trivial_tb.statevector(mp_list, psi0)
-    binary_psi1 = binary_tb.statevector(mp_list_b, psi0, 0, qubit_layout)
-
+    binary_psi1 = binary_tb.statevector(mp_list_b, psi0)
 
     # Evaluate
     print("one_psi1", one_psi1)
@@ -187,7 +184,7 @@ def test_backends_hard_against_each_other():
     one_psi = one_tb.statevector(mp_list, np.array([1.0, 0.0, 0.0, 0.0]))
     efficient_psi = efficient_tb.statevector(mp_list, np.array([1.0, 0.0, 0.0, 0.0]))
     trivial_psi = trivial_tb.statevector(mp_list, np.array([1.0, 0.0, 0.0, 0.0]))
-    binary_psi1 = binary_tb.statevector(mp_list_b, np.array([1.0, 0.0, 0.0, 0.0]), 4, [0,1])
+    binary_psi1 = binary_tb.statevector(mp_list_b, np.array([1.0, 0.0, 0.0, 0.0]))
 
     # Evaluate
     print("one_psi", one_psi)
