@@ -247,7 +247,7 @@ class BinaryBackend(object):
     def __init__(self, nqubit: int):
         self.nqubit = nqubit
 
-    def statevector(self, mp_list: list, psi0: np.array, qubit_layout: list) -> np.array:
+    def statevector(self, mp_list: list, psi0: np.array, qubit_layout: list=None) -> np.array:
         """Propagates a statevector based on a list of matrix products.
 
         Args:
@@ -258,6 +258,7 @@ class BinaryBackend(object):
         Returns:
             The propagated statevector.
         """
+        qubit_layout = qubit_layout if qubit_layout is not None else list(range(self.nqubit))
         assert len(mp_list) > 0, f"Expected non empty matrix product list, but found {mp_list}."
         psi1 = copy.deepcopy(psi0)
  
