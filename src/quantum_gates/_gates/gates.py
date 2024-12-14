@@ -29,7 +29,7 @@ from .factories import (
 )
 
 
-class Gates(object):
+class Gates:
     """Collection of the gates. Handles adding the pulse shape to the gates.
 
     This way, we do not have to pass the pulse shape each time we generate a gate.

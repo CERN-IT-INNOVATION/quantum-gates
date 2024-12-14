@@ -254,8 +254,8 @@ Contributions are welcomed and should apply the usual git-flow: fork this repo, 
 'feature-...'. Commit often to ensure that each commit is easy to understand. Name your commits 
 '[feature-...] Commit message.', such that it possible to differentiate the commits of different features in the 
 main line. Request a merge to the mainline often. Contribute to the test suite and verify the functionality with the unit tests when using a different Python version or dependency versions. Please remember to follow the 
-[PEP 8 style guide](https://peps.python.org/pep-0008/), and add comments whenever it helps. The corresponding 
-[authors](<#authors>) are happy to support you. 
+[PEP 8 style guide](https://peps.python.org/pep-0008/), and add comments whenever it helps. You can run the linter
+with `pylint .`. The corresponding [authors](<#authors>) are happy to support you. 
 
 
 ## Build 

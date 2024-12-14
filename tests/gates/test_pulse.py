@@ -1,9 +1,9 @@
-import pytest
-import numpy as np
 import time
 import pickle
 
-from src.quantum_gates.pulses import Pulse, GaussianPulse, ConstantPulse, ConstantPulseNumerical
+import numpy as np
+
+from src.quantum_gates.pulses import GaussianPulse, ConstantPulse, ConstantPulseNumerical
 
 
 def test_gaussian_pulse_init():

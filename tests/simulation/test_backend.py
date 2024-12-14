@@ -24,14 +24,17 @@ efficient_backend = [EfficientBackend, BackendForOnes]
 """ Tests """
 
 
-@pytest.mark.parametrize("nqubit,Backend", [(nqubit, Backend) for nqubit in [2, 4, 6] for Backend in backends])
-def test_backend_init(nqubit, Backend):
-    tb = Backend(nqubit=nqubit)
+@pytest.mark.parametrize("nqubit,backend", [(nqubit, Backend) for nqubit in [2, 4, 6] for Backend in backends])
+def test_backend_init(nqubit, backend):
+    tb = backend(nqubit=nqubit)
 
 
-@pytest.mark.parametrize("nqubits,Backend", [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends])
-def test_backend_eye(nqubits, Backend):
-    tb = Backend(nqubit=nqubits)
+@pytest.mark.parametrize(
+    "nqubits,backend",
+    [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends],
+)
+def test_backend_eye(nqubits, backend):
+    tb = backend(nqubit=nqubits)
     psi0 = np.random.rand(2**nqubits)
     if isinstance(tb, BinaryBackend):
         mp_list = [[np.eye(2),[i]] for i in range(nqubits)]
@@ -45,9 +48,12 @@ def test_backend_eye(nqubits, Backend):
         f"Assumed that applying identities will lead to a trivial circuit, but found {psi1} != 1 {psi0}."
 
 
-@pytest.mark.parametrize("nqubits,Backend", [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends])
-def test_backend_x(nqubits, Backend):
-    tb = Backend(nqubit=nqubits)
+@pytest.mark.parametrize(
+    "nqubits,backend",
+    [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends],
+)
+def test_backend_x(nqubits, backend):
+    tb = backend(nqubit=nqubits)
     psi0 = np.zeros(2**nqubits)
     psi0[0] = 1
 
@@ -65,25 +71,25 @@ def test_backend_x(nqubits, Backend):
         f"Assumed that applying (X ... X) on |0..0> produces |1...1>, but found {psi1} != (X...X) {psi0}."
 
 
-@pytest.mark.parametrize("nqubits,Backend", [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends])
-def test_backend_result_x_and_many_cnot(nqubits, Backend):
+@pytest.mark.parametrize("nqubits,backend", [(nqubit, Backend) for nqubit in [2, 3, 4, 6, 8, 10, 12] for Backend in backends])
+def test_backend_result_x_and_many_cnot(nqubits, backend):
 
     # Create circuit that maps |0..0> to |1...1> with one X and many CNOTs.
-    tb = Backend(nqubit=nqubits)
+    tb = backend(nqubit=nqubits)
     psi0 = np.zeros(2**nqubits)
     psi0[0] = 1.0
+
     if isinstance(tb, BinaryBackend):
         mp_list = [[X,[0]]]
         cnots = [[CNOT,[i,i+1]] for i in range(nqubits-1)]
         mp_list = mp_list + cnots
-        qubit_layout = np.arange(nqubits)
         psi1 = tb.statevector(mp_list, psi0)
     else:
-
         mp_list = [[X] + [identity for i in range(nqubits - 1)]]
         for j in range(nqubits - 1):
             mp_list.append([identity for i in range(j)] + [CNOT, 1] + [identity for i in range(nqubits - 2 - j)])
         psi1 = tb.statevector(mp_list, psi0)
+
     # Check that it does the correct mapping
     psi1_exp = np.zeros(2**nqubits)
     psi1_exp[-1] = 1
@@ -133,8 +139,6 @@ def test_backends_get_same_result_with_single_qubit_gates(nqubits: int, steps: i
 @pytest.mark.parametrize("nqubits, steps", [(n, s) for n in [2, 3, 4, 6, 8, 9, 10] for s in [5]])
 def test_backends_get_same_result_with_random_matrix_products(nqubits, steps):
     mp_list, mp_list_b = generate_random_matrix_products(nqubits, steps=steps)
-
-    qubit_layout = np.arange(nqubits)
 
     # Backends
     one_tb = BackendForOnes(nqubits)

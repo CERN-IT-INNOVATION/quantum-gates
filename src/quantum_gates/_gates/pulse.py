@@ -117,7 +117,7 @@ class ConstantPulse(Pulse):
     """
 
     def __init__(self):
-        super(ConstantPulse, self).__init__(
+        super().__init__(
             pulse=one,
             parametrization=identity,
             perform_checks=False,

@@ -1,6 +1,7 @@
 import pytest
-import numpy as np
 import time
+
+import numpy as np
 
 from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT
 from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
@@ -31,7 +32,7 @@ location = "tests/helpers/device_parameters/ibm_kyiv/"
 def main(backend,
          do_simulation,
          gates,
-         CircuitClass,
+         circuit_class,
          circuit_generator: callable,
          shots: int,
          nqubits: int,
@@ -56,11 +57,11 @@ def main(backend,
         'device_param': device_param,
     }
 
-    p_ng = do_simulation(arg, gates, CircuitClass, parallel)
+    p_ng = do_simulation(arg, gates, circuit_class, parallel)
     return p_ng
 
 
-def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
+def do_simulation(args: dict, gates, circuit_class, parallel: bool=False):
     """ This is the inside function that will take specific parameters multiple processes will start executing this
         function.
     """
@@ -73,7 +74,7 @@ def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
     psi0[0] = 1
 
     # Create simulator
-    sim = MrAndersonSimulator(gates=gates, CircuitClass=CircuitClass, parallel=parallel)
+    sim = MrAndersonSimulator(gates=gates, CircuitClass=circuit_class, parallel=parallel)
 
     # Run simulator
     p_ng = sim.run(
@@ -88,10 +89,10 @@ def do_simulation(args: dict, gates, CircuitClass, parallel: bool=False):
 
 
 @pytest.mark.parametrize(
-    "nqubits,gates,CircuitClass",
-    [(nqubit, gates, CircuitClass) for nqubit in range(2, 5) for gates in gates_set for CircuitClass in circuit_set]
+    "nqubits,gates,circuit_class",
+    [(nqubit, gates, circuit_class) for nqubit in range(2, 5) for gates in gates_set for circuit_class in circuit_set]
 )
-def test_simulator_run_one_shot(nqubits: int, gates, CircuitClass):
+def test_simulator_run_one_shot(nqubits: int, gates, circuit_class):
     run_config = {
         "shots": 1,
         "nqubits": nqubits,
@@ -102,17 +103,17 @@ def test_simulator_run_one_shot(nqubits: int, gates, CircuitClass):
         backend,
         do_simulation,
         gates=gates,
-        CircuitClass=CircuitClass,
+        circuit_class=circuit_class,
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
 
 
 @pytest.mark.parametrize(
-    "shots,gates,CircuitClass",
-    [(shots, gates, CircuitClass) for shots in [10] for gates in gates_set for CircuitClass in circuit_set]
+    "shots,gates,circuit_class",
+    [(shots, gates, circuit_class) for shots in [10] for gates in gates_set for circuit_class in circuit_set]
 )
-def test_simulator_run_many_shots(shots: int, gates, CircuitClass):
+def test_simulator_run_many_shots(shots: int, gates, circuit_class):
     run_config = {
         "shots": shots,
         "nqubits": 2,
@@ -124,17 +125,17 @@ def test_simulator_run_many_shots(shots: int, gates, CircuitClass):
         backend,
         do_simulation,
         gates=gates,
-        CircuitClass=CircuitClass,
+        circuit_class=circuit_class,
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
 
 
 @pytest.mark.parametrize(
-    "nqubits,gates,CircuitClass",
-    [(nqubits, gates, CircuitClass) for nqubits in [2, 3, 4] for gates in gates_set for CircuitClass in circuit_set]
+    "nqubits,gates,circuit_class",
+    [(nqubits, gates, circuit_class) for nqubits in [2, 3, 4] for gates in gates_set for circuit_class in circuit_set]
 )
-def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
+def test_simulator_result_makes_sense(nqubits: int, gates, circuit_class):
     run_config = {
         "shots": 100,
         "nqubits": nqubits,
@@ -145,7 +146,7 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
         backend,
         do_simulation,
         gates=gates,
-        CircuitClass=CircuitClass,
+        circuit_class=circuit_class,
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
@@ -157,10 +158,10 @@ def test_simulator_result_makes_sense(nqubits: int, gates, CircuitClass):
 
 @pytest.mark.skip(reason="Invalid test: At the moment, the noise_free_gates have a bug with the global phase.")
 @pytest.mark.parametrize(
-    "nqubits,CircuitClass",
-    [(nqubits, CircuitClass) for nqubits in [2, 3, 4] for CircuitClass in circuit_set]
+    "nqubits,circuit_class",
+    [(nqubits, circuit_class) for nqubits in [2, 3, 4] for circuit_class in circuit_set]
 )
-def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
+def test_simulator_result_in_noiseless_case(nqubits: int, circuit_class):
     epsilon = 1e-12
     run_config = {
         "shots": 1,
@@ -172,7 +173,7 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
         backend,
         do_simulation,
         gates=noise_free_gates,
-        CircuitClass=CircuitClass,
+        circuit_class=circuit_class,
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
@@ -186,10 +187,10 @@ def test_simulator_result_in_noiseless_case(nqubits: int, CircuitClass):
 
 
 @pytest.mark.parametrize(
-    "nqubits,CircuitClass",
-    [(nqubits, CircuitClass) for nqubits in [2, 3, 4] for CircuitClass in circuit_set]
+    "nqubits,circuit_class",
+    [(nqubits, circuit_class) for nqubits in [2, 3, 4] for circuit_class in circuit_set]
 )
-def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
+def test_simulator_result_in_almost_noiseless_case(nqubits: int, circuit_class):
     epsilon = 1e-6
     run_config = {
         "shots": 1,
@@ -201,7 +202,7 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, CircuitClass):
         backend,
         do_simulation,
         gates=almost_noise_free_gates,
-        CircuitClass=CircuitClass,
+        circuit_class=circuit_class,
         circuit_generator=hadamard_reverse_qft_circ,
         **run_config
     )
@@ -241,31 +242,31 @@ def test_simulator_speed_for_different_circuits(nqubits, times):
     time_one_circuit = 0
     time_binary_circuit = 0
 
-    for i in range(times):
+    for _ in range(times):
 
         # Measure circuit
         time_circuit -= time.time()
-        p_circuit = main(CircuitClass=Circuit, **args)
+        p_circuit = main(circuit_class=Circuit, **args)
         time_circuit += time.time()
 
         # Measure standard circuit
         time_standard_circuit -= time.time()
-        p_standard = main(CircuitClass=StandardCircuit, **args)
+        p_standard = main(circuit_class=StandardCircuit, **args)
         time_standard_circuit += time.time()
 
         # Measure efficient circuit
         time_efficient_circuit -= time.time()
-        p_efficient = main(CircuitClass=EfficientCircuit, **args)
+        p_efficient = main(circuit_class=EfficientCircuit, **args)
         time_efficient_circuit += time.time()
 
         # Measure one circuit
         time_one_circuit -= time.time()
-        p_one = main(CircuitClass=OneCircuit, **args)
+        p_one = main(circuit_class=OneCircuit, **args)
         time_one_circuit += time.time()
 
         # Measure binary circuit
         time_binary_circuit -= time.time()
-        p_binary = main(CircuitClass=BinaryCircuit, **args)
+        p_binary = main(circuit_class=BinaryCircuit, **args)
         time_binary_circuit += time.time()
 
         v_circuit = np.array(list(p_circuit.values()))
@@ -325,16 +326,16 @@ def test_simulator_speed_for_more_efficient_circuits(nqubits, times):
     time_efficient_circuit = 0
     time_one_circuit = 0
 
-    for i in range(times):
+    for _ in range(times):
 
         # Measure efficient circuit
         time_efficient_circuit -= time.time()
-        p_eff = main(CircuitClass=EfficientCircuit, **args)
+        p_eff = main(circuit_class=EfficientCircuit, **args)
         time_efficient_circuit += time.time()
 
         # Measure one circuit
         time_one_circuit -= time.time()
-        p_one = main(CircuitClass=OneCircuit, **args)
+        p_one = main(circuit_class=OneCircuit, **args)
         time_one_circuit += time.time()
 
     v_eff = np.array(list(p_eff.values()))
@@ -368,11 +369,11 @@ def test_simulator_speed_for_efficient_circuit(nqubits, times):
     time_efficient_circuit = 0
     time_efficient_circuit -= time.time()
 
-    for i in range(times):
+    for _ in range(times):
         main(backend,
              do_simulation,
              gates=standard_gates,
-             CircuitClass=EfficientCircuit,
+             circuit_class=EfficientCircuit,
              circuit_generator=hadamard_reverse_qft_circ,
              **run_config)
 
@@ -399,7 +400,7 @@ def test_simulation_speed_parallel_vs_sequential(nqubits):
     main(backend,
          do_simulation,
          gates=standard_gates,
-         CircuitClass=EfficientCircuit,
+         circuit_class=EfficientCircuit,
          circuit_generator=hadamard_reverse_qft_circ,
          **run_config,
          parallel=True)
@@ -410,7 +411,7 @@ def test_simulation_speed_parallel_vs_sequential(nqubits):
     main(backend,
          do_simulation,
          gates=standard_gates,
-         CircuitClass=EfficientCircuit,
+         circuit_class=EfficientCircuit,
          circuit_generator=hadamard_reverse_qft_circ,
          **run_config,
          parallel=False)
@@ -439,7 +440,7 @@ def test_simulation_gives_normalized_result(nqubits):
     p_ng = main(backend,
                 do_simulation,
                 gates=standard_gates,
-                CircuitClass=EfficientCircuit,
+                circuit_class=EfficientCircuit,
                 circuit_generator=hadamard_reverse_qft_circ,
                 **run_config,
                 parallel=False)
