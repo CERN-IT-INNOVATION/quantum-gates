@@ -31,7 +31,7 @@ def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0
             if budget == 1:
                 gate = random.choice(gate_list)
                 mp.append(gate)
-                the_info = [gate,[nqubits-budget]]
+                the_info = [gate,[nqubits-budget, -1]]
                 budget -= 1
 
             # Case: More than one qubit left -> We can apply two qubit gates.
@@ -45,7 +45,7 @@ def generate_random_matrix_products(nqubits: int, steps: int, prob_cnot: float=0
                 else:
                     gate = random.choice(gate_list)
                     mp.append(gate)
-                    the_info = [gate,[nqubits-budget]]
+                    the_info = [gate,[nqubits-budget, -1]]
                     budget -= 1
             mp_list_b.append(the_info)
         assert budget == 0

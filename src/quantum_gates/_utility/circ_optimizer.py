@@ -153,7 +153,7 @@ class Optimizer(object):
 
         q2_gate = 0
         result_2 = []
-        
+
         for i in gate_list: #count the number of two qubit gate in the result
             if len(i[1]) == 2:
                 q2_gate += 1
@@ -172,8 +172,9 @@ class Optimizer(object):
                 if len(gate_list) > counter+1: # assert that there are gate after the one considered
                     if len(gate_list[counter+1][1]) == 1: # append the right after gate if it is a 1 q gate
                         _snippet.append(gate_list[counter+1])
-                        if len(gate_list[counter+2][1]) == 1: # if it's appended the first closer whatch if append the second after gate if it is a 1 q gate
-                            _snippet.append(gate_list[counter+2])
+                        if len(gate_list) > counter+2:
+                            if len(gate_list[counter+2][1]) == 1: # if it's appended the first closer watch if append the second after gate if it is a 1 q gate
+                                _snippet.append(gate_list[counter+2])
                 # the snippet now is done
 
                 # remove from result the snippet
