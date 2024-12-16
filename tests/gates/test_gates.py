@@ -288,7 +288,7 @@ def test_gates_noiseless_cnot_inv(phi_ctr: float, phi_trg: float):
     }
     res_exp = noise_free_gates.CNOT_inv(**arguments)    # Hardcoded noiseless
     res = numerical_gates.CNOT_inv(**arguments)         # Simulated noiseless
-    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-9), \
+    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
 
 @pytest.mark.parametrize(

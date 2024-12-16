@@ -246,8 +246,11 @@ python -m "pytest"
 ```
 
 Using this command instead of just typing `pytest` will make sure that you are using
-the right Python version to run pytest.
+the right Python version to run pytest. You can also just run a subset of the test, for example:
 
+```bash
+python -m pytest -k test_gates_noiseless_cnot_inv
+```
 
 # How to contribute
 Contributions are welcomed and should apply the usual git-flow: fork this repo, create a local branch named 
