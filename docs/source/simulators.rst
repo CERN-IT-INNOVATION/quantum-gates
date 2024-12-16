@@ -9,7 +9,7 @@ matrix-vector multiplication seen in the statevector simulation. Last,
 the parallel attribute specifies whether or not the shots should be
 executed in parallel with multiprocessing. In general, we recommend to
 parallelize the outer loop of the simulation, and not the shots, as the
-latter comes with a large overhead.
+latter comes with a large overhead. 
 
 
 .. automodule:: quantum_gates.simulators

@@ -51,8 +51,11 @@ This command installs the package in editable mode, allowing you to work directl
 make will be immediately available without the need to reinstall the package.
 
 
-## Quickstart
-Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token.
+## Quickstart 
+You can find this quickstart implemented in the tutorial notebook [here](docs/tutorials/notebooks/tutorial_quantum_gates.ipynb).
+
+Execute the following code in a script or notebook. Add your IBM token to by defining it as the variable IBM_TOKEN = "your_token". Optimally, you save your token in a separate file that is not in your version control system, so you are not at risk of accidentally revealing your access token. 
+
 
 ```python
 # Standard libraries
@@ -66,7 +69,7 @@ from qiskit.visualization import plot_histogram
 # Own library
 from quantum_gates.simulators import MrAndersonSimulator
 from quantum_gates.gates import standard_gates
-from quantum_gates.circuits import EfficientCircuit
+from quantum_gates.circuits import EfficientCircuit, BinaryCircuit
 from quantum_gates.utilities import DeviceParameters
 from quantum_gates.utilities import setup_backend
 IBM_TOKEN = "<your_token>"
@@ -89,7 +92,7 @@ config = {
         "hub": "ibm-q",
         "group": "open",
         "project": "main",
-        "device_name": "ibmq_manila"
+        "device_name": "ibm_kyiv"
     },
     "run": {
         "shots": 1000,
@@ -132,14 +135,72 @@ probs = sim.run(
     psi0=np.array(run_config["psi0"]), 
     shots=run_config["shots"], 
     device_param=device_param_lookup,
-    nqubit=2)
+    nqubit=2,
+    level_opt = 0)
 
-counts_ng = {format(i, 'b').zfill(2): probs[i] for i in range(0, 4)}
 ```
 ... and analyse the result. 
 
 ```python
-plot_histogram(counts_ng, bar_labels=False, legend=['Noisy Gates simulation'])
+plot_histogram(probs, bar_labels=False, legend=['Noisy Gates simulation'])
+```
+
+If you want to use a non-linear topology you must use the BinaryCircuit and slightly modify the code.
+First of all we modify the qubit layout to match the topology of the device.
+
+```python
+config = {
+    "run": {
+        "shots": 1000,
+        "qubits_layout": [0, 14],
+        "psi0": [1, 0, 0, 0]
+    }
+}
+```
+Then also the command to import the parameter device has to change in order to import all the information of all the qubits up to the one with the max indices.
+
+```python
+device_param = DeviceParameters(list(np.arange(max(qubits_layout)+1)))
+device_param.load_from_backend(backend)
+device_param_lookup = device_param.__dict__()
+```
+
+Last, we perform the simulation ... 
+```python
+sim = MrAndersonSimulator(gates=standard_gates, CircuitClass=BinaryCircuit)
+
+t_circ = transpile(
+    circ,
+    backend,
+    scheduling_method='asap',
+    initial_layout=qubits_layout,
+    seed_transpiler=42
+)
+
+probs = sim.run(
+    t_qiskit_circ=t_circ, 
+    qubits_layout=qubits_layout, 
+    psi0=np.array(run_config["psi0"]), 
+    shots=run_config["shots"], 
+    device_param=device_param_lookup,
+    nqubit=2,
+    level_opt = 4)
+
+```
+... and analyse the result. 
+
+```python
+plot_histogram(probs, bar_labels=False, legend=['Noisy Gates simulation'])
+```
+
+Remember that the ouput of the simulator follows the Big-Endian order, if you want to switch to Little-Endian order, which is the standard for Qiskit, you can use the command
+
+```python
+from quantum_gates.utilities import fix_counts
+
+n_measured_qubit = 2
+probs_little_endian = fix_counts(probs, n_measured_qubit)
+plot_histogram(probs_little_endian, bar_labels=False, legend=['Noisy Gates simulation'])
 ```
 
 
@@ -178,14 +239,26 @@ testing with (the on set in tests/simulation/test_anderson_simulator.py) is avai
 parameters are prepared in the tests/utility/device_parameters folder. In the future we might upgrade the tests and mock 
 these dependencies.
 
+Afer activating your virtual environment, you can run the tests from root with 
+
+```bash
+python -m "pytest"
+```
+
+Using this command instead of just typing `pytest` will make sure that you are using
+the right Python version to run pytest. You can also just run a subset of the test, for example:
+
+```bash
+python -m pytest -k test_gates_noiseless_cnot_inv
+```
 
 # How to contribute
 Contributions are welcomed and should apply the usual git-flow: fork this repo, create a local branch named 
 'feature-...'. Commit often to ensure that each commit is easy to understand. Name your commits 
 '[feature-...] Commit message.', such that it possible to differentiate the commits of different features in the 
 main line. Request a merge to the mainline often. Contribute to the test suite and verify the functionality with the unit tests when using a different Python version or dependency versions. Please remember to follow the 
-[PEP 8 style guide](https://peps.python.org/pep-0008/), and add comments whenever it helps. The corresponding 
-[authors](<#authors>) are happy to support you. 
+[PEP 8 style guide](https://peps.python.org/pep-0008/), and add comments whenever it helps. You can run the linter
+with `pylint .`. The corresponding [authors](<#authors>) are happy to support you. 
 
 
 ## Build 
@@ -266,4 +339,5 @@ This project has been developed thanks to the effort of the following people:
 * Michele Grossi (michele.grossi@cern.ch) 
 * Sandro Donadi
 * Angelo Bassi 
+* Paolo Da Rold 
 * Roman Wixinger (roman.wixinger@gmail.com)

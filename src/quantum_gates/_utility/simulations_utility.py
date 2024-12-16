@@ -4,43 +4,46 @@ import json
 import os
 import concurrent.futures
 
-from qiskit import transpile
+from qiskit import transpile, QuantumCircuit
 from qiskit.transpiler import CouplingMap
 from qiskit_aer import AerSimulator
 from qiskit_ibm_runtime import QiskitRuntimeService
+from qiskit.circuit.random import random_circuit
+from qiskit.providers.backend import BackendV2 as Backend
 
 
-def fix_counts(counts_0: dict, n_qubits: int):
-    """ Fixes the qiskit counts in the standard convention, orders the list and adds strings with zero counts.
-    """
-
+def fix_counts(counts_0: dict, n_qubits: int) -> dict:
+    """Fixes the qiskit counts in the standard convention, orders the list, and adds strings with zero counts."""
+    
     # Mirror the bit strings to pass in standard convention
     mirrored_counts = {j[::-1]: counts_0[j] for j in counts_0}
 
-    # Sort the results and return a list
+    # Sort the results
     dict_items = mirrored_counts.items()
     counts = sorted(dict_items)
 
-    # Add element 00 if it is missing
+    # Add element '00' if it is missing
     if int(counts[0][0], 2) != 0:
         zero = format(0, 'b').zfill(n_qubits)
         counts.insert(0, (zero, 0))
 
-    # Add element 11 if it is missing
-    if int(counts[len(counts)-1][0], 2) != 2**n_qubits - 1:
-        uno = format(2**n_qubits -1, 'b').zfill(n_qubits)
-        counts.insert(len(counts), (uno, 0))
-        
-    for j in range(2**n_qubits-1):
-        # Add missing elements
-        if int(counts[j+1][0], 2) != int(counts[j][0],2) + 1:
+    # Add element '11' if it is missing
+    if int(counts[len(counts) - 1][0], 2) != 2**n_qubits - 1:
+        uno = format(2**n_qubits - 1, 'b').zfill(n_qubits)
+        counts.append((uno, 0))
+
+    # Fill in any missing elements
+    for j in range(2**n_qubits - 1):
+        if int(counts[j + 1][0], 2) != int(counts[j][0], 2) + 1:
             new = int(counts[j][0], 2) + 1
             new_bin = format(new, 'b').zfill(n_qubits)
-            counts.insert(j+1, (new_bin, 0))
-        else:
-            pass
-        
-    return counts
+            counts.insert(j + 1, (new_bin, 0))
+    
+    # Convert the list of tuples back into a dictionary
+    counts_dict = dict(counts)
+
+    return counts_dict
+
 
 
 def perform_parallel_simulation_with_multiprocessing(args: list, simulation: callable, max_workers: int=None):
@@ -184,7 +187,7 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         specified quantum device.
     """
     provider = QiskitRuntimeService(channel='ibm_quantum', token=Token)
-    return provider.get_backend(device_name)
+    return provider.backend(device_name)
 
 
 def post_process_split(source_filenames: list, target_filenames: list, split: int):
@@ -215,3 +218,58 @@ def post_process_split(source_filenames: list, target_filenames: list, split: in
         np.savetxt(target_file, mean_array)
         i += split
     return
+
+def create_random_quantum_circuit(n_qubit: int, depth: int, seed_circ: int, measured_qubit: int) -> QuantumCircuit:
+    """This function generate a random circuit in Qiskit
+
+    Args:
+        n_qubit (int): Number of qubits
+        depth (int): Depth of the circuit
+        seed_circ (int): Random seed for the random generator
+        measured_qubit (int): Number of measured qubits
+
+    Raises:
+        ValueError: If there are more measured qubits than of those used in the computation is raised an error
+
+    Returns:
+        QuantumCircuit: The random Qiskit quantum circuit
+    """
+
+
+    if measured_qubit > n_qubit:
+        raise ValueError(f"More measured qubits {measured_qubit} than of those used in the computation {n_qubit}")
+
+    n_bit = n_qubit
+    circ = QuantumCircuit(n_qubit,n_bit)
+
+    circ1 = random_circuit(n_qubit, depth, seed = seed_circ, measure=False)
+    circ.compose(circ1, inplace=True)
+    circ.barrier()
+
+    for i in range(measured_qubit):
+        circ.measure(qubit = i, cbit = i)
+
+    return circ
+
+def transpile_qiskit_circuit(circ : QuantumCircuit, init_layout: list, seed: int, backend: Backend) -> QuantumCircuit:
+        """Function to transpile a circuit using the optimal option for this backend.
+
+        Args:
+            circ (QuantumCircuit): Quantum circuit to be transpiled
+            init_layout (list): initial layout of the qubit
+            seed (int): seed for the transpilation
+            backend (BackendV2): Qiskit Backend
+
+        Returns:
+            QuantumCircuit: Transpiled circuit ready for the run
+        """
+
+        t_circ = transpile(
+        circuits= circ,
+        backend = backend,
+        initial_layout=init_layout,
+        scheduling_method='asap',
+        seed_transpiler=seed
+        )
+
+        return t_circ

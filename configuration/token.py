@@ -6,9 +6,8 @@ Instructions:
 - Make sure to never add the .env file to version control. It is also in the .gitignore.
 """
 
-import os
-
 from dotenv import load_dotenv
+import os
 
 load_dotenv()
 

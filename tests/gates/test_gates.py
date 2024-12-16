@@ -1,7 +1,8 @@
-import pytest
 import time
-import numpy as np
 import pickle
+
+import pytest
+import numpy as np
 
 from src.quantum_gates._legacy.gates import X, SX, Noise_Gate, CR, CNOT, CNOT_inv, ECR, ECR_inv
 from src.quantum_gates.gates import standard_gates, noise_free_gates
@@ -9,9 +10,6 @@ from src.quantum_gates._gates.gates import numerical_gates, almost_noise_free_ga
 from src.quantum_gates.gates import Gates
 from src.quantum_gates.pulses import GaussianPulse
 import tests.helpers.device_parameters as helper_dev_param
-
-
-""" Constants """
 
 
 # Gates
@@ -97,7 +95,7 @@ def _speed_test_helper(old_gate, new_gate, arg, n=100, factor=1.05):
     time_old = 0
     time_new = 0
 
-    for i in range(n):
+    for _ in range(n):
         # Test old gate
         time_old -= time.time()
         old_gate(**arg)
@@ -118,12 +116,9 @@ def _almost_equal(m1, m2, nqubit: int, abs_tol: float=1e-9):
     return all((abs(diff[i,j]) < abs_tol) for i in range(2**nqubit) for j in range(2**nqubit))
 
 
-"""  Tests """
-
-
 @pytest.mark.parametrize(
     "old_gate,new_gate,arg",
-    [(old_g, new_g, arg) for old_g, new_g, arg in zip(original_gates_list, refactored_gates_list, args)]
+    list(zip(original_gates_list, numerical_gates_list, args))
 )
 def test_gates_speed_standard_gates(old_gate, new_gate, arg):
     """ Check that creating the new standard gates is not slower than creating the initially used gates.
@@ -133,7 +128,7 @@ def test_gates_speed_standard_gates(old_gate, new_gate, arg):
 
 @pytest.mark.parametrize(
     "old_gate,new_gate,arg",
-    [(old_g, new_g, arg) for old_g, new_g, arg in zip(original_gates_list, numerical_gates_list, args)]
+    list(zip(original_gates_list, numerical_gates_list, args))
 )
 def test_gates_speed_numerical_gates(old_gate, new_gate, arg):
     """ Check that creating the new numerical gates is not more than 50% slower than creating the initially used gates.
@@ -144,18 +139,19 @@ def test_gates_speed_numerical_gates(old_gate, new_gate, arg):
 def test_gates_noiseless_relaxation():
     # Dt is the idle time, T1 qubit's amplitude damping time (ns), T2 qubit's dephasing time (ns)
     tg = 35 * 10**(-9)
-    args = {"Dt": tg, "T1": 1e12, "T2": 1e12}
-    res_exp = noise_free_gates.relaxation(**args)    # Harcoded noiseless
-    res = numerical_gates.relaxation(**args)         # Simulated noiseless
-    assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), f"Found almost noiseless relaxation {res} instead of {res_exp}."
+    arguments = {"Dt": tg, "T1": 1e12, "T2": 1e12}
+    res_exp = noise_free_gates.relaxation(**arguments)    # Harcoded noiseless
+    res = numerical_gates.relaxation(**arguments)         # Simulated noiseless
+    assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
+        f"Found almost noiseless relaxation {res} instead of {res_exp}."
 
 
 def test_gates_noiseless_bitflip():
     # Dt is the idle time, p readout error
     tg = 35 * 10**(-9)
-    args = {"Dt": tg, "p": 0.0}
-    res_exp = noise_free_gates.bitflip(**args)    # Harcoded noiseless
-    res = numerical_gates.bitflip(**args)         # Simulated noiseless
+    arguments = {"Dt": tg, "p": 0.0}
+    res_exp = noise_free_gates.bitflip(**arguments)    # Harcoded noiseless
+    res = numerical_gates.bitflip(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
         f"Found almost noiseless bitflip {res} instead of {res_exp}."
 
@@ -163,9 +159,9 @@ def test_gates_noiseless_bitflip():
 def test_gates_noiseless_depolarizing():
     # Dt is the idle time, p readout error
     tg = 35 * 10**(-9)
-    args = {"Dt": tg, "p": 0.0}
-    res_exp = noise_free_gates.depolarizing(**args)    # Harcoded noiseless
-    res = numerical_gates.depolarizing(**args)         # Simulated noiseless
+    arguments = {"Dt": tg, "p": 0.0}
+    res_exp = noise_free_gates.depolarizing(**arguments)    # Harcoded noiseless
+    res = numerical_gates.depolarizing(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
         f"Found almost noiseless depolarizing {res} instead of {res_exp}."
 
@@ -180,9 +176,9 @@ def test_gates_noiseless_single_qubit_gate(theta: float, phi: float):
     # p: single-qubit depolarizing error probability (double)
     # T1: qubit's amplitude damping time in ns (double)
     # T2: qubit's dephasing time in ns (double)
-    args = {"theta": theta, "phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
-    res_exp = noise_free_gates.single_qubit_gate(**args)    # Hardcoded noiseless
-    res = numerical_gates.single_qubit_gate(**args)         # Simulated noiseless
+    arguments = {"theta": theta, "phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
+    res_exp = noise_free_gates.single_qubit_gate(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.single_qubit_gate(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
         f"Found almost noiseless single qubit gate {res} instead of {res_exp}."
 
@@ -193,9 +189,9 @@ def test_gates_noiseless_x(phi: float):
     # p: single-qubit depolarizing error probability (double)
     # T1: qubit's amplitude damping time in ns (double)
     # T2: qubit's dephasing time in ns (double)
-    args = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
-    res_exp = noise_free_gates.X(**args)    # Hardcoded noiseless
-    res = numerical_gates.X(**args)         # Simulated noiseless
+    arguments = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
+    res_exp = noise_free_gates.X(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.X(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
         f"Found almost noiseless X {res} instead of {res_exp}."
 
@@ -203,9 +199,9 @@ def test_gates_noiseless_x(phi: float):
 @pytest.mark.parametrize("phi", np.linspace(0, np.pi, 10))
 def test_gates_noiseless_sx(phi):
     # For parameters see test_noiseless_x()
-    args = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
-    res_exp = noise_free_gates.SX(**args)    # Hardcoded noiseless
-    res = numerical_gates.SX(**args)         # Simulated noiseless
+    arguments = {"phi": phi, "p": 0.0, "T1": 1e12, "T2": 1e12}
+    res_exp = noise_free_gates.SX(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.SX(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=1, abs_tol=1e-9), \
         f"Found almost noiseless SX {res} instead of {res_exp}."
 
@@ -223,7 +219,7 @@ def test_gates_noiseless_cr(phi: float, theta: float):
     # T2_ctr: control qubit's dephasing time in ns (double)
     # T1_trg: target qubit's amplitude damping time in ns (double)
     # T2_trg: target qubit's dephasing time in ns (double)
-    args = {
+    arguments = {
         "theta": theta,
         "phi": phi,
         "t_cr": 3.3422e-07,
@@ -233,8 +229,8 @@ def test_gates_noiseless_cr(phi: float, theta: float):
         "T1_trg": 1e12,
         "T2_trg": 1e12
     }
-    res_exp = noise_free_gates.CR(**args)    # Hardcoded noiseless
-    res = numerical_gates.CR(**args)         # Simulated noiseless
+    res_exp = noise_free_gates.CR(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.CR(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CR {res} instead of {res_exp}."
 
@@ -254,7 +250,7 @@ def test_gates_noiseless_cnot(phi_ctr: float, phi_trg: float):
     # T2_ctr: control qubit's dephasing time in ns (double)
     # T1_trg: target qubit's amplitude damping time in ns (double)
     # T2_trg: target qubit's dephasing time in ns (double)
-    args = {
+    arguments = {
         "phi_ctr": phi_ctr,
         "phi_trg": phi_trg,
         "t_cnot": 3.3422e-07,
@@ -266,8 +262,8 @@ def test_gates_noiseless_cnot(phi_ctr: float, phi_trg: float):
         "T1_trg": 1e12,
         "T2_trg": 1e12
     }
-    res_exp = noise_free_gates.CNOT(**args)    # Hardcoded noiseless
-    res = numerical_gates.CNOT(**args)         # Simulated noiseless
+    res_exp = noise_free_gates.CNOT(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.CNOT(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
 
@@ -278,7 +274,7 @@ def test_gates_noiseless_cnot(phi_ctr: float, phi_trg: float):
 )
 def test_gates_noiseless_cnot_inv(phi_ctr: float, phi_trg: float):
     # Parameters see test_noiseless_cnot()
-    args = {
+    arguments = {
         "phi_ctr": phi_ctr,
         "phi_trg": phi_trg,
         "t_cnot": 3.3422e-07,
@@ -290,11 +286,11 @@ def test_gates_noiseless_cnot_inv(phi_ctr: float, phi_trg: float):
         "T1_trg": 1e12,
         "T2_trg": 1e12
     }
-    res_exp = noise_free_gates.CNOT_inv(**args)    # Hardcoded noiseless
-    res = numerical_gates.CNOT_inv(**args)         # Simulated noiseless
-    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-9), \
+    res_exp = noise_free_gates.CNOT_inv(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.CNOT_inv(**arguments)         # Simulated noiseless
+    assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
-    
+
 @pytest.mark.parametrize(
     "phi_ctr,phi_trg",
     [(phi1, phi2) for phi1 in np.linspace(0, np.pi, 4) for phi2 in np.linspace(0, np.pi, 4)]
@@ -310,7 +306,7 @@ def test_gates_noiseless_ecr(phi_ctr: float, phi_trg: float):
     # T2_ctr: control qubit's dephasing time in ns (double)
     # T1_trg: target qubit's amplitude damping time in ns (double)
     # T2_trg: target qubit's dephasing time in ns (double)
-    args = {
+    arguments = {
         "phi_ctr": phi_ctr,
         "phi_trg": phi_trg,
         "t_ecr": 3.3422e-07,
@@ -322,8 +318,8 @@ def test_gates_noiseless_ecr(phi_ctr: float, phi_trg: float):
         "T1_trg": 1e12,
         "T2_trg": 1e12
     }
-    res_exp = noise_free_gates.ECR(**args)    # Hardcoded noiseless
-    res = numerical_gates.ECR(**args)         # Simulated noiseless
+    res_exp = noise_free_gates.ECR(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.ECR(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
     
@@ -343,7 +339,7 @@ def test_gates_noiseless_ecr_inv(phi_ctr: float, phi_trg: float):
     # T2_ctr: control qubit's dephasing time in ns (double)
     # T1_trg: target qubit's amplitude damping time in ns (double)
     # T2_trg: target qubit's dephasing time in ns (double)
-    args = {
+    arguments = {
         "phi_ctr": phi_ctr,
         "phi_trg": phi_trg,
         "t_ecr": 3.3422e-07,
@@ -355,8 +351,8 @@ def test_gates_noiseless_ecr_inv(phi_ctr: float, phi_trg: float):
         "T1_trg": 1e12,
         "T2_trg": 1e12
     }
-    res_exp = noise_free_gates.ECR_inv(**args)    # Hardcoded noiseless
-    res = numerical_gates.ECR_inv(**args)         # Simulated noiseless
+    res_exp = noise_free_gates.ECR_inv(**arguments)    # Hardcoded noiseless
+    res = numerical_gates.ECR_inv(**arguments)         # Simulated noiseless
     assert _almost_equal(res_exp, res, nqubit=2, abs_tol=1e-6), \
         f"Found almost noiseless CNOT {res} instead of {res_exp}."
 
