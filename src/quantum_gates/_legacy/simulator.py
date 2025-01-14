@@ -53,8 +53,8 @@ class LegacyMrAndersonSimulator:
         """
         # Prepare variables
         nqubit = len(qubits_layout)
-        t_qiskit_circ = qiskit_circ
-        raw_data = t_qiskit_circ.data
+        t_qiskit_circ = qiskit_circ.copy()
+        raw_data = [gate for gate in t_qiskit_circ.data]
         data = []
         prop = backend.properties()
         tm = prop.readout_length(0)

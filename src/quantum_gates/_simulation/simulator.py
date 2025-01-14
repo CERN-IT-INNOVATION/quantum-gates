@@ -202,7 +202,8 @@ class MrAndersonSimulator(object):
         data = []
         data_measure = []
         swap_detector = [a for a in range(nqubit)]
-        raw_data = t_qiskit_circ.data
+        raw_data = [gate for gate in t_qiskit_circ.data]  # Creates a shallow copy
+
 
         for i in range(t_qiskit_circ.__len__()):
             if raw_data[i].operation.name == 'ecr':
