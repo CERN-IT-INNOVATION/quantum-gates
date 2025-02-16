@@ -20,6 +20,7 @@ from .utilities import (
 )
 from .pulses import Pulse, GaussianPulse
 from .pulses import constant_pulse, constant_pulse_numerical, gaussian_pulse
+from .qiskit_provider import NoisyGatesBackend, NoisyGatesJob, NoisyGatesProvider
 
 
 __all__ = ["Gates", "NoiseFreeGates", "ScaledNoiseGates"]
@@ -43,3 +44,4 @@ __all__ += [
 ]
 __all__ += ["Pulse", "GaussianPulse"]
 __all__ += ["constant_pulse", "constant_pulse_numerical", "gaussian_pulse"]
+__all__ += ["NoisyGatesBackend", "NoisyGatesJob", "NoisyGatesProvider"]
