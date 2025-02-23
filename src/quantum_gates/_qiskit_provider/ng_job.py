@@ -13,20 +13,16 @@ class NoisyGatesJob(Job):
     _async = False
 
     def __init__(self, backend, job_id, result):
-        
+
         self._backend = backend
         self.job_id = job_id
         self._result = result
 
     def submit(self):
         return
- 
+
     def result(self):
         return self._result
  
     def status(self):
         return JobStatus.DONE
-
-
-
-    

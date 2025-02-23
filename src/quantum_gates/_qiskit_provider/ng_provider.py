@@ -5,7 +5,6 @@ from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
 from .ng_backend import NoisyGatesBackend
 
 
-
 class NoisyGatesProvider(ProviderV1):
     """Provider for backends for Noisy Gates model.
     At the moment is possible to use a backend that work alongside with IBM real device
@@ -25,12 +24,9 @@ class NoisyGatesProvider(ProviderV1):
         else:
             self.qiskit_provider = FakeProviderForBackendV2()
 
-        
-
     def backends(self):
         return 
 
-    
     def ibm_backends(self, **kwargs):
         """Show the possible usable device from IBM
 
@@ -41,12 +37,9 @@ class NoisyGatesProvider(ProviderV1):
             List: List of available device from IBM
         """
         if self.token is not None:
-            #self.qiskit_provider = QiskitRuntimeService(channel= 'ibm_quantum', token=self.token)
             return self.qiskit_provider.backends()
         else:
-            #self.qiskit_provider = FakeProviderForBackendV2()
             return self.qiskit_provider.backends()
-    
 
     def get_ibm_backend(self, name_backend, **kwargs) -> NoisyGatesBackend:
         """Choose one of the real device to simulare the features during the running process
@@ -63,33 +56,10 @@ class NoisyGatesProvider(ProviderV1):
             NoisyGatesBackend: Return a noisy gates backend that use ibm_device as real device from IBM
         """
         if self.token is not None:
-            #self.qiskit_provider = QiskitRuntimeService(channel= 'ibm_quantum', token=self.token)
             ibm_device = self.qiskit_provider.get_backend(name_backend)
             backend = NoisyGatesBackend(device=ibm_device)
             return backend
         else:
-            #self.qiskit_provider = FakeProviderForBackendV2()
             ibm_device = self.qiskit_provider.backend(name_backend)
             backend = NoisyGatesBackend(device=ibm_device)
             return backend
-        
-
-
-
-
-
-
-
-    
-
-    
-
-        
- 
-
-
-
-
-    
-        
-        

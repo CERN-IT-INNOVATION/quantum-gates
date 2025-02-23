@@ -11,9 +11,9 @@ from qiskit.result import Result
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 
 from quantum_gates.simulators import MrAndersonSimulator
-from quantum_gates.pulses import Pulse, GaussianPulse, ConstantPulse, ConstantPulseNumerical
-from quantum_gates.gates import Gates, NoiseFreeGates, ScaledNoiseGates, standard_gates
-from quantum_gates.circuits import EfficientCircuit, AlternativeCircuit, Circuit, BinaryCircuit
+from quantum_gates.pulses import ConstantPulse, ConstantPulseNumerical
+from quantum_gates.gates import Gates
+from quantum_gates.circuits import EfficientCircuit, AlternativeCircuit, BinaryCircuit
 from quantum_gates.utilities import DeviceParameters
 from quantum_gates.utilities import fix_counts
 
@@ -37,7 +37,7 @@ class NoisyGatesBackend(Backend):
 
     def __init__(self, device = None,  **fields):
         super().__init__(
-            provider= "NoisyGatesProvider",
+            provider="NoisyGatesProvider",
             name="Giotto",
             description="A python noise simulator for quantum experiments that implements the Noisy Gates formalism",
             backend_version="1.0",
@@ -203,10 +203,10 @@ class NoisyGatesBackend(Backend):
 
         self.options.shots = shots
         
-        # preprocess the qubit_layout after the transpilation
+        # Preprocess the qubit_layout after the transpilation
         qubits_layout_t, qubit_bit, n_qubit_t = self.process_layout(circuits)
 
-        n_measured_qubit = len(qubit_bit) # number of measured qubit
+        n_measured_qubit = len(qubit_bit)  # Number of measured qubit
         if n_measured_qubit == 0:
             raise ValueError("None qubit measured")
 
@@ -216,10 +216,10 @@ class NoisyGatesBackend(Backend):
         psi0 = [1] + [0] * (2**n_qubit_t-1) # starting state
         device_parameters = self.parameter_from_device(qubits_layout_t)
         
-        # define the information for the job
-        job_id = str(uuid.uuid4()) # job_id
+        # Define the information for the job
+        job_id = str(uuid.uuid4())  # job_id
 
-        # run the experiment
+        # Run the experiment
         start = time.time()
 
         counts_ng = self.simulator.run(
@@ -232,11 +232,10 @@ class NoisyGatesBackend(Backend):
         
         end = time.time()
 
-        # measurament and post-process the result
-        #counts_ng = self.measurament(prob=probs, q_meas_list=qubit_bit, n_qubit=n_qubit_t, qubits_layout=qubits_layout_t)
-        counts_ng = fix_counts(counts_ng, n_measured_qubit) # convert in qiskit notation
+        # Measurament and post-process the result
+        counts_ng = fix_counts(counts_ng, n_measured_qubit)  # convert in qiskit notation
 
-        # convert the result compatible with Qiskit
+        # Convert the result compatible with Qiskit
         exp_data = ExperimentResultData(counts=counts_ng) 
         result_1 = ExperimentResult(shots=self.options.shots , success=True, data = exp_data)
         data = []
@@ -245,21 +244,13 @@ class NoisyGatesBackend(Backend):
         result = Result(
             backend_name= self.name,
             backend_version= self.backend_version,
-            qobj_id= id(circuits),
-            job_id= job_id,
-            results= data,
-            status= "COMPLETED",
-            success = True,
-            time_taken = (end - start),
+            qobj_id=id(circuits),
+            job_id=job_id,
+            results=data,
+            status="COMPLETED",
+            success=True,
+            time_taken=(end - start),
         )
                 
         job = NoisyGatesJob(self, job_id, result)
         return job 
-    
-
-
-
-
-
-
-        
