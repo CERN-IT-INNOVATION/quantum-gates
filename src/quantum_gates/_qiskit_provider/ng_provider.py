@@ -20,8 +20,9 @@ class NoisyGatesProvider(ProviderV1):
         self.token = token
 
         if token is not None:
-            self.qiskit_provider = QiskitRuntimeService(channel= 'ibm_quantum', token=self.token) 
+            self.qiskit_provider = QiskitRuntimeService(channel='ibm_quantum', token=self.token)
         else:
+            print("Warning: Load fake backend because there was no token provided.")
             self.qiskit_provider = FakeProviderForBackendV2()
 
     def backends(self):
@@ -56,7 +57,7 @@ class NoisyGatesProvider(ProviderV1):
             NoisyGatesBackend: Return a noisy gates backend that use ibm_device as real device from IBM
         """
         if self.token is not None:
-            ibm_device = self.qiskit_provider.get_backend(name_backend)
+            ibm_device = self.qiskit_provider.backend(name=name_backend)
             backend = NoisyGatesBackend(device=ibm_device)
             return backend
         else:

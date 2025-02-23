@@ -9,6 +9,7 @@ setup(
               'quantum_gates._gates',
               'quantum_gates._legacy',
               'quantum_gates._simulation',
+              'quantum_gates._qiskit_provider',
               'quantum_gates._utility'],
     license='MIT',
     python_requires='>=3.9'
