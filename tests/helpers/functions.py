@@ -2,10 +2,8 @@
 Helper functions for the unit tests.
 """
 
-import numpy as np
 import random
 
-from src.quantum_gates.utilities import DeviceParameters
 from tests.helpers.gates import X, SX,Z, H, CNOT, identity, single_qubit_gate_list
 
 
