@@ -2,14 +2,22 @@ import pytest
 import numpy as np
 import os
 from dotenv import load_dotenv
+import random
 
 from qiskit import QuantumCircuit, transpile
-from quantum_gates.qiskit_provider import NoisyGatesProvider
 from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
+from qiskit.circuit.random import random_circuit
+from qiskit.quantum_info import Statevector
+
+from quantum_gates.qiskit_provider import NoisyGatesProvider
 
 load_dotenv()
 IBM_TOKEN = os.getenv("IBM_TOKEN", "")
 assert IBM_TOKEN != "", "Expected to find 'IBM_TOKEN' in .env file, but it was not found."
+
+_GLOBAL_SEED = 1337
+random.seed(_GLOBAL_SEED)
+np.random.seed(_GLOBAL_SEED)
 
 
 @pytest.mark.integration
@@ -57,11 +65,11 @@ def test_ng_provider_vs_standard_qiskit():
     for a Bell state circuit. Frequencies should be close."""
     # Arrange
     provider = NoisyGatesProvider()
-    backend = provider.get_ibm_backend('fake_brisbane')
+    backend = provider.get_ibm_backend('ibm_brisbane')
 
     # IBM fake backend
     fake_provider = FakeProviderForBackendV2()
-    fake_backend = fake_provider.backend('fake_brisbane')
+    fake_backend = fake_provider.backend('ibm_brisbane')
 
     shots = 1000
     n_qubit = 2
@@ -102,6 +110,50 @@ def test_ng_provider_vs_standard_qiskit():
     assert c_10 <= threshold, f"Mismatch on 10: diff={c_10:.3f}"
     assert c_11 <= threshold, f"Mismatch on 11: diff={c_11:.3f}"
 
+@pytest.mark.parametrize(
+    "nqubits, depth",
+    [(n, 5) for n in [2, 3, 4, 6, 8, 9, 10]],
+)
+def test_random_circuits(nqubits: int, depth: int):
+    """Compare the Noisy Gates backend with the standard Qiskit provider
+    with random circuit sampling. Frequencies should be close."""
+    shots = 1_000
 
+    # Sample random circuit
+    circ = random_circuit(
+        num_qubits=nqubits,
+        depth=depth,
+        measure=True,
+        seed=_GLOBAL_SEED,
+    )
 
+    # Simulate with our provider
+    provider = NoisyGatesProvider()
+    ng_backend = provider.get_ibm_backend('ibm_brisbane')
 
+    transpiled_ng = ng_backend.ng_transpile(
+        circ,
+        init_layout=list(range(nqubits)),
+        seed=_GLOBAL_SEED,
+    )
+    job = ng_backend.run(transpiled_ng, shots=shots)
+    ng_counts = job.result().get_counts()
+    ng_probs = {bitstr: c / shots for bitstr, c in ng_counts.items()}
+
+    # Simulate with standard Qiskit
+    ideal_state = Statevector.from_instruction(
+        circ.remove_final_measurements(inplace=False)
+    )
+    ideal_probs = ideal_state.probabilities_dict()
+
+    # Compute the total variation distance between the two probability distributions
+    support = set(ng_probs) | set(ideal_probs)
+    tvd = 0.5 * sum(abs(ng_probs.get(s, 0.0) - ideal_probs.get(s, 0.0)) for s in support)
+
+    # Compare against a bound
+    k = 2 ** nqubits
+    bound = min(1.0, 1.5 * np.sqrt((k - 1) / shots))
+    assert tvd <= bound, (
+        f"Total variation distance={tvd:.3f} exceeds allowed {bound:.3f} "
+        f"for random {nqubits}-qubit depth-{depth} circuit."
+    )
