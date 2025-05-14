@@ -15,18 +15,19 @@ from src.quantum_gates.utilities import DeviceParameters
 import tests.helpers.functions as helper_functions
 
 
+backend_name = "ibm_brisbane"
 backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": "ibm_kyiv"
+    "device_name": "ibm_brisbane"
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
 circuit_set = [Circuit, StandardCircuit, EfficientCircuit, OneCircuit, BinaryCircuit]
 gates_set = [standard_gates, numerical_gates, almost_noise_free_gates]
 
-location = "tests/helpers/device_parameters/ibm_kyiv/"
+location = f"tests/helpers/device_parameters/{backend_name}/"
 
 
 def main(backend,
