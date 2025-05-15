@@ -27,7 +27,7 @@ backend = setup_backend(IBM_TOKEN, **backend_config)
 circuit_set = [Circuit, StandardCircuit, EfficientCircuit, OneCircuit, BinaryCircuit]
 gates_set = [standard_gates, numerical_gates, almost_noise_free_gates]
 
-location = f"tests/helpers/device_parameters/{backend_name}/"
+location = f"tests/helpers/device_parameters/ibm_kyoto/"
 
 
 def main(backend,

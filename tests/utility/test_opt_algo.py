@@ -23,7 +23,7 @@ backend_config = {
 
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
-location = "tests/helpers/device_parameters/ibm_brisbane/"
+location = "tests/helpers/device_parameters/ibm_kyoto/"
 
 
 def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0: np.array, sim: MrAndersonSimulator):

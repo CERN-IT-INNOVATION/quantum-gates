@@ -8,6 +8,7 @@ from qiskit import QuantumCircuit, transpile
 from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
 from qiskit.circuit.random import random_circuit
 from qiskit.quantum_info import Statevector
+from qiskit_ibm_runtime.fake_provider import FakeKyiv
 
 from quantum_gates.qiskit_provider import NoisyGatesProvider
 
@@ -128,7 +129,7 @@ def test_random_circuits(nqubits: int, depth: int):
 
     # Simulate with our provider
     provider = NoisyGatesProvider()
-    ng_backend = provider.get_ibm_backend('fake_brisbane')
+    ng_backend = provider.get_ibm_backend('fake_kyiv')
 
     transpiled_ng = ng_backend.ng_transpile(
         circ,
@@ -139,15 +140,35 @@ def test_random_circuits(nqubits: int, depth: int):
     ng_counts = job.result().get_counts()
     ng_probs = {bitstr: c / shots for bitstr, c in ng_counts.items()}
 
+    """
     # Simulate with standard Qiskit
     ideal_state = Statevector.from_instruction(
         circ.remove_final_measurements(inplace=False)
     )
     ideal_probs = ideal_state.probabilities_dict()
+    """
+
+    # Transpile and run with fake IBM backend
+    fake_backend = FakeKyiv()
+
+    transpiled_ibm = transpile(
+        circ,
+        backend=fake_backend,
+        initial_layout=list(np.arange(nqubits)),
+        seed_transpiler=10
+    )
+    ibm_job = fake_backend.run(transpiled_ibm, shots=shots)
+    ibm_count = ibm_job.result().get_counts()
+    ideal_probs = {bitstr: c / shots for bitstr, c in ibm_count.items()}
+
+    print("Noisy gates probabilities")
+    print(ng_counts)
+    print("Ideal probabilities")
+    print(ideal_probs)
 
     # Compute the total variation distance between the two probability distributions
-    support = set(ng_probs) | set(ideal_probs)
-    tvd = 0.5 * sum(abs(ng_probs.get(s, 0.0) - ideal_probs.get(s, 0.0)) for s in support)
+    support = set(ng_counts) | set(ideal_probs)
+    tvd = 0.5 * sum(abs(ng_counts.get(s, 0.0) - ideal_probs.get(s, 0.0)) for s in support)
 
     # Compare against a bound
     k = 2 ** nqubits
