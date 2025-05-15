@@ -37,10 +37,9 @@ class NoisyGatesProvider(ProviderV1):
         Returns:
             List: List of available device from IBM
         """
-        if self.token is not None:
-            return self.qiskit_provider.backends()
-        else:
-            return self.qiskit_provider.backends()
+        if self.token is None:
+            print("Warning: Load fake backend because there was no token provided.")
+        return self.qiskit_provider.backends()
 
     def get_ibm_backend(self, name_backend, **kwargs) -> NoisyGatesBackend:
         """Choose one of the real device to simulare the features during the running process
@@ -56,11 +55,7 @@ class NoisyGatesProvider(ProviderV1):
         Returns:
             NoisyGatesBackend: Return a noisy gates backend that use ibm_device as real device from IBM
         """
-        if self.token is not None:
-            ibm_device = self.qiskit_provider.backend(name=name_backend)
-            backend = NoisyGatesBackend(device=ibm_device)
-            return backend
-        else:
-            ibm_device = self.qiskit_provider.backend(name_backend)
-            backend = NoisyGatesBackend(device=ibm_device)
-            return backend
+        assert self.token or name_backend.startswith("fake"), "Token is required to access to IBM device."
+        ibm_device = self.qiskit_provider.backend(name=name_backend)
+        backend = NoisyGatesBackend(device=ibm_device)
+        return backend
