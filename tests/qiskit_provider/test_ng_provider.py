@@ -20,12 +20,11 @@ random.seed(_GLOBAL_SEED)
 np.random.seed(_GLOBAL_SEED)
 
 
-@pytest.mark.integration
 def test_bell_state_distribution():
     """Check that the Bell state distribution from NoisyGates ibm_brisbane
     has ~40% or more in 00, 11 and less than 10% in 01, 10."""
     # Arrange
-    ng_provider = NoisyGatesProvider()
+    ng_provider = NoisyGatesProvider(token=IBM_TOKEN)
     ng_backend = ng_provider.get_ibm_backend('fake_brisbane')
     shots = 1000
 
@@ -59,12 +58,12 @@ def test_bell_state_distribution():
     # Assert that the output is normalized
     assert abs(total - 1.0) < 1e-5, f"Expected output to be normalized but found sum={total}."
 
-@pytest.mark.integration
+
 def test_ng_provider_vs_standard_qiskit():
     """Compare the Noisy Gates backend with the standard Qiskit provider
     for a Bell state circuit. Frequencies should be close."""
     # Arrange
-    provider = NoisyGatesProvider()
+    provider = NoisyGatesProvider(token=IBM_TOKEN)
     backend = provider.get_ibm_backend('ibm_brisbane')
 
     # IBM fake backend
@@ -128,7 +127,7 @@ def test_random_circuits(nqubits: int, depth: int):
     )
 
     # Simulate with our provider
-    provider = NoisyGatesProvider()
+    provider = NoisyGatesProvider(token=IBM_TOKEN)
     ng_backend = provider.get_ibm_backend('ibm_brisbane')
 
     transpiled_ng = ng_backend.ng_transpile(
