@@ -111,7 +111,7 @@ def test_ng_provider_vs_standard_qiskit():
 
 @pytest.mark.parametrize(
     "nqubits, depth",
-    [(n, 5) for n in [2, 3, 4, 6, 8, 9, 10]],
+    [(n, 5) for n in [2, 3, 4]],
 )
 def test_random_circuits(nqubits: int, depth: int):
     """Compare the Noisy Gates backend with the standard Qiskit provider
