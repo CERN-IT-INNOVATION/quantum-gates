@@ -137,16 +137,7 @@ def test_random_circuits(nqubits: int, depth: int):
         seed=_GLOBAL_SEED,
     )
     job = ng_backend.run(transpiled_ng, shots=shots)
-    ng_counts = job.result().get_counts()
-    ng_probs = {bitstr: c / shots for bitstr, c in ng_counts.items()}
-
-    """
-    # Simulate with standard Qiskit
-    ideal_state = Statevector.from_instruction(
-        circ.remove_final_measurements(inplace=False)
-    )
-    ideal_probs = ideal_state.probabilities_dict()
-    """
+    ng_props = job.result().get_counts()
 
     # Transpile and run with fake IBM backend
     fake_backend = FakeKyiv()
@@ -162,13 +153,13 @@ def test_random_circuits(nqubits: int, depth: int):
     ideal_probs = {bitstr: c / shots for bitstr, c in ibm_count.items()}
 
     print("Noisy gates probabilities")
-    print(ng_counts)
+    print(ng_props)
     print("Ideal probabilities")
     print(ideal_probs)
 
     # Compute the total variation distance between the two probability distributions
-    support = set(ng_counts) | set(ideal_probs)
-    tvd = 0.5 * sum(abs(ng_counts.get(s, 0.0) - ideal_probs.get(s, 0.0)) for s in support)
+    support = set(ng_props) | set(ideal_probs)
+    tvd = 0.5 * sum(abs(ng_props.get(s, 0.0) - ideal_probs.get(s, 0.0)) for s in support)
 
     # Compare against a bound
     k = 2 ** nqubits
@@ -177,3 +168,4 @@ def test_random_circuits(nqubits: int, depth: int):
         f"Total variation distance={tvd:.3f} exceeds allowed {bound:.3f} "
         f"for random {nqubits}-qubit depth-{depth} circuit."
     )
+    assert False
