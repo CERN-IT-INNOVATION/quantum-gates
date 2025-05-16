@@ -15,18 +15,19 @@ from src.quantum_gates.utilities import DeviceParameters
 import tests.helpers.functions as helper_functions
 
 
+backend_name = "ibm_brisbane"
 backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": "ibm_kyiv"
+    "device_name": backend_name
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
 circuit_set = [Circuit, StandardCircuit, EfficientCircuit, OneCircuit, BinaryCircuit]
 gates_set = [standard_gates, numerical_gates, almost_noise_free_gates]
 
-location = "tests/helpers/device_parameters/ibm_kyiv/"
+location = f"tests/helpers/device_parameters/ibm_kyoto/"
 
 
 def main(backend,
@@ -70,7 +71,7 @@ def do_simulation(args: dict, gates, circuit_class, parallel: bool=False):
     nqubit = args["nqubits"]
 
     # Setup initial state
-    psi0 = np.zeros(2**nqubit)
+    psi0 = np.zeros(2**nqubit, dtype=complex)
     psi0[0] = 1
 
     # Create simulator
@@ -179,7 +180,7 @@ def test_simulator_result_in_noiseless_case(nqubits: int, circuit_class):
     )
 
     values = np.array(list(p.values()))
-    p_exp = np.zeros(2**nqubits)
+    p_exp = np.zeros(2**nqubits, dtype=complex)
     p_exp[0] = 1
 
     assert all((abs(p_exp[i] - values[i]) < epsilon for i in range(2**nqubits))), \
@@ -207,7 +208,7 @@ def test_simulator_result_in_almost_noiseless_case(nqubits: int, circuit_class):
         **run_config
     )
 
-    p_exp = np.zeros(2**nqubits)
+    p_exp = np.zeros(2**nqubits, dtype=complex)
     p_exp[0] = 1
     values = np.array(list(p.values()))
 

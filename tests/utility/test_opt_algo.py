@@ -13,16 +13,17 @@ from src.quantum_gates.gates import standard_gates
 from src.quantum_gates.backends import BinaryBackend
 from src.quantum_gates._simulation.simulator import _apply_gates_on_circuit
 
+
 backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": "ibm_kyiv"
+    "device_name": "ibm_brisbane"
 }
 
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
-location = "tests/helpers/device_parameters/ibm_kyiv/"
+location = "tests/helpers/device_parameters/ibm_kyoto/"
 
 
 def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0: np.array, sim: MrAndersonSimulator):
@@ -68,9 +69,6 @@ def level_optimization(level: int, result: list, q: list, qc: list, n: int, psi0
     [(n, d, seed) for n in [2, 3, 4, 5, 6, 7, 8] for d in [1, 2, 3, 4] for seed in [1,2,3,4]]
 )
 def test_optimization_algorithm(nqubits: int, depth: int, seed: int):
-
-    """Preparation"""
-
     qubit_layout = list(np.arange(nqubits))
 
     circ = create_random_quantum_circuit(n_qubit=nqubits, depth=depth, seed_circ=seed, measured_qubit=2)
