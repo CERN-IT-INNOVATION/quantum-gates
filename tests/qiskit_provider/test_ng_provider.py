@@ -168,4 +168,4 @@ def test_random_circuits(nqubits: int, depth: int):
         f"Total variation distance={tvd:.3f} exceeds allowed {bound:.3f} "
         f"for random {nqubits}-qubit depth-{depth} circuit."
     )
-    assert False
+    #assert False

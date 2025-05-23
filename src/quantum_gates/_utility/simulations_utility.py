@@ -130,21 +130,12 @@ def create_qc_list(circuit_generator: callable, nqubits_list: list[int], qubits_
         the list of qubits.
     """
     print("Warning:")
-    print("1) At the moment, we perform the transpilation step in two steps because of a bug in Qiskit. ")
-    print("   See https://qiskit.slack.com/archives/C7SS31917/p1670411292978089 for more infos.")
     print("2) We assume a linear connectivity.")
     sim = AerSimulator()
     result_list = []
     for nqubit in nqubits_list:
-        coupling_map = CouplingMap.from_line(nqubit, bidirectional=True)
-        qc1 = transpile(
-            circuits=circuit_generator(nqubit),
-            backend=sim,
-            coupling_map=coupling_map,
-            seed_transpiler=42
-        )
         qc2 = transpile(
-            circuits=qc1,
+            circuits=circuit_generator(nqubit),
             backend=backend,
             scheduling_method='asap',
             initial_layout=qubits_layout[0:nqubit],

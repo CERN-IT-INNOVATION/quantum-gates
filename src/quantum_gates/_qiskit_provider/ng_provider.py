@@ -1,11 +1,11 @@
-from qiskit.providers import ProviderV1
+#from qiskit.providers import ProviderV1
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
 
 from .ng_backend import NoisyGatesBackend
 
 
-class NoisyGatesProvider(ProviderV1):
+class NoisyGatesProvider:
     """Provider for backends for Noisy Gates model.
     At the moment is possible to use a backend that work alongside with IBM real device
     """
