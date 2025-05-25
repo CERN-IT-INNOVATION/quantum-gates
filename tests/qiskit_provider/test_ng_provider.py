@@ -7,10 +7,9 @@ import random
 from qiskit import QuantumCircuit, transpile
 from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
 from qiskit.circuit.random import random_circuit
-from qiskit.quantum_info import Statevector
 from qiskit_ibm_runtime.fake_provider import FakeKyiv
 
-from quantum_gates.qiskit_provider import NoisyGatesProvider
+from src.quantum_gates.qiskit_provider import NoisyGatesProvider
 
 load_dotenv()
 IBM_TOKEN = os.getenv("IBM_TOKEN", "")
