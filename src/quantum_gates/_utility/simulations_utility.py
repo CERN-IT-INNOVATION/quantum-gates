@@ -5,7 +5,6 @@ import os
 import concurrent.futures
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.transpiler import CouplingMap
 from qiskit_aer import AerSimulator
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.circuit.random import random_circuit
