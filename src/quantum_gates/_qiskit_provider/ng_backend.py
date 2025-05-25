@@ -9,6 +9,11 @@ from qiskit.transpiler import Target
 from qiskit import QuantumCircuit, transpile
 from qiskit.result import Result
 from qiskit.result.models import ExperimentResult, ExperimentResultData
+from qiskit.circuit.library import (
+    HGate, XGate, SXGate, RZGate, RXGate, RYGate, UGate
+)
+from qiskit.circuit.library import CXGate, ECRGate, RZXGate
+from qiskit.circuit import Measure, Delay, Barrier
 
 from .._simulation.simulator import MrAndersonSimulator
 from .._gates.pulse import ConstantPulse, ConstantPulseNumerical
@@ -36,38 +41,51 @@ class NoisyGatesBackend(Backend):
     """
 
     def __init__(self, device = None,  **fields):
-        super().__init__(
-            provider="NoisyGatesProvider",
-            name="Giotto",
-            description="A python noise simulator for quantum experiments that implements the Noisy Gates formalism",
-            backend_version="1.0",
-            **fields,
-        )
         """""Initialize the backend.
 
         Args:
             device : IBM device used to import the information for the target and the parameters. It can be either a real or a fake backend
                         depending if a ibm token is provided
+                        
+        Attributes:
             gates_ng : An object of the class Gates of the Noisy Gates model
             circuit_class_ng : The class of circuit model from the Noisy Gates model
             parallel_ng [Bool] : If true run in parallel the simulation, otherwise not
             simulator : MrAndersonSimulator object that represent the simulator of the Noisy gates model
-
         """""
-        
+        if device is not None and hasattr(device, "configuration"):
+            n_qubits = device.configuration().num_qubits
+        else:
+            n_qubits = fields.pop("num_qubits", 2)
+        super().__init__(
+            name="Giotto",
+            description="A python noise simulator for quantum experiments that implements the Noisy Gates formalism",
+            backend_version="1.0",
+            **fields,
+        )
+
         self.device : FakeBackend | Backend | None = device
         self.gates_ng = standard_gates
         self.circuit_class_ng = BinaryCircuit
         self.parallel_ng : bool = False
         self.simulator : MrAndersonSimulator = MrAndersonSimulator(gates=self.gates_ng, CircuitClass=self.circuit_class_ng, parallel= self.parallel_ng)
 
-        self._target = None
+        self._target = Target(num_qubits=n_qubits)
+        for gate in (
+            HGate(), XGate(), SXGate(),
+            RZGate(0), RXGate(0), RYGate(0),
+            UGate(0, 0, 0),
+            CXGate(),
+            RZXGate(0),
+            ECRGate()):
+            self._target.add_instruction(gate)
+        self._target.add_instruction(Measure())
+        self._target.add_instruction(Delay(0))
+        self._target.add_instruction(Barrier(1))
         self._options = self._default_options()
 
     @property
     def target(self) -> Target:
-        if self._target is None:
-            self._target = self.device.target
         return self._target
     
     @property
@@ -82,7 +100,9 @@ class NoisyGatesBackend(Backend):
         )
     
     def set_gates_ng(self, gate : Gates) -> Gates:
-        return self.gates_ng == gate
+        self.gates_ng = gate
+        self.simulator.gates = gate
+        return gate
     
     def set_circuit_class_ng(self, circuit_class : str):
         if circuit_class == 'EfficientCircuit':
@@ -112,17 +132,17 @@ class NoisyGatesBackend(Backend):
         self.options.seed_simulator = seed
 
         t_circ = transpile(
-        circuits= circ,
-        backend = self,
+        circuits=circ,
+        backend=self,
         initial_layout=init_layout,
-        scheduling_method='asap',
         seed_transpiler=self.options.seed_simulator
         )
 
         return t_circ
-    
-    def set_parallel(self, paral : bool) -> bool:
-        return self.parallel_ng == paral
+
+    def set_parallel(self, paral: bool):
+        self.parallel_ng = paral
+        self.simulator.parallel = paral
     
     def gates(self):
         """Give a list of the possible Gates set based on the pulse
@@ -155,40 +175,29 @@ class NoisyGatesBackend(Backend):
         device_param.load_from_backend(self.device)
         device_param_lookup = device_param.__dict__()
         return device_param_lookup
-    
-    def process_layout(self, circ : QuantumCircuit):
-        """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
-        information is stored
 
-        Args:
-            circ (QuantumCircuit): A quantum circuit, possibly transpiled
+    def process_layout(self, circ: QuantumCircuit):
+        qubit_map = {bit: idx for idx, bit in enumerate(circ.qubits)}
+        clbit_map = {bit: idx for idx, bit in enumerate(circ.clbits)}
 
-        Returns:
-            used_q (list): List of real used qubit in this circuit
-            measure_qc(list): List of tuples, each tuples contain the measured virtual qubit and the classical bit in which is stored the information
-            n_qubit(int): number of used qubits in the circuit
-        """
-        used_q = []
-        measure_qc = []
+        used_q: list[int] = []
+        measure_qc: list[tuple[int, int]] = []
 
         for x in circ.data:
-            if x[0].name != 'delay':
-                if len(x[1]) == 1:
-                    q = x[1][0]._index
-                    if q not in used_q:
-                        used_q.append(q)
-                elif len(x[1]) == 2:
-                    q1 = x[1][0]._index
-                    q2 = x[1][1]._index
-                    if q1 not in used_q:
-                        used_q.append(q1)
-                    if q2 not in used_q:
-                        used_q.append(q2)
-                if x[0].name == 'measure':
-                    measure_qc.append((x[1][0]._index, x[2][0]._index))
-        n_qubit = len(used_q)
-        
-        return used_q, measure_qc, n_qubit
+            op = x.operation
+            qargs = x.qubits
+            cargs = x.clbits
+
+            if op.name != "delay":
+                for qbit in qargs:
+                    idx = qubit_map[qbit]
+                    if idx not in used_q:
+                        used_q.append(idx)
+
+            if op.name == "measure" and qargs and cargs:
+                measure_qc.append((qubit_map[qargs[0]], clbit_map[cargs[0]]))
+
+        return used_q, measure_qc, len(used_q)
 
     def run(self, circuits: QuantumCircuit, shots : int = 1024, **fields) -> NoisyGatesJob:
         """Standard run function of a qiskit backend that submit a circuit to the simulator and return a job object
