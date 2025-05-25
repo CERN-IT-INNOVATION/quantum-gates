@@ -1,4 +1,3 @@
-#from qiskit.providers import ProviderV1
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit_ibm_runtime.fake_provider import FakeProviderForBackendV2
 
