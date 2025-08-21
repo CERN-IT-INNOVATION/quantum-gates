@@ -13,7 +13,9 @@ from src.quantum_gates.qiskit_provider import NoisyGatesProvider
 
 load_dotenv()
 IBM_TOKEN = os.getenv("IBM_TOKEN", "")
+CRN = os.getenv("CRN", "")
 assert IBM_TOKEN != "", "Expected to find 'IBM_TOKEN' in .env file, but it was not found."
+assert CRN != "", "Expected to find 'CRN' in .env file, but it was not found."
 
 _GLOBAL_SEED = 1337
 random.seed(_GLOBAL_SEED)
@@ -63,7 +65,7 @@ def test_ng_provider_vs_standard_qiskit():
     """Compare the Noisy Gates backend with the standard Qiskit provider
     for a Bell state circuit. Frequencies should be close."""
     # Arrange
-    provider = NoisyGatesProvider(token=IBM_TOKEN)
+    provider = NoisyGatesProvider(token=IBM_TOKEN, crn_instance=CRN)
     backend = provider.get_ibm_backend('ibm_brisbane')
 
     # IBM fake backend
