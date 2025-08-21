@@ -9,7 +9,7 @@ class NoisyGatesProvider:
     At the moment is possible to use a backend that work alongside with IBM real device
     """
 
-    def __init__(self, token=None):
+    def __init__(self, token=None, crn_instance = None):
         """
 
         Args:
@@ -17,9 +17,10 @@ class NoisyGatesProvider:
         """
         super().__init__()
         self.token = token
+        self.crn_instance = crn_instance
 
-        if token is not None:
-            self.qiskit_provider = QiskitRuntimeService(channel='ibm_quantum', token=self.token)
+        if token is not None and crn_instance is not None:
+            self.qiskit_provider = QiskitRuntimeService(channel='ibm_quantum_platform', token=self.token, instance = crn_instance)
         else:
             print("Warning: Load fake backend because there was no token provided.")
             self.qiskit_provider = FakeProviderForBackendV2()
