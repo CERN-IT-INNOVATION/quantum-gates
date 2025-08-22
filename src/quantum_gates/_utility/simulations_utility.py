@@ -162,7 +162,7 @@ def load_config(filename: str="") -> dict:
     return config
 
 
-def setup_backend(Token: str, hub: str, group: str, project: str, device_name: str):
+def setup_backend(Token: str, hub: str, group: str, project: str, device_name: str, crn: str):
     """Takes the backend configuration and returns the configured backend.
 
     Args:
@@ -171,12 +171,13 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         group (str): Group name of the account.
         project (str): Project under which the user has access to the device.
         device_name (str): Name of the quantum device.
+        crn (str): Token for the work instance
 
     Returns:
         An IBM Quantum provider backend object that provides access to the
         specified quantum device.
     """
-    provider = QiskitRuntimeService(channel='ibm_quantum', token=Token)
+    provider = QiskitRuntimeService(channel='ibm_quantum_platform', token=Token, instance = crn)
     return provider.backend(device_name)
 
 
