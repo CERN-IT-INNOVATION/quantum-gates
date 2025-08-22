@@ -3,7 +3,7 @@ import time
 
 import numpy as np
 
-from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT
+from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT, CRN
 from src.quantum_gates.quantum_algorithms import hadamard_reverse_qft_circ
 from src.quantum_gates.utilities import setup_backend, create_qc_list
 from src.quantum_gates.simulators import MrAndersonSimulator
@@ -20,7 +20,8 @@ backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": backend_name
+    "device_name": backend_name,
+    "crn": CRN
 }
 backend = setup_backend(IBM_TOKEN, **backend_config)
 
