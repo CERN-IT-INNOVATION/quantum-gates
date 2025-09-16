@@ -5,7 +5,6 @@ import os
 import concurrent.futures
 
 from qiskit import transpile, QuantumCircuit
-from qiskit.transpiler import CouplingMap
 from qiskit_aer import AerSimulator
 from qiskit_ibm_runtime import QiskitRuntimeService
 from qiskit.circuit.random import random_circuit
@@ -130,21 +129,12 @@ def create_qc_list(circuit_generator: callable, nqubits_list: list[int], qubits_
         the list of qubits.
     """
     print("Warning:")
-    print("1) At the moment, we perform the transpilation step in two steps because of a bug in Qiskit. ")
-    print("   See https://qiskit.slack.com/archives/C7SS31917/p1670411292978089 for more infos.")
     print("2) We assume a linear connectivity.")
     sim = AerSimulator()
     result_list = []
     for nqubit in nqubits_list:
-        coupling_map = CouplingMap.from_line(nqubit, bidirectional=True)
-        qc1 = transpile(
-            circuits=circuit_generator(nqubit),
-            backend=sim,
-            coupling_map=coupling_map,
-            seed_transpiler=42
-        )
         qc2 = transpile(
-            circuits=qc1,
+            circuits=circuit_generator(nqubit),
             backend=backend,
             scheduling_method='asap',
             initial_layout=qubits_layout[0:nqubit],
@@ -172,7 +162,7 @@ def load_config(filename: str="") -> dict:
     return config
 
 
-def setup_backend(Token: str, hub: str, group: str, project: str, device_name: str):
+def setup_backend(Token: str, hub: str, group: str, project: str, device_name: str, crn: str):
     """Takes the backend configuration and returns the configured backend.
 
     Args:
@@ -181,12 +171,13 @@ def setup_backend(Token: str, hub: str, group: str, project: str, device_name: s
         group (str): Group name of the account.
         project (str): Project under which the user has access to the device.
         device_name (str): Name of the quantum device.
+        crn (str): Token for the work instance
 
     Returns:
         An IBM Quantum provider backend object that provides access to the
         specified quantum device.
     """
-    provider = QiskitRuntimeService(channel='ibm_quantum', token=Token)
+    provider = QiskitRuntimeService(channel='ibm_quantum_platform', token=Token, instance = crn)
     return provider.backend(device_name)
 
 

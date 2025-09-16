@@ -5,7 +5,7 @@ from qiskit import QuantumCircuit
 
 from src.quantum_gates.utilities import create_random_quantum_circuit, transpile_qiskit_circuit, setup_backend,fix_counts
 from src.quantum_gates.utilities import Optimizer
-from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT
+from configuration.token import IBM_TOKEN, HUB, GROUP, PROJECT, CRN
 from src.quantum_gates.utilities import DeviceParameters
 from src.quantum_gates.simulators import MrAndersonSimulator
 from src.quantum_gates.circuits import BinaryCircuit
@@ -18,7 +18,8 @@ backend_config = {
     "hub": HUB,
     "group": GROUP,
     "project": PROJECT,
-    "device_name": "ibm_brisbane"
+    "device_name": "ibm_brisbane",
+    "crn" : CRN
 }
 
 backend = setup_backend(IBM_TOKEN, **backend_config)

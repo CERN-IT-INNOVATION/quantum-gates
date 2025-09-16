@@ -10,12 +10,12 @@ from qiskit import QuantumCircuit, transpile
 from qiskit.result import Result
 from qiskit.result.models import ExperimentResult, ExperimentResultData
 
-from quantum_gates.simulators import MrAndersonSimulator
-from quantum_gates.pulses import ConstantPulse, ConstantPulseNumerical
-from quantum_gates.gates import Gates
-from quantum_gates.circuits import EfficientCircuit, AlternativeCircuit, BinaryCircuit
-from quantum_gates.utilities import DeviceParameters
-from quantum_gates.utilities import fix_counts
+from .._simulation.simulator import MrAndersonSimulator
+from .._gates.pulse import ConstantPulse, ConstantPulseNumerical
+from .._gates.gates import Gates
+from .._simulation.circuit import EfficientCircuit, AlternativeCircuit, BinaryCircuit
+from .._utility.device_parameters import DeviceParameters
+from .._utility.simulations_utility import fix_counts
 
 from .ng_job import NoisyGatesJob
 
