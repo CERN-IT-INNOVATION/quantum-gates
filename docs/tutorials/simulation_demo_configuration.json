@@ -1,0 +1,21 @@
+{
+    "backend": {
+        "hub": "ibm-q",
+        "group": "open",
+        "project": "main",
+        "device_name": "ibmq_manila"
+    },
+    "run": {
+        "shots": 1000,
+        "qubits_layout": [
+            0,
+            1
+        ],
+        "psi0": [
+            1,
+            0,
+            0,
+            0
+        ]
+    }
+}
