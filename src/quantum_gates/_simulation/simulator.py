@@ -69,7 +69,8 @@ class MrAndersonSimulator(object):
         self.gates = gates  # Contains the information about the pulses.
         self.CircuitClass = CircuitClass
         self.parallel = parallel
-
+    
+    '''
     def run(self,
             t_qiskit_circ,
             qubits_layout: list,
@@ -121,6 +122,46 @@ class MrAndersonSimulator(object):
         counts_ng = self._measurament(prob=final_arr, q_meas_list=qubit_bit, n_qubit=n_qubit_t, qubits_layout=qubits_layout_t)
 
         return counts_ng
+    '''
+    def run(self,
+        t_qiskit_circ,
+        qubits_layout: list,
+        psi0: np.array,
+        shots: int,
+        device_param: dict,
+        nqubit: int,) -> dict:
+        """
+        Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
+        and runs noisy quantum gates.
+        """
+        # Process layout circuit
+        qubits_layout_t, qubit_bit, n_qubit_t = self._process_layout(t_qiskit_circ)
+
+        n_measured_qubit = len(qubit_bit)
+        if n_measured_qubit == 0:
+            raise ValueError("None qubit measured")
+
+        # Validate input
+        self._validate_input_of_run(t_qiskit_circ, qubits_layout_t, psi0, shots, device_param, nqubit)
+
+        # Preprocess circuit data (including measures)
+        n_rz, _, data = self._preprocess_circuit(t_qiskit_circ, qubits_layout_t, nqubit)
+
+        # Get shot-by-shot probabilities (dict of bitstring -> prob)
+        probs = self._perform_simulation(
+            shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t
+        )
+
+        # Pass directly to measurement function (no np.array or re-normalization needed)
+        counts_ng = self._measurament(
+            counts=probs,
+            q_meas_list=qubit_bit,
+            n_qubit=n_qubit_t,
+            qubits_layout=qubits_layout_t
+        )
+
+        return counts_ng
+
 
     def _process_layout(self, circ : QuantumCircuit) -> Tuple[List, List, int]:
         """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
@@ -193,7 +234,7 @@ class MrAndersonSimulator(object):
             )
 
         return
-
+    '''
     def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
         """ Preprocess of QuantumCircuit.data. We count the number of RZ gates (n_rz), keep track of the swaps
         (swap_detector), and bring the circuit in a format (data) that is compatible with the rest of the simulation.
@@ -240,7 +281,41 @@ class MrAndersonSimulator(object):
             swap_detector[data_measure[i][0]] = data_measure[i][1]
 
         return n_rz, swap_detector, data
+    '''
+    def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
+        """Preprocess QuantumCircuit.data.
 
+        Keeps measure operations inline so that mid-circuit measurements are applied
+        in order by _single_shot_projective.
+        """
+        n_rz = 0
+        data = []
+        swap_detector = [a for a in range(nqubit)]
+        raw_data = t_qiskit_circ.data
+
+        for instr in raw_data:
+            name = instr.operation.name
+
+            # Translate qubit indices to virtual layout indices
+            qubits = [q._index for q in instr.qubits]
+            if any(q not in qubits_layout for q in qubits):
+                continue  # skip if qubit not in layout
+
+            # Keep everything, including measures
+            if name == 'rz':
+                n_rz += 1
+            data.append(instr)
+
+            # For swap detector (classical mapping)
+            if name == 'measure':
+                q = qubits_layout.index(qubits[0])
+                c = instr.clbits[0]._index
+                swap_detector[q] = c
+
+        return n_rz, swap_detector, data
+
+    
+    '''
     def _perform_simulation(self,
                             shots: int,
                             data: list,
@@ -309,7 +384,46 @@ class MrAndersonSimulator(object):
         r_var = r_square_sum / shots - np.square(r_mean)
 
         return r_mean
-    
+        '''
+        
+    def _perform_simulation(
+        self,
+        shots: int,
+        data: list,
+        n_rz: int,
+        nqubit: int,
+        device_param: dict,
+        psi0: np.ndarray,
+        qubit_layout: list,
+    ) -> dict:
+        """
+        Fully simulate the circuit shot-by-shot with projective measurements applied
+        in sequence. Returns a dictionary of bitstring -> probability.
+        """
+
+        counts = {}
+
+        for _ in range(shots):
+            # simulate one shot, with collapse for every measure
+            bitstring = _single_shot_projective(
+                data=data,
+                circ_class=self.CircuitClass,
+                gates=self.gates,
+                nqubit=nqubit,
+                n_rz=n_rz,
+                device_param=device_param,
+                psi0=psi0.copy(),
+                qubit_layout=qubit_layout,
+            )
+
+            counts[bitstring] = counts.get(bitstring, 0) + 1
+
+        # normalize to probabilities
+        total = sum(counts.values())
+        probs = {k: v / total for k, v in counts.items()}
+        return probs
+
+    '''
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
         """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probabilities of the possible outcomes.
 
@@ -349,6 +463,16 @@ class MrAndersonSimulator(object):
             sums[bit_string] += value
 
         return sums
+    '''
+    
+    def _measurament(self, counts: dict, q_meas_list: list, n_qubit: int, qubits_layout: list) -> dict:
+        """
+        Convert counts from _perform_simulation to final probability dictionary.
+        q_meas_list and qubits_layout are currently ignored because we already
+        respect measurement ordering in _single_shot_projective.
+        """
+        return counts
+
 
 
 def _apply_gates_on_circuit(
@@ -509,44 +633,58 @@ def _single_shot(args: dict) -> np.array:
     return shot_result
 '''
 
-from qiskit.quantum_info import Statevector, Operator
 
-def _single_shot(args: dict) -> np.array:
-    data = args["data"]
-    psi = Statevector(args["psi0"])  # start state
+def _single_shot_projective(
+    data,
+    circ_class,
+    gates,
+    nqubit,
+    n_rz,
+    device_param,
+    psi0,
+    qubit_layout,
+) -> str:
+    """
+    Apply gates and projective measurements sequentially.
+    Returns final classical bitstring (big-endian).
+    """
+    depth = len(data) - n_rz + 1
+    classical_bits = {}
+    psi = psi0
 
-    mid_bits = {}
+    # We reuse a temporary circuit object for applying gates
+    circ = circ_class(nqubit, depth, copy.deepcopy(gates))
 
     for instr in data:
-        op = instr.operation
-        qubits = [q._index for q in instr.qubits]
+        name = instr.operation.name
 
-        if op.name == "mid_measure":
-            # Collapse state and sample outcome
-            outcome, collapsed = projective_measure_collapse(
-                psi.data, num_qubits=int(np.log2(len(psi.data))), target_qubit=qubits[0]
+        if name == "measure":
+            q = qubit_layout.index(instr.qubits[0]._index)
+            c = instr.clbits[0]._index
+
+            outcome, psi = projective_measure_collapse(
+                psi, num_qubits=nqubit, target_qubit=q
             )
-            psi = Statevector(collapsed)
-            mid_bits[instr.clbits[0]._index] = outcome
-            continue
+            classical_bits[c] = outcome
 
-        elif op.name == "if_else":
-            clbit, val = op.condition
-            if mid_bits.get(clbit.index, 0) == val:
-                for sub_instr in op.blocks[0].data:
-                    psi = psi.evolve(sub_instr.operation, qargs=[q._index for q in sub_instr.qubits])
-            else:
-                if len(op.blocks) > 1:
-                    for sub_instr in op.blocks[1].data:
-                        psi = psi.evolve(sub_instr.operation, qargs=[q._index for q in sub_instr.qubits])
-            continue
+            # Reset circuit gate cache so subsequent gates apply fresh
+            circ.reset()
 
-        # Default case: apply gate normally
-        psi = psi.evolve(op, qargs=qubits)
-        
-    shot_result = np.abs(psi.data) ** 2
-    
-    return shot_result 
+        else:
+            # Apply this gate as a single-step update
+            circ.reset()
+            _apply_gates_on_circuit([instr], circ, device_param, qubit_layout)
+            psi = circ.statevector(psi)
+
+    # Build bitstring (big-endian)
+    max_cbit = max(classical_bits.keys()) if classical_bits else -1
+    bits = ["0"] * (max_cbit + 1)
+    for cbit, value in classical_bits.items():
+        bits[cbit] = str(value)
+
+    bitstring = "".join(reversed(bits))
+    print(f"[DEBUG] Classical bits: {classical_bits}, Final bitstring={bitstring}")
+    return bitstring
 
 
 
