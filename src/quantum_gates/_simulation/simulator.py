@@ -194,7 +194,6 @@ class MrAndersonSimulator(object):
 
         return
 
-    '''
     def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
         """ Preprocess of QuantumCircuit.data. We count the number of RZ gates (n_rz), keep track of the swaps
         (swap_detector), and bring the circuit in a format (data) that is compatible with the rest of the simulation.
@@ -241,57 +240,7 @@ class MrAndersonSimulator(object):
             swap_detector[data_measure[i][0]] = data_measure[i][1]
 
         return n_rz, swap_detector, data
-        
-    '''
-    
-    def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
-        """
-        Preprocess QuantumCircuit.data:
-        - Collect gates for simulation
-        - Count RZ gates
-        - Insert markers for mid-circuit measurements
-        """
-        n_rz = 0
-        data = []
-        data_measure = []
-        swap_detector = [a for a in range(nqubit)]
-        raw_data = t_qiskit_circ.data
 
-        for idx, instr in enumerate(raw_data):
-            name = instr.operation.name
-
-            if name in ('ecr', 'cx'):
-                q_ctr = instr.qubits[0]._index
-                q_trg = instr.qubits[1]._index
-                if q_ctr in qubits_layout and q_trg in qubits_layout:
-                    data.append(instr)
-
-            elif name == 'measure':
-                q = qubits_layout.index(instr.qubits[0]._index)
-                c = instr.clbits[0]._index
-
-                # If this is not a final measurement (mid-circuit)
-                if idx != len(raw_data) - 1:
-                    # Instead of applying immediately, push a marker into data
-                    data.append(('mid_measure', q, c))
-                data_measure.append((q, c))
-
-            else:
-                q = instr.qubits[0]._index
-                if q in qubits_layout:
-                    if name == 'rz':
-                        n_rz += 1
-                    if name not in ('measure', 'barrier'):
-                        data.append(instr)
-
-        for q, c in data_measure:
-            swap_detector[q] = c
-
-        return n_rz, swap_detector, data
-
-
-    
-    '''
     def _perform_simulation(self,
                             shots: int,
                             data: list,
@@ -360,110 +309,6 @@ class MrAndersonSimulator(object):
         r_var = r_square_sum / shots - np.square(r_mean)
 
         return r_mean
-        '''
-        
-    def _perform_simulation(self,
-                        shots: int,
-                        data: list,
-                        n_rz: int,
-                        nqubit: int,
-                        device_param: dict,
-                        psi0: np.array,
-                        qubit_layout: list,) -> np.array:
-        """
-        Performs the simulation shots many times and returns the resulting probability distribution.
-        Adds support for mid-circuit measurement by preprocessing state before passing to _single_shot.
-        """
-
-        r_sum = np.zeros(2**nqubit)
-        r_square_sum = np.zeros(2**nqubit)
-
-        depth = len(data) - n_rz + 1
-
-        # Filter data: separate mid_measure markers from real gates
-        gate_data = []
-        mid_measures = []
-        for instr in data:
-            if isinstance(instr, tuple) and instr[0] == "mid_measure":
-                mid_measures.append(instr)
-            else:
-                gate_data.append(instr)
-
-        # Build argument list
-        arg_list = [
-            {
-                "data": copy.deepcopy(gate_data),
-                "circ": self.CircuitClass(nqubit, depth, copy.deepcopy(self.gates)),
-                "device_param": copy.deepcopy(device_param),
-                "psi0": copy.deepcopy(self._apply_mid_measures(psi0, mid_measures)),  # <-- collapse first
-                "qubit_layout": copy.deepcopy(qubit_layout),
-            }
-            for i in range(shots)
-        ]
-
-        if self.parallel:
-            import multiprocessing
-            cpu_count = multiprocessing.cpu_count()
-            n_processes = max(int(0.8 * cpu_count), 2)
-            chunksize = max(1, int(shots / n_processes) + (1 if shots % n_processes > 0 else 0))
-
-            p = multiprocessing.Pool(n_processes)
-            for shot_result in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
-                r_sum += shot_result
-                r_square_sum += np.square(shot_result)
-            p.close()
-            p.join()
-
-        else:
-            for arg in arg_list:
-                shot_result = _single_shot(arg)
-                r_sum += shot_result
-                r_square_sum += np.square(shot_result)
-
-        r_mean = r_sum / shots
-        r_var = r_square_sum / shots - np.square(r_mean)
-        return r_mean
-
-
-    def _apply_mid_measures(self, state: np.ndarray, mid_measures: list) -> np.ndarray:
-        """
-        Apply deterministic mid-circuit measurements (forced |1>) to the input state.
-        """
-        print(f"[DEBUG] Before collapse: {np.round(np.abs(state), 4)}")
-
-        collapsed_state = state.copy()
-        for _, q, c in mid_measures:
-            collapsed_state = self._midcircuit_measure(q, collapsed_state)
-
-        return collapsed_state
-
-    def _midcircuit_measure(self, qubit: int, state: np.ndarray) -> np.ndarray:
-        """
-        Project state onto |1> for the given qubit and renormalize.
-        If projection has zero probability, return pure |1> statevector.
-        """
-        dim = len(state)
-        idx = np.arange(dim)
-        mask1 = ((idx >> qubit) & 1) == 1
-
-        collapsed = state.copy()
-        collapsed[~mask1] = 0.0
-        norm = np.linalg.norm(collapsed)
-
-        if norm > 0:
-            collapsed /= norm
-        else:
-            # fallback: construct |1> ⊗ |0...0> state
-            collapsed = np.zeros_like(state, dtype=complex)
-            collapsed[mask1] = 1.0 / np.sqrt(mask1.sum())
-
-        print(f"[DEBUG] Mid-circuit measurement qubit={qubit} -> forced outcome=1, norm={norm}")
-        print(f"[DEBUG] After collapse: {np.round(np.abs(collapsed), 4)}")
-
-        return collapsed
-
-
-    
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
         """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probabilities of the possible outcomes.
@@ -477,16 +322,9 @@ class MrAndersonSimulator(object):
         Returns:
             dict: the keys are the possible states and the value the probabilities of measurement each state.
         """
-        print(f"[DEBUG] Probability array length: {len(prob)}")
-        print(f"[DEBUG] Probability array: {prob}")
-        print(f"[DEBUG] Measured qubits and classical bits: {q_meas_list}")
-        print(f"[DEBUG] Total number of qubits: {n_qubit}")
-        print(f"[DEBUG] Qubit layout: {qubits_layout}") 
-
 
         # create the vector with the bit strings
         binary_vector = np.array([format(i, f'0{n_qubit}b') for i in np.arange(2**n_qubit)], dtype=str)
-        print(f"[DEBUG] Binary basis states ({len(binary_vector)}): {binary_vector}")
 
         qc_v = [] # list of tuples for virtual measured qubits and classic bits
         for t in q_meas_list:
