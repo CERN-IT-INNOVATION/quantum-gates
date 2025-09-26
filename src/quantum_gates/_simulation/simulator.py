@@ -483,7 +483,7 @@ def _apply_gates_on_circuit(
             circ.bitflip(k, tm[k], rout[k])
         return
 
-
+'''
 def _single_shot(args: dict) -> np.array:
     """ Function used to simulate a single shot and return the corresponding result.
 
@@ -507,3 +507,83 @@ def _single_shot(args: dict) -> np.array:
     shot_result = np.square(np.absolute(psi))
 
     return shot_result
+'''
+
+from qiskit.quantum_info import Statevector, Operator
+
+def _single_shot(args: dict) -> np.array:
+    data = args["data"]
+    psi = Statevector(args["psi0"])  # start state
+
+    mid_bits = {}
+
+    for instr in data:
+        op = instr.operation
+        qubits = [q._index for q in instr.qubits]
+
+        if op.name == "mid_measure":
+            # Collapse state and sample outcome
+            outcome, collapsed = projective_measure_collapse(
+                psi.data, num_qubits=int(np.log2(len(psi.data))), target_qubit=qubits[0]
+            )
+            psi = Statevector(collapsed)
+            mid_bits[instr.clbits[0]._index] = outcome
+            continue
+
+        elif op.name == "if_else":
+            clbit, val = op.condition
+            if mid_bits.get(clbit.index, 0) == val:
+                for sub_instr in op.blocks[0].data:
+                    psi = psi.evolve(sub_instr.operation, qargs=[q._index for q in sub_instr.qubits])
+            else:
+                if len(op.blocks) > 1:
+                    for sub_instr in op.blocks[1].data:
+                        psi = psi.evolve(sub_instr.operation, qargs=[q._index for q in sub_instr.qubits])
+            continue
+
+        # Default case: apply gate normally
+        psi = psi.evolve(op, qargs=qubits)
+
+    return np.abs(psi.data) ** 2
+
+
+
+
+
+def projective_measure_collapse(statevec, num_qubits, target_qubit, outcome=None, rng=None):
+    state = np.asarray(statevec, dtype=complex) # Convert statevector to numpy array
+    dim = 1 << num_qubits # 2**num_qubits
+    if state.shape != (dim,):
+        raise ValueError("statevector has wrong length for num_qubits")
+
+    # Born probabilities for target bit = 0/1 (little-endian indexing)
+    # for every state with target qubit = 0, sum |amplitude|^2 = p_0
+    p0 = 0.0
+    for idx, amp in enumerate(state):
+        if ((idx >> target_qubit) & 1) == 0:
+            p0 += (amp.real**2 + amp.imag**2)
+    p1 = 1.0 - p0 # since state is normalized p1 = 1-p_0
+
+    # Sample outcome from probabilities
+    if outcome is None:
+        rng = np.random.default_rng() if rng is None else rng
+        outcome = 1 if rng.random() < p1 else 0
+
+    p = [p0, p1][outcome]
+    
+    if p == 0.0:
+        raise ValueError(f"Outcome {outcome} has zero probability.")
+
+    # copy the input statevector
+    collapsed = state.copy()
+    
+    # zero out amplitudes inconsistent with outcome so for collapse onto target = |0> all states with target qubit = |1> are zeroed out
+    for idx in range(dim):
+        if ((idx >> target_qubit) & 1) != outcome:
+            collapsed[idx] = 0.0 + 0.0j
+    
+    # renormalize collapsed statevector
+    collapsed /= np.linalg.norm(collapsed)
+    return outcome, collapsed
+
+
