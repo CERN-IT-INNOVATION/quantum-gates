@@ -543,8 +543,10 @@ def _single_shot(args: dict) -> np.array:
 
         # Default case: apply gate normally
         psi = psi.evolve(op, qargs=qubits)
-
-    return np.abs(psi.data) ** 2
+        
+    shot_result = np.abs(psi.data) ** 2
+    
+    return shot_result 
 
 
 
