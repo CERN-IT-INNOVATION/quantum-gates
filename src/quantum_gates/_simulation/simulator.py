@@ -69,7 +69,8 @@ class MrAndersonSimulator(object):
         self.gates = gates  # Contains the information about the pulses.
         self.CircuitClass = CircuitClass
         self.parallel = parallel
-
+        
+    '''
     def run(self,
             t_qiskit_circ,
             qubits_layout: list,
@@ -121,6 +122,60 @@ class MrAndersonSimulator(object):
         counts_ng = self._measurament(prob=final_arr, q_meas_list=qubit_bit, n_qubit=n_qubit_t, qubits_layout=qubits_layout_t)
 
         return counts_ng
+    '''
+    
+    def run(self,
+        t_qiskit_circ,
+        qubits_layout: list,
+        psi0: np.array,
+        shots: int,
+        device_param: dict,
+        nqubit: int,) -> dict:
+        """
+        Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
+        and runs noisy quantum gates.
+        """
+
+        # Process layout circuit
+        qubits_layout_t, qubit_bit, n_qubit_t = self._process_layout(t_qiskit_circ)
+
+        n_measured_qubit = len(qubit_bit)
+        if n_measured_qubit == 0:
+            raise ValueError("None qubit measured")
+
+        # Validate input
+        self._validate_input_of_run(t_qiskit_circ, qubits_layout_t, psi0, shots, device_param, nqubit)
+
+        # Count rz gates, construct swap lookup, generate data (representation of circuit compatible with simulation)
+        n_rz, swap_detector, data, data_measure = self._preprocess_circuit(
+            t_qiskit_circ, qubits_layout_t, nqubit
+        )
+
+        # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
+        # new
+        probs, all_results = self._perform_simulation(
+            shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, data_measure
+        )
+
+        # Normalize the result
+        reordered_arr = np.array(probs)
+        total_prob = np.sum(reordered_arr)
+        assert total_prob > 0, f"Found unphysical probability vector {reordered_arr}."
+        final_arr = reordered_arr / total_prob
+
+        counts_ng = self._measurament(
+            prob=final_arr,
+            q_meas_list=qubit_bit,
+            n_qubit=n_qubit_t,
+            qubits_layout=qubits_layout_t,
+        )
+
+        return {
+            "probs": counts_ng,
+            "mid_results": all_results,   # <-- now accessible
+        }
+
+    
 
     def _process_layout(self, circ : QuantumCircuit) -> Tuple[List, List, int]:
         """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
@@ -244,6 +299,7 @@ class MrAndersonSimulator(object):
 
         return n_rz, swap_detector, data
         '''
+        
     @staticmethod
     def _pretty_print_data(data):
         for idx, entry in enumerate(data):
@@ -344,9 +400,10 @@ class MrAndersonSimulator(object):
         self._pretty_print_data(data)
         print("---------------------------")
 
-        return n_rz, swap_detector, data
+        return n_rz, swap_detector, data, data_measure
 
-    
+
+    '''
     def _perform_simulation(self,
                             shots: int,
                             data: list,
@@ -419,7 +476,84 @@ class MrAndersonSimulator(object):
         r_var = r_square_sum / shots - np.square(r_mean)
 
         return r_mean
+    '''
     
+    def _perform_simulation(self,
+                            shots: int,
+                            data: list,
+                            n_rz: int,
+                            nqubit: int,
+                            device_param: dict,
+                            psi0: np.array,
+                            qubit_layout: list,
+                            data_measure: list) -> np.array:
+        """ Performs the simulation shots many times and returns the resulting probability distribution.
+        """
+
+        # Setup results
+        r_sum = np.zeros(2**nqubit)
+        r_square_sum = np.zeros(2**nqubit)
+
+        # Constants
+        depth = len(data) - n_rz + 1
+
+        # Create list of args
+        arg_list = [
+            {
+                "data": copy.deepcopy(data),
+                "data_measure": copy.deepcopy(data_measure),   # <--- added
+                "circ": self.CircuitClass(nqubit, depth, copy.deepcopy(self.gates)),
+                "device_param": copy.deepcopy(device_param),
+                "psi0": copy.deepcopy(psi0),
+                "qubit_layout": copy.deepcopy(qubit_layout),
+            } for i in range(shots)
+        ]
+        
+        all_results = []  # Store mid-circuit measurement results if needed
+
+        # Perform computation parallel or sequentual
+        if self.parallel:
+            import multiprocessing
+
+            # Configure pool
+            cpu_count = multiprocessing.cpu_count()
+            print(f"Our CPU count is {cpu_count}")
+
+            n_processes = max(int(0.8 * cpu_count), 2)
+            print(f"Use 80% of the cores, so {n_processes} processes.")
+
+            chunksize = max(1, int(shots / n_processes) + (1 if shots % n_processes > 0 else 0))
+            print(f"As we perform {shots} shots, we use a chunksize of {chunksize}.")
+
+            # Compute
+            p = multiprocessing.Pool(n_processes)
+            for shot_result in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
+                # Add shot
+                r_sum += shot_result
+                r_square_sum += np.square(shot_result)
+
+            # Shut down pool
+            p.close()
+            p.join()
+
+        else:
+            for arg in arg_list:
+                # Compute
+                results, shot_result, final_outcomes = _single_shot(arg)
+
+                r_sum += shot_result
+                r_square_sum += np.square(shot_result)
+
+                all_results.append({
+                    "mid": results,
+                    "final": final_outcomes
+                })
+
+        # Calculate result
+        r_mean = r_sum / shots
+        r_var = r_square_sum / shots - np.square(r_mean)
+
+        return r_mean, all_results
     
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
@@ -618,48 +752,49 @@ def _single_shot(args: dict) -> np.array:
     # Calculate probabilities with the Born rule.
     shot_result = np.square(np.absolute(psi))
 
-    return shot_result'''
+    return shot_result
+'''
 
 def _single_shot(args: dict) -> np.array:
-    """ Function used to simulate a single shot and return the corresponding result.
-
-    Note:
-        We have this method outside of the class such that it can be pickled.
-    """
-
     circ = args["circ"]
     data = args["data"]
+    data_measure = args.get("data_measure", [])  # <--- added
     device_param = args["device_param"]
     psi0 = args["psi0"]
     qubit_layout = args["qubit_layout"]
 
-    # initialize state
     psi = psi0
-    results= []
+    results = []  # mid results
 
-    # loop through preprocessed data
     for idx, (d, flag) in enumerate(data):
         if flag == 0:
-            # --- normal chunk of gates ---
             _apply_gates_on_circuit(d, circ, device_param, qubit_layout)
-            # if this is the last element in data → propagate statevector
             if idx == len(data) - 1:
                 psi = circ.statevector(psi)
 
         elif flag == 1:
             psi = circ.statevector(psi)
 
-            # case: mid measurement tagged during preprocessing
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
                 psi, outcome = circ.mid_measurement(psi, qubit_list=qubits)
-                results.append(outcome)
+
+                # normalize just in case
+                norm = np.linalg.norm(psi)
+                if norm > 0:
+                    psi /= norm
+
+                # record debug info
+                results.append({
+                    "step": idx,
+                    "qubits": qubits,
+                    "clbits": [c._index for c in op.clbits],
+                    "outcome": outcome
+                })
 
             else:
-                # fallback: real Qiskit op
                 op_name = d.operation.name
-
                 if op_name == "reset_qubits":
                     qubits = [q._index for q in d.qubits]
                     psi = circ.reset(psi, qubit_list=qubits)
@@ -678,8 +813,23 @@ def _single_shot(args: dict) -> np.array:
                 else:
                     raise ValueError(f"Unknown fancy gate: {op_name}")
 
-
     # Born rule → probability distribution
     shot_result = np.square(np.abs(psi))
 
-    return results, shot_result
+    # Final outcomes from last measurement
+    final_outcomes = None
+    if data_measure:
+        probs = np.square(np.abs(psi))
+        if probs.sum() == 0:
+            raise ValueError("Statevector collapsed to zero norm after circuit execution.")
+        probs = probs / probs.sum()   # ✅ normalize before sampling
+
+        outcome_index = np.random.choice(len(probs), p=probs)
+
+        bitstring = format(outcome_index, f"0{circ.nqubit}b")
+        final_outcomes = {}
+        for q, c in data_measure:
+            final_outcomes[c] = int(bitstring[-(q+1)])  # Qiskit’s ordering
+
+
+    return results, shot_result, final_outcomes
