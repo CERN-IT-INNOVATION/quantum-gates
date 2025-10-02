@@ -194,6 +194,8 @@ class MrAndersonSimulator(object):
 
         return
 
+
+    '''
     def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
         """ Preprocess of QuantumCircuit.data. We count the number of RZ gates (n_rz), keep track of the swaps
         (swap_detector), and bring the circuit in a format (data) that is compatible with the rest of the simulation.
@@ -203,6 +205,7 @@ class MrAndersonSimulator(object):
         data_measure = []
         swap_detector = [a for a in range(nqubit)]
         raw_data = t_qiskit_circ.data
+
 
         for i in range(t_qiskit_circ.__len__()):
             if raw_data[i].operation.name == 'ecr':
@@ -240,7 +243,110 @@ class MrAndersonSimulator(object):
             swap_detector[data_measure[i][0]] = data_measure[i][1]
 
         return n_rz, swap_detector, data
+        '''
+    @staticmethod
+    def _pretty_print_data(data):
+        for idx, entry in enumerate(data):
+            if isinstance(entry, tuple) and entry[0] == "mid_measurement":
+                op = entry[1]
+                print(f"Fancy {idx}: mid_measurement qubits={[q._index for q in op.qubits]} "
+                    f"clbits={[c._index for c in op.clbits]}")
+            else:
+                chunk, flag = entry
+                if flag == 0:
+                    ops = [f"{op.operation.name}{[q._index for q in op.qubits]}" for op in chunk]
+                    print(f"Chunk {idx}: {' , '.join(ops)}")
+                else:
+                    op = chunk
+                    print(f"Fancy {idx}: {op.operation.name} qubits={[q._index for q in op.qubits]} "
+                        f"clbits={[c._index for c in op.clbits]}")
 
+
+    
+    def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
+        """ Preprocess QuantumCircuit.data:
+        - Count number of RZ gates (n_rz).
+        - Track swaps (swap_detector).
+        - Structure data into chunks split around 'fancy-gates':
+        data = [ [ops until first fancy], fancy_gate, [ops until next fancy], fancy_gate, ... ]
+        """
+        n_rz = 0
+        data = []
+        data_measure = []
+        current_chunk = []
+        swap_detector = [a for a in range(nqubit)]
+        raw_data = t_qiskit_circ.data
+
+        # define which gates are considered "fancy"
+        fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
+
+        for i, op in enumerate(raw_data):
+            op_name = op.operation.name
+
+            if op_name == "measure":
+                # check if there are quantum ops after this
+                remaining_ops = raw_data[i+1:]
+                has_future_quantum = any(
+                    (future_op.operation.name not in {"measure", "barrier"}) 
+                    for future_op in remaining_ops
+                )
+
+                if has_future_quantum:
+                    # mid-circuit → treat as fancy gate
+                    if current_chunk:
+                        data.append((current_chunk, 0))
+                        current_chunk = []
+                    # instead of mutating, just store a tuple with a tag
+                    data.append(("mid_measurement", op))
+                else:
+                    # final measurement → store for later
+                    q = op.qubits[0]._index
+                    q = qubits_layout.index(q)
+                    c = op.clbits[0]._index
+                    data_measure.append((q, c))
+                    
+            # barrier skip
+            elif op_name == "ecr" or op_name == "cx":
+                q_ctr = op.qubits[0]._index
+                q_trg = op.qubits[1]._index
+                if q_ctr in qubits_layout and q_trg in qubits_layout:
+                    current_chunk.append(op)
+            elif op_name in fancy_gates:
+                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                current_chunk = []
+                #TO DO: if q in qubits_layout:
+                data.append((op,1))  # fancy gate goes as standalone
+            elif op_name == "barrier":
+                continue
+            elif op_name == "rz":
+                q = op.qubits[0]._index
+                if q in qubits_layout:
+                    n_rz += 1  # track rz count
+                    current_chunk.append(op)  # probably you also want to keep it
+            else:
+                # normal operation (only if in layout)
+                q = op.qubits[0]._index
+                if q in qubits_layout:
+                    current_chunk.append(op)
+
+        # flush final chunk if non-empty
+        if current_chunk:
+            data.append((current_chunk,0))
+
+        # update swap detector using measurements
+        for q, c in data_measure:
+            swap_detector[q] = c
+
+        print("Data after preprocessing:")
+        print(data)
+            
+        print("---- Preprocessed data ----")
+        self._pretty_print_data(data)
+        print("---------------------------")
+
+        return n_rz, swap_detector, data
+
+    
     def _perform_simulation(self,
                             shots: int,
                             data: list,
@@ -269,6 +375,8 @@ class MrAndersonSimulator(object):
                 "qubit_layout": copy.deepcopy(qubit_layout),
             } for i in range(shots)
         ]
+        
+        all_results = []  # Store mid-circuit measurement results if needed
 
         # Perform computation parallel or sequentual
         if self.parallel:
@@ -298,17 +406,21 @@ class MrAndersonSimulator(object):
         else:
             for arg in arg_list:
                 # Compute
-                shot_result = _single_shot(arg)
+                results, shot_result = _single_shot(arg)
 
                 # Add shot
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
+                # Store mid-circuit measurement results
+                all_results.append(results)
 
         # Calculate result
         r_mean = r_sum / shots
         r_var = r_square_sum / shots - np.square(r_mean)
 
         return r_mean
+    
+    
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
         """This function take in input the measured qubits and the classical bits to store the information regarding also the swapping and give in ouput the probabilities of the possible outcomes.
@@ -483,7 +595,7 @@ def _apply_gates_on_circuit(
             circ.bitflip(k, tm[k], rout[k])
         return
 
-
+'''
 def _single_shot(args: dict) -> np.array:
     """ Function used to simulate a single shot and return the corresponding result.
 
@@ -506,4 +618,68 @@ def _single_shot(args: dict) -> np.array:
     # Calculate probabilities with the Born rule.
     shot_result = np.square(np.absolute(psi))
 
-    return shot_result
+    return shot_result'''
+
+def _single_shot(args: dict) -> np.array:
+    """ Function used to simulate a single shot and return the corresponding result.
+
+    Note:
+        We have this method outside of the class such that it can be pickled.
+    """
+
+    circ = args["circ"]
+    data = args["data"]
+    device_param = args["device_param"]
+    psi0 = args["psi0"]
+    qubit_layout = args["qubit_layout"]
+
+    # initialize state
+    psi = psi0
+    results= []
+
+    # loop through preprocessed data
+    for idx, (d, flag) in enumerate(data):
+        if flag == 0:
+            # --- normal chunk of gates ---
+            _apply_gates_on_circuit(d, circ, device_param, qubit_layout)
+            # if this is the last element in data → propagate statevector
+            if idx == len(data) - 1:
+                psi = circ.statevector(psi)
+
+        elif flag == 1:
+            psi = circ.statevector(psi)
+
+            # case: mid measurement tagged during preprocessing
+            if isinstance(d, tuple) and d[0] == "mid_measurement":
+                op = d[1]
+                qubits = [q._index for q in op.qubits]
+                psi, outcome = circ.mid_measurement(psi, qubit_list=qubits)
+                results.append(outcome)
+
+            else:
+                # fallback: real Qiskit op
+                op_name = d.operation.name
+
+                if op_name == "reset_qubits":
+                    qubits = [q._index for q in d.qubits]
+                    psi = circ.reset(psi, qubit_list=qubits)
+
+                elif op_name == "statevector_readout":
+                    results.append({
+                        "type": "statevector",
+                        "step": idx,
+                        "psi": psi.copy()
+                    })
+                    print("Statevector readout:", psi.copy())
+
+                elif op_name == "if_else":
+                    raise NotImplementedError("if_else not implemented yet")
+
+                else:
+                    raise ValueError(f"Unknown fancy gate: {op_name}")
+
+
+    # Born rule → probability distribution
+    shot_result = np.square(np.abs(psi))
+
+    return results, shot_result
