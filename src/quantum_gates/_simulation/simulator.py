@@ -172,7 +172,7 @@ class MrAndersonSimulator(object):
 
         return {
             "probs": counts_ng,
-            "mid_results": all_results,   # <-- now accessible
+            "results": all_results,   # <-- now accessible
         }
 
     
@@ -341,6 +341,12 @@ class MrAndersonSimulator(object):
         current_chunk = []
         swap_detector = [a for a in range(nqubit)]
         raw_data = t_qiskit_circ.data
+        
+        #  Build lookup: Clbit → register name
+        clbit_to_reg = {}
+        for reg in t_qiskit_circ.cregs:
+            for bit in reg:
+                clbit_to_reg[bit] = reg.name
 
         # define which gates are considered "fancy"
         fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
@@ -369,8 +375,12 @@ class MrAndersonSimulator(object):
                     # final measurement → store for later
                     q = op.qubits[0]._index
                     q = qubits_layout.index(q)
-                    c = op.clbits[0]._index
-                    data_measure.append((q, c))
+                    c = op.clbits[0]
+
+                    c_reg = clbit_to_reg.get(op.clbits[0], "unknown")
+                    c_idx = op.clbits[0]._index
+                    data_measure.append((q, (c_reg, c_idx)))
+
                     
             # barrier skip
             elif op_name == "ecr" or op_name == "cx":
@@ -618,7 +628,8 @@ def _apply_gates_on_circuit(
         data: list,
         circ: Circuit or StandardCircuit or EfficientCircuit or BinaryCircuit, # type: ignore
         device_param: dict,
-        qubit_layout:list):
+        qubit_layout:list,
+    ) -> None:
     """ Applies the operations specified in data on the circuit.
 
     The constants regarding the device and noise are passed in device_param.
@@ -786,11 +797,10 @@ def _single_shot(args: dict) -> np.array:
     for idx, (d, flag) in enumerate(data):
         if flag == 0:
             _apply_gates_on_circuit(d, circ, device_param, qubit_layout)
-            if idx == len(data) - 1:
-                psi = circ.statevector(psi)
+            psi = circ.statevector(psi)
+            circ.reset_circuit()  # reset internal state for next chunk
 
         elif flag == 1:
-            psi = circ.statevector(psi)
 
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
@@ -806,9 +816,10 @@ def _single_shot(args: dict) -> np.array:
                 results.append({
                     "step": idx,
                     "qubits": qubits,
-                    "clbits": [c._index for c in op.clbits],
+                    "clbits": [c._index for c in op.clbits],  # <-- fixed here
                     "outcome": outcome
                 })
+
 
             else:
                 op_name = d.operation.name
@@ -845,8 +856,9 @@ def _single_shot(args: dict) -> np.array:
 
         bitstring = format(outcome_index, f"0{circ.nqubit}b")
         final_outcomes = {}
-        for q, c in data_measure:
-            final_outcomes[c] = int(bitstring[-(q+1)])  # Qiskit’s ordering
+        for q, (c_reg, c_idx) in data_measure:
+            final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])
+
 
 
     return results, shot_result, final_outcomes

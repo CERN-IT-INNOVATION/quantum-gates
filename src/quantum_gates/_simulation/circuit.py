@@ -480,6 +480,14 @@ class AlternativeCircuit(object):
         if len(self._mp_list) == 0:
             return psi0
         return self._backend.statevector(self._mp_list, psi0)
+    
+    def reset_circuit(self):
+        """ Reset the circuit to the initial state. """
+        self.phi = [0 for i in range(self.nqubit)]
+        self._s = 0
+        self._backend = self._BackendClass(self.nqubit)
+        self._mp = [1 for i in range(self.nqubit)]
+        self._mp_list = []
 
     
     ##NEW CODE HERE ##
