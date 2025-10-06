@@ -300,22 +300,31 @@ class MrAndersonSimulator(object):
         return n_rz, swap_detector, data
         '''
         
-    @staticmethod
-    def _pretty_print_data(data):
-        for idx, entry in enumerate(data):
-            if isinstance(entry, tuple) and entry[0] == "mid_measurement":
-                op = entry[1]
-                print(f"Fancy {idx}: mid_measurement qubits={[q._index for q in op.qubits]} "
-                    f"clbits={[c._index for c in op.clbits]}")
+    def _pretty_print_data(self, data):
+        """Print human-readable view of preprocessed circuit data."""
+        for idx, (chunk, flag) in enumerate(data):
+            if flag == 0:
+                ops_str = " , ".join(
+                    f"{op.operation.name}[{', '.join(str(q._index) for q in op.qubits)}]"
+                    for op in chunk
+                )
+                print(f"Chunk {idx}: {ops_str}")
             else:
-                chunk, flag = entry
-                if flag == 0:
-                    ops = [f"{op.operation.name}{[q._index for q in op.qubits]}" for op in chunk]
-                    print(f"Chunk {idx}: {' , '.join(ops)}")
+                op = chunk
+                # handle mid_measurement tuple
+                if isinstance(op, tuple) and op[0] == "mid_measurement":
+                    meas_op = op[1]
+                    q_idx = [q._index for q in meas_op.qubits]
+                    c_idx = [c._index for c in meas_op.clbits]
+                    print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
                 else:
-                    op = chunk
-                    print(f"Fancy {idx}: {op.operation.name} qubits={[q._index for q in op.qubits]} "
-                        f"clbits={[c._index for c in op.clbits]}")
+                    # normal fancy gate (Instruction)
+                    print(
+                        f"Fancy {idx}: {op.operation.name} "
+                        f"qubits={[q._index for q in op.qubits]} "
+                        f"clbits={[c._index for c in op.clbits]}"
+                    )
+
 
 
     
@@ -342,6 +351,7 @@ class MrAndersonSimulator(object):
             if op_name == "measure":
                 # check if there are quantum ops after this
                 remaining_ops = raw_data[i+1:]
+                #
                 has_future_quantum = any(
                     (future_op.operation.name not in {"measure", "barrier"}) 
                     for future_op in remaining_ops
@@ -353,7 +363,8 @@ class MrAndersonSimulator(object):
                         data.append((current_chunk, 0))
                         current_chunk = []
                     # instead of mutating, just store a tuple with a tag
-                    data.append(("mid_measurement", op))
+                    data.append((("mid_measurement", op), 1))
+
                 else:
                     # final measurement → store for later
                     q = op.qubits[0]._index
@@ -552,6 +563,12 @@ class MrAndersonSimulator(object):
         # Calculate result
         r_mean = r_sum / shots
         r_var = r_square_sum / shots - np.square(r_mean)
+        
+        print("---- Simulation shot results ----")
+        for i, res in enumerate(all_results):
+            print(f"Shot {i}: mid={res['mid']}, final={res['final']}")
+        print("---------------------------------")
+
 
         return r_mean, all_results
     

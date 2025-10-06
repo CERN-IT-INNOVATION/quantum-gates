@@ -121,6 +121,9 @@ class Circuit(object):
             psi (np.ndarray): Collapsed and renormalized statevector.
             result (list[int]): Measurement outcomes for each qubit in qubit_list.
         """
+        
+        print("CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
+        
         dim = psi0.shape[0]
         n = int(np.log2(dim))
 
@@ -495,6 +498,8 @@ class AlternativeCircuit(object):
             psi (np.ndarray): Collapsed and renormalized statevector.
             result (list[int]): Measurement outcomes for each qubit in qubit_list.
         """
+        print("ALT - CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
+
         dim = psi0.shape[0]
         n = int(np.log2(dim))
 
@@ -535,7 +540,10 @@ class AlternativeCircuit(object):
             norm = np.linalg.norm(collapsed)
             if norm > 0:
                 collapsed /= norm
-
+                
+        print("Statevector before mid-circuit measurement:", psi0)
+        print("Collapsed statevector after mid-circuit measurement:", collapsed)
+        print("Measurement outcomes:", result)
         return collapsed, result
 
     def reset(self, psi0: np.ndarray, p: float, T1: float, T2: float, qubit_list=None):
