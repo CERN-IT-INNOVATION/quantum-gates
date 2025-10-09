@@ -693,9 +693,9 @@ def _apply_gates_on_circuit(
                 time = data[j].operation.duration * dt
                 circ.relaxation(q_v, time, T1[q_r], T2[q_r])              
 
-        for k in range(nqubit):
-            q_r = qubit_layout[k]
-            circ.bitflip(k, tm[q_r], rout[q_r])
+        #for k in range(nqubit):
+            #q_r = qubit_layout[k]
+            #circ.bitflip(k, tm[q_r], rout[q_r])
         return
     else:
         # Apply gates
@@ -753,8 +753,8 @@ def _apply_gates_on_circuit(
                     else:
                         circ.I(k)
 
-        for k in range(nqubit):
-            circ.bitflip(k, tm[k], rout[k])
+        #for k in range(nqubit):
+            #circ.bitflip(k, tm[k], rout[k])
         return
 
 '''
@@ -801,11 +801,11 @@ def _single_shot(args: dict) -> np.array:
             circ.reset_circuit()  # reset internal state for next chunk
 
         elif flag == 1:
-
+            
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
-                psi, outcome = circ.mid_measurement(psi, qubit_list=qubits)
+                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits)
 
                 # normalize just in case
                 norm = np.linalg.norm(psi)

@@ -491,7 +491,7 @@ class AlternativeCircuit(object):
 
     
     ##NEW CODE HERE ##
-    def mid_measurement(self, psi0: np.ndarray, qubit_list=None) -> tuple[np.ndarray, list[int]]:
+    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip = False, qubit_list=None) -> tuple[np.ndarray, list[int]]:
         """
         Perform a projective mid-circuit measurement on the given qubits.
 
@@ -510,6 +510,18 @@ class AlternativeCircuit(object):
 
         dim = psi0.shape[0]
         n = int(np.log2(dim))
+
+        # Unpack dict
+        T1, T2, p, rout, p_int, t_int, tm, dt = (
+            device_param["T1"],
+            device_param["T2"],
+            device_param["p"],
+            device_param["rout"],
+            device_param["p_int"],
+            device_param["t_int"],
+            device_param["tm"],
+            device_param["dt"][0]
+        )
 
         # --- Handle qubit_list argument ---
         if qubit_list is None:
@@ -538,6 +550,13 @@ class AlternativeCircuit(object):
             # 2. Sample measurement outcome
             outcome = np.random.choice([0, 1], p=probs)
             result.append(outcome)
+            # before collapse
+
+            if add_bitflip:
+                for q in qubit_list:
+                    self.bitflip(i=q, tm=tm, rout=rout)
+                collapsed = self.statevector(collapsed)
+                self.reset_circuit()
 
             # 3. Collapse
             for idx in range(dim):
