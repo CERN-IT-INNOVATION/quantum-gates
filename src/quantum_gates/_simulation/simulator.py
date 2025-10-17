@@ -817,7 +817,7 @@ def _single_shot(args: dict) -> np.array:
                     "step": idx,
                     "qubits": qubits,
                     "clbits": [c._index for c in op.clbits],  # <-- fixed here
-                    "outcome": outcome
+                    "outcome": outcome #change ordering to fit with qiskit little endian ordering
                 })
 
 
