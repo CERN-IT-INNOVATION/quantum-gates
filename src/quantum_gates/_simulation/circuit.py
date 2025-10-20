@@ -552,11 +552,11 @@ class AlternativeCircuit(object):
             result.append(outcome)
             # before collapse
 
-            if add_bitflip:
-                for q in qubit_list:
-                    self.bitflip(i=q, tm=tm, rout=rout)
-                collapsed = self.statevector(collapsed)
-                self.reset_circuit()
+            #if add_bitflip:
+            #    for q in qubit_list:
+            #        self.bitflip(i=q, tm=tm, rout=rout)
+            #    collapsed = self.statevector(collapsed)
+            #    self.reset_circuit()
 
             # 3. Collapse
             for idx in range(dim):

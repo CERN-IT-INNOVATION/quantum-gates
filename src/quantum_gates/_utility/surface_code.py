@@ -6,24 +6,15 @@ import matplotlib.pyplot as plt
 from qiskit.visualization import plot_histogram
 from qiskit.circuit.library import XGate, YGate, ZGate
 
-
 class SurfaceCode:
-    def __init__(self, qc, distance=3, cycles = 1):
+    def __init__(self, distance=3, cycles = 1):
         self.d = distance
         self.cycles = cycles
         self.n_data = distance**2 + (distance - 1)**2
         self.n_stabilizers = 2*(distance-1)* distance
         self.n_clbits = self.n_stabilizers * cycles
         self.width = 2*distance-1
-
-        expected_qubits = self.n_data + self.n_stabilizers
-        expected_clbits = self.n_clbits
-
-        if qc.num_qubits != expected_qubits:
-            raise ValueError(f"Expected {expected_qubits} qubits, got {qc.num_qubits}")
-
-        if qc.num_clbits != expected_clbits:
-            raise ValueError(f"Expected {expected_clbits} classical bits, got {qc.num_clbits}")
+        self.qc = QuantumCircuit(self.n_data + self.n_stabilizers, self.n_clbits)
 
         # define data and stabilizer indices based on even/odd parity
 
@@ -40,20 +31,20 @@ class SurfaceCode:
         }
 
         self._build_stabilizer_layer()
-
-    def index(self,r, c):
-            return r * self.width + c
-  
+        
     def get_surface_code_layout(self):
         """
         Return indices of X stabilizers, Z stabilizers, and data qubits
         for a planar surface code of given distance.
         Layout follows the checkerboard pattern on a (2d-1) x (2d-1) grid.
         """
+        grid_size = 2*self.d - 1
 
-        
+        def index(r, c):
+            return r * grid_size + c
+
         # create coordinate grid
-        rows, cols = np.meshgrid(np.arange(self.width), np.arange(self.width), indexing="ij")
+        rows, cols = np.meshgrid(np.arange(grid_size), np.arange(grid_size), indexing="ij")
 
         # checkerboard masks
         mask_data = (rows + cols) % 2 == 0
@@ -61,9 +52,9 @@ class SurfaceCode:
         mask_z    = (rows % 2 == 1) & (cols % 2 == 0)
 
         # collect indices
-        data_qubits   = [self.index(r, c) for r, c in zip(rows[mask_data], cols[mask_data])]
-        x_stabilizers = [self.index(r, c) for r, c in zip(rows[mask_x], cols[mask_x])]
-        z_stabilizers = [self.index(r, c) for r, c in zip(rows[mask_z], cols[mask_z])]
+        data_qubits   = [index(r, c) for r, c in zip(rows[mask_data], cols[mask_data])]
+        x_stabilizers = [index(r, c) for r, c in zip(rows[mask_x], cols[mask_x])]
+        z_stabilizers = [index(r, c) for r, c in zip(rows[mask_z], cols[mask_z])]
 
         return data_qubits, x_stabilizers, z_stabilizers
 
@@ -71,16 +62,19 @@ class SurfaceCode:
     def _build_stabilizer_layer(self):
         """Build one stabilizer measurement cycle for a distance-n surface code."""
 
+        qubits = self.width
         cycles = self.cycles
 
+        def qubit_index(r, c):
+            return r * qubits + c
 
         def get_neighbors(r, c):
             """Return indices of data qubits adjacent to stabilizer at (r,c)."""
             neighbors = []
             for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
                 rr, cc = r+dr, c+dc
-                if 0 <= rr < self.width and 0 <= cc < self.width:
-                    neighbors.append(self.index(rr, cc))
+                if 0 <= rr < qubits and 0 <= cc < qubits:
+                    neighbors.append(qubit_index(rr, cc))
             return neighbors
 
         # repeat the stabilizer-measurement process for all cycles
@@ -91,7 +85,7 @@ class SurfaceCode:
                 
             # --- X stabilizers ---
             for anc in self.x_stabilizers:
-                r, c = divmod(anc, self.width) # converts a 1D index into a (row, col) pair
+                r, c = divmod(anc, qubits) # converts a 1D index into a (row, col) pair
                 
                 self.qc.h(anc)  # prepare X stabilizer in |+>
                 self.qc.barrier()
@@ -105,14 +99,13 @@ class SurfaceCode:
 
             # --- Z stabilizers ---
             for anc in self.z_stabilizers:
-                r, c = divmod(anc, self.width)
+                r, c = divmod(anc, qubits)
                 # entangle with data qubits (data is control, ancilla target)
                 for nb in get_neighbors(r, c):
                     self.qc.cx(nb, anc)
 
                 self.qc.barrier()
 
-            self.qc.barrier()
             # --- Measure all stabilizers for this cycle --- 
             classical_offset = cycle * self.n_stabilizers
             stab_list = sorted(self.x_stabilizers + self.z_stabilizers)
@@ -121,15 +114,6 @@ class SurfaceCode:
 
             self.qc.barrier()
 
-
-    def run_cycle(self, shots=256):
-        simulator = Aer.get_backend('qasm_simulator') #'aer_simulator'
-        transpiled_circuit = transpile(self.qc, simulator)
-        job = simulator.run(transpiled_circuit, shots=shots)
-        result = job.result()
-        counts = result.get_counts()
-        self.plot_results(counts, shots)
-        return counts
     
    
     def analyze_results(self, counts):
@@ -137,6 +121,7 @@ class SurfaceCode:
         Analyze measurement results using stabilizer-to-classical-bit mapping.
         Returns a dict: stabilizer → {bitstring_pattern: frequency}.
         """
+        n_cycles = self.cycles
         results = {stab: {} for stab in (self.x_stabilizers + self.z_stabilizers)}
 
         for bitstring, count in counts.items():
@@ -157,18 +142,8 @@ class SurfaceCode:
 
         return pretty
 
-
-
-    def plot_results(self, counts, total_shots):
-        """
-        Plot measurement results for the surface code.
-        - If 1 shot: timeline plot of stabilizer outcomes per cycle.
-        - If >1 shots: histogram of syndromes per stabilizer.
-        """
-        # --- Single-shot timeline ---
-        if total_shots == 1:
-            bitstring = list(counts.keys())[0][::-1]
-
+    def plot_single_shot(self, bitstring, shot_idx=None):
+            # --- Single-shot timeline ---
             plt.figure(figsize=(10, 3))
 
             # Plot X stabilizers
@@ -201,7 +176,10 @@ class SurfaceCode:
                     linestyle='--'
                 )
 
-            plt.title("Single-shot stabilizer measurements", fontsize=14)
+            title = "Single-shot stabilizer measurements"
+            if shot_idx is not None:
+                title += f" — Shot {shot_idx + 1}"
+            plt.title(title, fontsize=14)
             plt.xlabel("Cycle", fontsize=12)
             plt.ylabel("Measurement", fontsize=12)
             plt.yticks([0, 1])
@@ -211,7 +189,28 @@ class SurfaceCode:
             plt.tight_layout()
             plt.show()
 
-        # --- Multi-shot histogram ---
+    def plot_results(self, counts, total_shots, plot_each_shot=False):
+        """
+        Plot measurement results for the surface code.
+        - If 1 shot: timeline plot of stabilizer outcomes per cycle.
+        - If >1 shots:
+            - If plot_each_shot=True: plot each shot individually like single-shot mode.
+            - If plot_each_shot=False: plot aggregated histogram (default behavior).
+        """
+        
+
+        # --- Case 1: only one shot ---
+        if total_shots == 1:
+            bitstring = list(counts.keys())[0][::-1]
+            self.plot_single_shot(bitstring)
+            return
+
+        # --- Case 2: multiple shots ---
+        if plot_each_shot:
+            all_bitstrings = list(counts.keys())
+            for i in range(total_shots):
+                bitstring = all_bitstrings[i][::-1]   # get i-th bitstring, reversed
+                self.plot_single_shot(bitstring, shot_idx=i)
         else:
             analyzed = self.analyze_results(counts)
             flat_results = {
@@ -233,6 +232,4 @@ class SurfaceCode:
 
             plt.tight_layout()
             plt.show()
-
-
 
