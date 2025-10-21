@@ -555,11 +555,15 @@ class MrAndersonSimulator(object):
 
             # Compute
             p = multiprocessing.Pool(n_processes)
-            for shot_result in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
+            for results, shot_result, final_outcomes in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
                 # Add shot
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
 
+                all_results.append({
+                    "mid": results,
+                    "final": final_outcomes
+                })
             # Shut down pool
             p.close()
             p.join()
@@ -815,7 +819,6 @@ def _single_shot(args: dict) -> np.array:
                 qubits = [q._index for q in op.qubits]
                 clbits = [c._index for c in op.clbits]
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits, cbit_list = clbits)
-
                 # normalize just in case
                 norm = np.linalg.norm(psi)
                 if norm > 0:
