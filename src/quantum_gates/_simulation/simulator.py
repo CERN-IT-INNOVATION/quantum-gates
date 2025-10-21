@@ -143,6 +143,10 @@ class MrAndersonSimulator(object):
         if n_measured_qubit == 0:
             raise ValueError("None qubit measured")
 
+        # Get total classical bits (for Aer-style output)
+        num_clbits = len(t_qiskit_circ.clbits)
+        print(f"Number of classical bits in circuit: {num_clbits}")
+    
         # Validate input
         self._validate_input_of_run(t_qiskit_circ, qubits_layout_t, psi0, shots, device_param, nqubit)
 
@@ -173,7 +177,8 @@ class MrAndersonSimulator(object):
 
         return {
             "probs": counts_ng,
-            "results": all_results,   # <-- now accessible
+            "results": all_results, # mid-circuit measurement results
+            "num_clbits": num_clbits, # number of classical bits in circuit
         }
 
     
@@ -315,13 +320,15 @@ class MrAndersonSimulator(object):
                 # handle mid_measurement tuple
                 if isinstance(op, tuple) and op[0] == "mid_measurement":
                     meas_op = op[1]
-                    q_idx = [q._index for q in meas_op.qubits]
-                    c_idx = [c._index for c in meas_op.clbits]
+                    q_idx = meas_op["q_idx"]
+                    c_idx = meas_op["c_idx"]
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
+                    
                 elif isinstance(op, tuple) and op[0] == "reset_qubits":
                     inner_op = op[1]
                     q_idx = [q._index for q in inner_op.qubits]
                     print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
+                    
                 else:
                     # normal fancy gate (Instruction)
                     print(
@@ -348,33 +355,49 @@ class MrAndersonSimulator(object):
         raw_data = t_qiskit_circ.data
         
         #  Build lookup: Clbit → register name
+        # --- NEW: flat index maps (circuit-wide ordering) ---
+        q2i = {q: i for i, q in enumerate(t_qiskit_circ.qubits)}     # Qubit  -> flat index
+        c2i = {c: i for i, c in enumerate(t_qiskit_circ.clbits)}     # Clbit  -> flat index
+
+        # Optional: map clbit -> (register_name, index_in_that_register)
         clbit_to_reg = {}
         for reg in t_qiskit_circ.cregs:
-            for bit in reg:
-                clbit_to_reg[bit] = reg.name
+            for local_i, bit in enumerate(reg):   # <- get local index safely
+                clbit_to_reg[bit] = (reg.name, local_i)
 
         # define which gates are considered "fancy"
         fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
 
         for i, op in enumerate(raw_data):
             op_name = op.operation.name
-
+            
+            # ---------------------- MEASUREMENT ----------------------
             if op_name == "measure":
-                # check if there are quantum ops after this
+                # Is this a mid measurement? (any quantum op after it)
                 remaining_ops = raw_data[i+1:]
-                #
                 has_future_quantum = any(
                     (future_op.operation.name not in {"measure", "barrier"}) 
                     for future_op in remaining_ops
                 )
 
+                # Build flat index lists for ALL qubits/clbits in this instruction
+                q_idx = [q2i[q] for q in op.qubits]      # flat qubit indices
+                c_idx = [c2i[c] for c in op.clbits]      # flat clbit indices
+                
                 if has_future_quantum:
                     # mid-circuit → treat as fancy gate
                     if current_chunk:
                         data.append((current_chunk, 0))
                         current_chunk = []
                     # instead of mutating, just store a tuple with a tag
-                    data.append((("mid_measurement", op), 1))
+                    data.append((
+                        ("mid_measurement", {
+                            "op": op,       # keep original CircuitInstruction for debugging if you like
+                            "q_idx": q_idx, # flat qubit indices (aligned with op.qubits)
+                            "c_idx": c_idx, # flat clbit indices (aligned with op.clbits)
+                        }),
+                        1
+                    ))
 
                 else:
                     # final measurement → store for later
@@ -822,9 +845,14 @@ def _single_shot(args: dict) -> np.array:
             
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
-                qubits = [q._index for q in op.qubits]
-                clbits = [c._index for c in op.clbits]
+                qubits  = op["q_idx"]
+                clbits  = op["c_idx"]
+                # Perform the mid-circuit measurement
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits, cbit_list = clbits)
+                
+                outcome1 = [int(x) for x in np.atleast_1d(outcome)]
+                assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
+                
                 # normalize just in case
                 norm = np.linalg.norm(psi)
                 if norm > 0:
