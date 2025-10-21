@@ -808,7 +808,7 @@ def _single_shot(args: dict) -> np.array:
     psi0 = args["psi0"]
     qubit_layout = args["qubit_layout"]
 
-
+    add_bitflip = True
     psi = psi0
     results = []  # mid results
 
@@ -824,7 +824,7 @@ def _single_shot(args: dict) -> np.array:
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
                 clbits = [c._index for c in op.clbits]
-                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits, cbit_list = clbits)
+                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip, qubit_list=qubits, cbit_list = clbits)
                 # normalize just in case
                 norm = np.linalg.norm(psi)
                 if norm > 0:
@@ -841,18 +841,10 @@ def _single_shot(args: dict) -> np.array:
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
-                # Extract device parameters
-                p = device_param["p"]
-                T1 = device_param["T1"]
-                T2 = device_param["T2"]
-
+        
                 # Perform the noisy reset operation
                 psi, reset_outcomes = circ.reset_qubits(
-                    psi0=psi,
-                    p=p,
-                    T1=T1,
-                    T2=T2,
-                    qubit_list=qubits
+                    psi, device_param, add_bitflip, qubit_list=qubits
                 )
 
                 # Normalize again (defensive)

@@ -585,7 +585,7 @@ class AlternativeCircuit(object):
         return collapsed, result
 
 
-    def reset_qubits(self, psi0: np.ndarray, p: float, T1: float, T2: float, qubit_list=None):
+    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip, qubit_list=None):
         """
         Reset one or more qubits:
         - Measure qubits in qubit_list
@@ -602,7 +602,19 @@ class AlternativeCircuit(object):
             outcomes (list[int]): Measurement outcomes for each qubit.
         """
         # --- 1. Measure specified qubits ---
-        collapsed, outcomes = self.mid_measurement(psi0, qubit_list)
+        collapsed, outcomes = self.mid_measurement(psi0, device_param, add_bitflip, qubit_list)
+
+        # Unpack device parameters
+        T1, T2, p, rout, p_int, t_int, tm, dt = (
+            device_param["T1"],
+            device_param["T2"],
+            device_param["p"],
+            device_param["rout"],
+            device_param["p_int"],
+            device_param["t_int"],
+            device_param["tm"],
+            device_param["dt"][0]
+        )
 
         dim = collapsed.shape[0]
         n = int(np.log2(dim))
@@ -610,7 +622,7 @@ class AlternativeCircuit(object):
         # --- 2. For each qubit with outcome=1, apply X ---
         for q, outcome in zip(qubit_list, outcomes):
             if outcome == 1:
-                self.X(i=q, p=p, T1=T1, T2=T2)
+                self.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
             else: self.I(i=q)
         
         psi = self.statevector(collapsed)
