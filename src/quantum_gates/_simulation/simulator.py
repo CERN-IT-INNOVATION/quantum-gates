@@ -373,8 +373,9 @@ class MrAndersonSimulator(object):
                     if current_chunk:
                         data.append((current_chunk, 0))
                         current_chunk = []
-                    # instead of mutating, just store a tuple with a tag
-                    data.append((("mid_measurement", op), 1))
+                    q = op.qubits[0]._index
+                    if q in qubits_layout:
+                        data.append((("mid_measurement", op), 1))
 
                 else:
                     # final measurement → store for later
@@ -387,10 +388,13 @@ class MrAndersonSimulator(object):
                     data_measure.append((q, (c_reg, c_idx)))
 
             elif op_name == "reset":
-                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
-                current_chunk = []
-                #TO DO: if q in qubits_layout:
-                data.append((("reset_qubits", op), 1))
+                if current_chunk:
+                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                    current_chunk = []
+                q = op.qubits[0]._index
+                if q in qubits_layout:
+                    data.append((("reset_qubits", op), 1))
+            
                 
             elif op_name == "ecr" or op_name == "cx":
                 q_ctr = op.qubits[0]._index
@@ -425,6 +429,9 @@ class MrAndersonSimulator(object):
 
         # update swap detector using measurements
         for q, c in data_measure:
+            if q >= len(swap_detector):
+                print(f"⚠️ Skipping measurement update for qubit {q} (only {len(swap_detector)} qubits)")
+                continue
             swap_detector[q] = c
 
         print("Data after preprocessing:")
@@ -843,7 +850,7 @@ def _single_shot(args: dict) -> np.array:
                 qubits = [q._index for q in op.qubits]
         
                 # Perform the noisy reset operation
-                psi, reset_outcomes = circ.reset_qubits(
+                psi = circ.reset_qubits(
                     psi, device_param, add_bitflip, qubit_list=qubits
                 )
 
@@ -852,7 +859,7 @@ def _single_shot(args: dict) -> np.array:
                 if norm > 0:
                     psi /= norm
                     
-                print("Reset qubits:", qubits, "Outcomes:", reset_outcomes)
+                print("Reset qubits, new statevector:", psi)
 
             else:
                 op_name = d.operation.name

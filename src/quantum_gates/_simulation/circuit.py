@@ -549,13 +549,20 @@ class AlternativeCircuit(object):
             raise ValueError("cbit_list contains duplicate classical bit indices.")
 
         # --- Perform measurement ---
-        collapsed = psi0.copy()
+        psi = psi0.copy()
         raw_results = {}
 
         for target_qubit, target_cbit in zip(qubit_list, cbit_list):
+            if add_bitflip:
+                self.reset_circuit()
+                print(f"Applying bitflip noise on qubit {target_qubit} before measurement.")
+                self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
+                psi = self.statevector(psi)
+                self.reset_circuit()
+
             # 1. Compute Born probabilities
             probs = [0.0, 0.0]
-            for idx, amp in enumerate(collapsed):
+            for idx, amp in enumerate(psi):
                 bit = (idx >> (n - 1 - target_qubit)) & 1
                 probs[bit] += abs(amp) ** 2
             probs = np.array(probs) / sum(probs)
@@ -568,21 +575,21 @@ class AlternativeCircuit(object):
             # 3. Collapse the state
             for idx in range(dim):
                 if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    collapsed[idx] = 0.0 + 0.0j
+                    psi[idx] = 0.0 + 0.0j
 
             # 4. Renormalize
-            norm = np.linalg.norm(collapsed)
+            norm = np.linalg.norm(psi)
             if norm > 0:
-                collapsed /= norm
+                psi /= norm
 
 
         # Sort by classical bit index for final output
         result = [raw_results[c] for c in sorted(raw_results.keys())]
 
         print("Statevector before mid-circuit measurement:", psi0)
-        print("Collapsed statevector after mid-circuit measurement:", collapsed)
+        print("Collapsed statevector after mid-circuit measurement:", psi)
         print("Measurement outcomes (mapped to cbits):", result)
-        return collapsed, result
+        return psi, result
 
 
     def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip, qubit_list=None):
@@ -603,7 +610,7 @@ class AlternativeCircuit(object):
         """
         # --- 1. Measure specified qubits ---
         collapsed, outcomes = self.mid_measurement(psi0, device_param, add_bitflip, qubit_list)
-
+    
         # Unpack device parameters
         T1, T2, p, rout, p_int, t_int, tm, dt = (
             device_param["T1"],
@@ -622,13 +629,14 @@ class AlternativeCircuit(object):
         # --- 2. For each qubit with outcome=1, apply X ---
         for q, outcome in zip(qubit_list, outcomes):
             if outcome == 1:
+                print(f"Resetting qubit {q} from |1> to |0> with noisy X gate.")
                 self.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
             else: self.I(i=q)
         
         psi = self.statevector(collapsed)
         self.reset_circuit()
 
-        return psi, outcomes
+        return psi
 
 
     def statevector_readout(self, psi0) -> np.array:
