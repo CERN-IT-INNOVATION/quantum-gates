@@ -318,6 +318,10 @@ class MrAndersonSimulator(object):
                     q_idx = [q._index for q in meas_op.qubits]
                     c_idx = [c._index for c in meas_op.clbits]
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
+                elif isinstance(op, tuple) and op[0] == "reset_qubits":
+                    inner_op = op[1]
+                    q_idx = [q._index for q in inner_op.qubits]
+                    print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
                 else:
                     # normal fancy gate (Instruction)
                     print(
@@ -382,18 +386,19 @@ class MrAndersonSimulator(object):
                     c_idx = op.clbits[0]._index
                     data_measure.append((q, (c_reg, c_idx)))
 
-                    
-            # barrier skip
+            elif op_name == "reset":
+                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                current_chunk = []
+                #TO DO: if q in qubits_layout:
+                data.append((("reset_qubits", op), 1))
+                
             elif op_name == "ecr" or op_name == "cx":
                 q_ctr = op.qubits[0]._index
                 q_trg = op.qubits[1]._index
                 if q_ctr in qubits_layout and q_trg in qubits_layout:
                     current_chunk.append(op)
-            elif op_name == "reset":
-                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
-                current_chunk = []
-                #TO DO: if q in qubits_layout:
-                data.append(("reset_qubits",1))  # fancy gate goes as standalone
+        
+            
             elif op_name == "statevector_readout":
                 print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
                 data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
@@ -402,6 +407,7 @@ class MrAndersonSimulator(object):
                 data.append((op,1))  # fancy gate goes as standalone
             elif op_name == "barrier":
                 continue
+
             elif op_name == "rz":
                 q = op.qubits[0]._index
                 if q in qubits_layout:
@@ -832,35 +838,33 @@ def _single_shot(args: dict) -> np.array:
                     "outcome": outcome,
                 })
 
+            elif isinstance(d, tuple) and d[0] == "reset_qubits":
+                op = d[1]
+                qubits = [q._index for q in op.qubits]
+                # Extract device parameters
+                p = device_param["p"]
+                T1 = device_param["T1"]
+                T2 = device_param["T2"]
+
+                # Perform the noisy reset operation
+                psi, reset_outcomes = circ.reset_qubits(
+                    psi0=psi,
+                    p=p,
+                    T1=T1,
+                    T2=T2,
+                    qubit_list=qubits
+                )
+
+                # Normalize again (defensive)
+                norm = np.linalg.norm(psi)
+                if norm > 0:
+                    psi /= norm
+                    
+                print("Reset qubits:", qubits, "Outcomes:", reset_outcomes)
 
             else:
                 op_name = d.operation.name
-                if op_name == "reset_qubits":
-                    qubits = [q._index for q in d.qubits]
-
-                    # Extract device parameters
-                    p = device_param["p"]
-                    T1 = device_param["T1"]
-                    T2 = device_param["T2"]
-
-                    # Perform the noisy reset operation
-                    psi, reset_outcomes = circ.reset_qubits(
-                        psi0=psi,
-                        p=p,
-                        T1=T1,
-                        T2=T2,
-                        qubit_list=qubits
-                    )
-
-                    # Normalize again (defensive)
-                    norm = np.linalg.norm(psi)
-                    if norm > 0:
-                        psi /= norm
-                    
-                    print("Reset qubits:", qubits, "Outcomes:", reset_outcomes)
-
-
-                elif op_name == "statevector_readout":
+                if op_name == "statevector_readout":
                     print("Statevector readout not tested!!")
                     print("Statevector readout:", psi.copy())
 

@@ -606,12 +606,18 @@ class AlternativeCircuit(object):
 
         dim = collapsed.shape[0]
         n = int(np.log2(dim))
-
+        self.reset_circuit()
         # --- 2. For each qubit with outcome=1, apply X ---
         for q, outcome in zip(qubit_list, outcomes):
             if outcome == 1:
                 self.X(i=q, p=p, T1=T1, T2=T2)
             else: self.I(i=q)
+        
+        psi = self.statevector(collapsed)
+        self.reset_circuit()
+
+        return psi, outcomes
+
 
     def statevector_readout(self, psi0) -> np.array:
         return psi0
