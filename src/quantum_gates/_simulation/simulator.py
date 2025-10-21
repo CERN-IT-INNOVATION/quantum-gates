@@ -156,6 +156,7 @@ class MrAndersonSimulator(object):
         probs, all_results = self._perform_simulation(
             shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, data_measure
         )
+        print("All results from shots in run simulatot:", all_results)
 
         # Normalize the result
         reordered_arr = np.array(probs)
@@ -388,7 +389,13 @@ class MrAndersonSimulator(object):
                 q_trg = op.qubits[1]._index
                 if q_ctr in qubits_layout and q_trg in qubits_layout:
                     current_chunk.append(op)
-            elif op_name in fancy_gates:
+            elif op_name == "reset":
+                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                current_chunk = []
+                #TO DO: if q in qubits_layout:
+                data.append(("reset_qubits",1))  # fancy gate goes as standalone
+            elif op_name == "statevector_readout":
+                print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
                 data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                 current_chunk = []
                 #TO DO: if q in qubits_layout:
@@ -791,6 +798,7 @@ def _single_shot(args: dict) -> np.array:
     psi0 = args["psi0"]
     qubit_layout = args["qubit_layout"]
 
+
     psi = psi0
     results = []  # mid results
 
@@ -805,7 +813,8 @@ def _single_shot(args: dict) -> np.array:
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
-                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits)
+                clbits = [c._index for c in op.clbits]
+                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits, cbit_list = clbits)
 
                 # normalize just in case
                 norm = np.linalg.norm(psi)
@@ -816,8 +825,8 @@ def _single_shot(args: dict) -> np.array:
                 results.append({
                     "step": idx,
                     "qubits": qubits,
-                    "clbits": [c._index for c in op.clbits],  # <-- fixed here
-                    "outcome": outcome #change ordering to fit with qiskit little endian ordering
+                    "clbits": clbits,
+                    "outcome": outcome,
                 })
 
 
@@ -825,14 +834,31 @@ def _single_shot(args: dict) -> np.array:
                 op_name = d.operation.name
                 if op_name == "reset_qubits":
                     qubits = [q._index for q in d.qubits]
-                    psi = circ.reset(psi, qubit_list=qubits)
+
+                    # Extract device parameters
+                    p = device_param["p"]
+                    T1 = device_param["T1"]
+                    T2 = device_param["T2"]
+
+                    # Perform the noisy reset operation
+                    psi, reset_outcomes = circ.reset_qubits(
+                        psi0=psi,
+                        p=p,
+                        T1=T1,
+                        T2=T2,
+                        qubit_list=qubits
+                    )
+
+                    # Normalize again (defensive)
+                    norm = np.linalg.norm(psi)
+                    if norm > 0:
+                        psi /= norm
+                    
+                    print("Reset qubits:", qubits, "Outcomes:", reset_outcomes)
+
 
                 elif op_name == "statevector_readout":
-                    results.append({
-                        "type": "statevector",
-                        "step": idx,
-                        "psi": psi.copy()
-                    })
+                    print("Statevector readout not tested!!")
                     print("Statevector readout:", psi.copy())
 
                 elif op_name == "if_else":
@@ -861,4 +887,4 @@ def _single_shot(args: dict) -> np.array:
 
 
 
-    return results, shot_result, final_outcomes
+    return results[::-1], shot_result, final_outcomes

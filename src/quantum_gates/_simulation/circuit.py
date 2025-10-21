@@ -491,7 +491,7 @@ class AlternativeCircuit(object):
 
     
     ##NEW CODE HERE ##
-    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip = False, qubit_list=None) -> tuple[np.ndarray, list[int]]:
+    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip = False, qubit_list=None, cbit_list = None) -> tuple[np.ndarray, list[int]]:
         """
         Perform a projective mid-circuit measurement on the given qubits.
 
@@ -572,8 +572,103 @@ class AlternativeCircuit(object):
         print("Collapsed statevector after mid-circuit measurement:", collapsed)
         print("Measurement outcomes:", result)
         return collapsed, result
+    
+    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False, qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
+        """
+        Perform a projective mid-circuit measurement on the given qubits.
 
-    def reset(self, psi0: np.ndarray, p: float, T1: float, T2: float, qubit_list=None):
+        Args:
+            psi0 (np.ndarray): Initial statevector of shape (2^n,).
+            qubit_list (list[int] or None): List of qubit indices (0 = least significant).
+                - None → measure all qubits
+                - [i1, i2, ...] → measure only those qubits
+                - [] or invalid input → raises ValueError
+            cbit_list (list[int] or None): List of classical bit indices for storing results.
+                - None → map qubit i to classical bit i
+                - [j1, j2, ...] → assign result of qubit_list[k] to cbit_list[k]
+                - Invalid input → raises ValueError
+
+        Returns:
+            psi (np.ndarray): Collapsed and renormalized statevector.
+            result (list[int]): Measurement outcomes mapped to classical bits.
+        """
+        print("ALT - CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
+
+        dim = psi0.shape[0]
+        n = int(np.log2(dim))
+
+        # Unpack device parameters
+        T1, T2, p, rout, p_int, t_int, tm, dt = (
+            device_param["T1"],
+            device_param["T2"],
+            device_param["p"],
+            device_param["rout"],
+            device_param["p_int"],
+            device_param["t_int"],
+            device_param["tm"],
+            device_param["dt"][0]
+        )
+
+        # --- Handle qubit_list ---
+        if qubit_list is None:
+            qubit_list = list(range(n))   # measure all qubits if not specified
+        elif not isinstance(qubit_list, (list, tuple)):
+            raise ValueError("qubit_list must be a list of qubit indices or None.")
+        elif len(qubit_list) == 0:
+            raise ValueError("qubit_list cannot be empty. Use None to measure all qubits.")
+        elif any((not isinstance(q, int)) or (q < 0) or (q >= n) for q in qubit_list):
+            raise ValueError(f"qubit_list must contain valid qubit indices in [0, {n-1}].")
+        elif len(set(qubit_list)) != len(qubit_list):
+            raise ValueError("qubit_list contains duplicate qubit indices.")
+
+        # --- Handle cbit_list ---
+        if cbit_list is None:
+            cbit_list = list(range(len(qubit_list)))  # default mapping
+        elif not isinstance(cbit_list, (list, tuple)):
+            raise ValueError("cbit_list must be a list of classical bit indices or None.")
+        elif len(cbit_list) != len(qubit_list):
+            raise ValueError("cbit_list must have the same length as qubit_list.")
+        elif any((not isinstance(c, int)) or (c < 0) for c in cbit_list):
+            raise ValueError("cbit_list must contain valid non-negative integer indices.")
+        elif len(set(cbit_list)) != len(cbit_list):
+            raise ValueError("cbit_list contains duplicate classical bit indices.")
+
+        # --- Perform measurement ---
+        collapsed = psi0.copy()
+        raw_results = {}
+
+        for target_qubit, target_cbit in zip(qubit_list, cbit_list):
+            # 1. Compute Born probabilities
+            probs = [0.0, 0.0]
+            for idx, amp in enumerate(collapsed):
+                bit = (idx >> (n - 1 - target_qubit)) & 1
+                probs[bit] += abs(amp) ** 2
+            probs = np.array(probs) / sum(probs)
+            print("Born probabilities for qubit", target_qubit, ":", probs)
+            # 2. Sample measurement outcome
+            outcome = np.random.choice([0, 1], p=probs)
+            raw_results[target_cbit] = outcome
+
+            # 3. Collapse the state
+            for idx in range(dim):
+                if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
+                    collapsed[idx] = 0.0 + 0.0j
+
+            # 4. Renormalize
+            norm = np.linalg.norm(collapsed)
+            if norm > 0:
+                collapsed /= norm
+
+        # Sort by classical bit index for final output
+        result = [raw_results[c] for c in sorted(raw_results.keys())]
+
+        print("Statevector before mid-circuit measurement:", psi0)
+        print("Collapsed statevector after mid-circuit measurement:", collapsed)
+        print("Measurement outcomes (mapped to cbits):", result)
+        return collapsed, result
+
+
+    def reset_qubits(self, psi0: np.ndarray, p: float, T1: float, T2: float, qubit_list=None):
         """
         Reset one or more qubits:
         - Measure qubits in qubit_list
