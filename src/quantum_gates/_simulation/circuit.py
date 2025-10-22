@@ -591,51 +591,72 @@ class AlternativeCircuit(object):
         return psi, result
 
 
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip, qubit_list=None):
+    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None, phys_to_logical=None):
         """
-        Reset one or more qubits:
-        - Measure qubits in qubit_list
-        - For each qubit measured as 1, apply X to reset to |0>
+        Perform a noisy reset on one or more qubits.
+
+        - Measures specified qubits (mid-measurement collapse)
+        - Applies a noisy X gate to any qubit measured as 1
+        - Completes the layer with identity gates on untouched wires
 
         Args:
             psi0 (np.ndarray): Input statevector (length 2^n).
-            qubit_list (list[int] or None): Qubits to reset.
-                - None → reset all qubits
-                - [i1, i2, ...] → reset only those qubits
+            device_param (dict): Device parameters with T1, T2, p, etc.
+            add_bitflip (bool): Whether to include bit-flip in measurement.
+            qubit_list (list[int] or None): Logical qubits to reset. None → all qubits.
+            phys_to_logical (dict or None): Optional mapping from physical→logical indices.
+                                            If None, assumes 1-to-1 mapping.
 
         Returns:
             psi (np.ndarray): Statevector after reset.
             outcomes (list[int]): Measurement outcomes for each qubit.
         """
-        # --- 1. Measure specified qubits ---
-        collapsed, outcomes = self.mid_measurement(psi0, device_param, add_bitflip, qubit_list)
-    
-        # Unpack device parameters
-        T1, T2, p, rout, p_int, t_int, tm, dt = (
-            device_param["T1"],
-            device_param["T2"],
-            device_param["p"],
-            device_param["rout"],
-            device_param["p_int"],
-            device_param["t_int"],
-            device_param["tm"],
-            device_param["dt"][0]
+        # --- 1. Collapse (mid-measure) on the specified logical qubits ---
+        collapsed, outcomes = self.mid_measurement(
+            psi0, device_param, add_bitflip, qubit_list
         )
 
-        dim = collapsed.shape[0]
-        n = int(np.log2(dim))
+        # --- 2. Unpack device parameters ---
+        T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
+
+        n = self.nqubit
         self.reset_circuit()
-        # --- 2. For each qubit with outcome=1, apply X ---
-        for q, outcome in zip(qubit_list, outcomes):
+
+        # --- 3. Map physical → logical (if provided) ---
+        if phys_to_logical is not None:
+            qubits_r = [list(phys_to_logical.keys())[list(phys_to_logical.values()).index(q)]
+                        if q in phys_to_logical.values() else q
+                        for q in qubit_list]
+        else:
+            qubits_r = qubit_list
+
+        # --- 4. Apply noisy X for measured '1's, build full layer with identities ---
+        touched: set[int] = set()
+        for q_r, q_v, outcome in zip(qubits_r, qubit_list, outcomes):
+            touched.add(q_v)
             if outcome == 1:
-                print(f"Resetting qubit {q} from |1> to |0> with noisy X gate.")
-                self.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
-            else: self.I(i=q)
-        
+                print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
+                self.X(i=q_v, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
+            else:
+                print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
+                self.I(i=q_v)
+
+        # Fill identities for untouched wires (complete layer)
+        for k in range(n):
+            if k not in touched:
+                self.I(i=k)
+
+        # --- 5. Apply this layer to collapsed state ---
         psi = self.statevector(collapsed)
         self.reset_circuit()
 
-        return psi
+        # --- 6. Normalize defensively ---
+        norm = np.linalg.norm(psi)
+        if norm > 0:
+            psi /= norm
+
+        print("Reset qubits completed. New statevector:", psi)
+        return psi, outcomes
     
 
 
