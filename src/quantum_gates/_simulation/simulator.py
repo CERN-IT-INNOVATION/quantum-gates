@@ -66,13 +66,11 @@ class MrAndersonSimulator(object):
         parallel (bool): Whether or not the shots should be run in parallel. False by default.
     """
 
-
     def __init__(self, gates: Gates=standard_gates, CircuitClass=BinaryCircuit, parallel: bool=False):
         self.gates = gates  # Contains the information about the pulses.
         self.CircuitClass = CircuitClass
         self.parallel = parallel
         
-    
     
     def run(self,
             t_qiskit_circ,
@@ -80,7 +78,8 @@ class MrAndersonSimulator(object):
             psi0: np.array,
             shots: int,
             device_param: dict,
-            nqubit: int,) -> dict:
+            nqubit: int,
+            bit_flip_bool=True,) -> dict:
         """
             Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
             and runs noisy quantum gates.
@@ -98,7 +97,6 @@ class MrAndersonSimulator(object):
             Note: The output follow the Big Endian order for the bit strings
                     
         """
-
         # Process layout circuit
         used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
         
@@ -140,7 +138,7 @@ class MrAndersonSimulator(object):
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         #  perform simulation (psi0 spans full width nqubit; active_layout routes gates)
         probs, all_results = self._perform_simulation(
-            shots, data, n_rz, nqubit, device_param, psi0, active_layout, data_measure
+            shots, data, n_rz, nqubit, device_param, psi0, active_layout, data_measure, bit_flip_bool
         )
 
         # Normalize final probabilities
@@ -189,7 +187,6 @@ class MrAndersonSimulator(object):
             "num_clbits": num_clbits, # number of classical bits in circuit
             "mid_counts": dict(mid_counts), # mid-circuit measurement counts
         }
-
     
 
     def _process_layout(self, circ : QuantumCircuit) -> Tuple[List[int], List[Tuple[int, int]], int]:
@@ -258,7 +255,6 @@ class MrAndersonSimulator(object):
 
         return
 
-
         
     def _pretty_print_data(self, data):
         """Print human-readable view of preprocessed circuit data."""
@@ -291,9 +287,8 @@ class MrAndersonSimulator(object):
                         f"clbits={[c._index for c in op.clbits]}"
                     )
 
-
     
-    def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int) -> tuple:
+    def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int,) -> tuple:
         """ Preprocess QuantumCircuit.data:
         - Count number of RZ gates (n_rz).
         - Track swaps (swap_detector).
@@ -301,7 +296,7 @@ class MrAndersonSimulator(object):
         - bring the circuit in a format (data) that is compatible with the rest of the simulation.
         data = [ [ops until first fancy], fancy_gate, [ops until next fancy], fancy_gate, ... ]
         """
-       
+        # Initialize
         n_rz = 0
         data = []
         data_measure = []
@@ -321,12 +316,11 @@ class MrAndersonSimulator(object):
                 clbit_to_reg[bit] = (reg.name, local_i)
 
         # define which gates are considered "fancy"
-        fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
+        ## fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
 
         for i, op in enumerate(raw_data):
             op_name = op.operation.name
             
-                
             # ---------------------- MEASUREMENT ----------------------
             if op_name == "measure":
                 # Is this a mid measurement? (any quantum op after it)
@@ -405,12 +399,12 @@ class MrAndersonSimulator(object):
         # update swap detector using measurements
         for q, c in data_measure:
             if q >= len(swap_detector):
-                print(f"⚠️ Skipping measurement update for qubit {q} (only {len(swap_detector)} qubits)")
+                print(f"Skipping measurement update for qubit {q} (only {len(swap_detector)} qubits)")
                 continue
             swap_detector[q] = c
 
-        print("Data after preprocessing:")
-        print(data)
+        #print("Data after preprocessing:")
+        #print(data)
             
         print("---- Preprocessed data ----")
         self._pretty_print_data(data)
@@ -428,10 +422,10 @@ class MrAndersonSimulator(object):
                             device_param: dict,
                             psi0: np.array,
                             qubit_layout: list,
-                            data_measure: list) -> np.array:
+                            data_measure: list,
+                            bit_flip_bool: bool,) -> np.array:
         """ Performs the simulation shots many times and returns the resulting probability distribution.
         """
-
         # Setup results
         r_sum = np.zeros(2**nqubit)
         r_square_sum = np.zeros(2**nqubit)
@@ -448,6 +442,7 @@ class MrAndersonSimulator(object):
                 "device_param": copy.deepcopy(device_param),
                 "psi0": copy.deepcopy(psi0),
                 "qubit_layout": copy.deepcopy(qubit_layout),
+                "bit_flip_bool": bit_flip_bool,
             } for i in range(shots)
         ]
         
@@ -499,14 +494,13 @@ class MrAndersonSimulator(object):
         r_mean = r_sum / shots
         r_var = r_square_sum / shots - np.square(r_mean)
         
+        ''' Debug print 
         print("---- Simulation shot results ----")
         for i, res in enumerate(all_results):
             print(f"Shot {i}: mid={res['mid']}, final={res['final']}")
         print("---------------------------------")
-
-
+        '''
         return r_mean, all_results
-    
     
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
@@ -521,7 +515,6 @@ class MrAndersonSimulator(object):
         Returns:
             dict: the keys are the possible states and the value the probabilities of measurement each state.
         """
-
         # create the vector with the bit strings
         binary_vector = np.array([format(i, f'0{n_qubit}b') for i in np.arange(2**n_qubit)], dtype=str)
 
@@ -537,18 +530,15 @@ class MrAndersonSimulator(object):
         for binary_str in binary_vector:
             temp = [binary_str[i] for i in q_meas]
             res.append(''.join(temp)) 
-
         
         # create a dictionary to store the probabilities of measure one of the possible state
         sums = {}
-
         for value, bit_string in zip(prob, res):
             if bit_string not in sums:
                 sums[bit_string] = 0.0
             sums[bit_string] += value
 
         return sums
-
 
 
 def _apply_gates_on_circuit(
@@ -619,11 +609,8 @@ def _apply_gates_on_circuit(
                 q_v = qubit_layout.index(q_r) #virtual qubit
                 time = data[j].operation.duration * dt
                 circ.relaxation(q_v, time, T1[q_r], T2[q_r])              
-
-        #for k in range(nqubit):
-            #q_r = qubit_layout[k]
-            #circ.bitflip(k, tm[q_r], rout[q_r])
         return
+    
     else:
         # Apply gates
         for j in range(len(data)):
@@ -680,10 +667,7 @@ def _apply_gates_on_circuit(
                     else:
                         circ.I(k)
 
-        #for k in range(nqubit):
-            #circ.bitflip(k, tm[k], rout[k])
         return
-
 
 
 def _single_shot(args: dict) -> np.array:
@@ -694,13 +678,12 @@ def _single_shot(args: dict) -> np.array:
     psi0 = args["psi0"]
     qubit_layout = args["qubit_layout"]
 
-    add_bitflip = True
+    bit_flip_bool =  args["bit_flip_bool"]
     psi = psi0
     results = []  # mid results
     
     print("Layout mapping (phys→virt):", qubit_layout)
     phys_to_logical = {phys: log for log, phys in enumerate(qubit_layout)}
-
 
     for idx, (d, flag) in enumerate(data):
         if flag == 0:
@@ -716,7 +699,7 @@ def _single_shot(args: dict) -> np.array:
                 clbits  = op["c_idx"]
                 # Perform the mid-circuit measurement
                 # TODO add_bitflip can be parameterized per measurement
-                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = False, qubit_list=qubits, cbit_list = clbits)
+                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
                 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
@@ -748,7 +731,7 @@ def _single_shot(args: dict) -> np.array:
                 psi, outcomes = circ.reset_qubits(
                     psi0=psi,
                     device_param=device_param,
-                    add_bitflip=False,
+                    add_bitflip=bit_flip_bool,
                     qubit_list=qubits_v,
                     phys_to_logical=phys_to_logical,
                 )
@@ -765,7 +748,6 @@ def _single_shot(args: dict) -> np.array:
                 else:
                     raise ValueError(f"Unknown fancy gate: {op_name}")
 
-    
     # --- Final Measurements ---
     # Born rule → probability distribution
     shot_result = np.square(np.abs(psi))
@@ -784,7 +766,5 @@ def _single_shot(args: dict) -> np.array:
         final_outcomes = {}
         for q, (c_reg, c_idx) in data_measure:
             final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])
-
-
 
     return results[::-1], shot_result, final_outcomes
