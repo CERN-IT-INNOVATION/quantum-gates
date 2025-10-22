@@ -106,9 +106,17 @@ class MrAndersonSimulator(object):
 
         # Get total classical bits (for Aer-style output)
         num_clbits = len(t_qiskit_circ.clbits)
+        
+        # Infer width from psi0 (must be power of two)
+        nqubit_state = int(round(np.log2(psi0.size)))
+        if 2**nqubit_state != psi0.size:
+            raise ValueError(f"psi0 length {psi0.size} is not a power of two.")
+
+        # Choose simulation width = state width (ensures shape consistency)
+        nqubit = nqubit_state
     
-        # Validate input
-        self._validate_input_of_run(t_qiskit_circ, qubits_layout_t, psi0, shots, device_param, nqubit)
+        # Validate input pass original qubit layout not transpilled one for unused qubit support
+        self._validate_input_of_run(t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit)
 
         # Count rz gates, construct swap lookup, generate data (representation of circuit compatible with simulation)
         n_rz, swap_detector, data, data_measure = self._preprocess_circuit(
@@ -218,20 +226,20 @@ class MrAndersonSimulator(object):
             raise ValueError(f"Expected positive number of shots but found {shots}.")
 
         # Cross check number of qubits
+        # psi0 must match the number of **used** qubits
         if psi0.shape != (2**nqubit,):
-            raise ValueError(
-                f"Expected shape of psi0 to be ({2**nqubit},) compatible with number of qubits ({nqubit}), but found " +
-                f"shape {psi0.shape}."
-            )
+            raise ValueError(f"psi0 shape {psi0.shape} is incompatible with nqubit={nqubit} (expected {(2**nqubit,)}).")
+
+        # layout must cover nqubit simulated qubits
         if nqubit > len(qubits_layout):
+            raise ValueError(f"Layout too small: need {nqubit} entries, have {len(qubits_layout)}.")
+
+        # device params must cover the largest physical index referenced by the first nqubit layout entries
+        max_phys = max(qubits_layout[:nqubit]) if nqubit > 0 else -1
+        if max_phys >= len(device_param["T1"]):
             raise ValueError(
-                f"Expected qubits layout to cover at least as many qubits as the transpiled circuit, but found "
-              + f"{t_qiskit_circ.num_qubits} qubits in circuit and {len(qubits_layout)} qubits in layout."
-            )
-        if nqubit > len(device_param["T1"]):
-            raise ValueError(
-                f"Expected device parameters to cover at least as many qubits as the transpiled circuit, but found "
-              + f"{t_qiskit_circ.num_qubits} qubits in circuit and {len(device_param['T1'])} qubits in device parameters."
+                f"Device params do not cover physical qubit index {max_phys} "
+                f"(have {len(device_param['T1'])} entries)."
             )
 
         return
