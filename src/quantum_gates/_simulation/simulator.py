@@ -279,8 +279,8 @@ class MrAndersonSimulator(object):
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
                     
                 elif isinstance(op, tuple) and op[0] == "reset_qubits":
-                    inner_op = op[1]
-                    q_idx = [q._index for q in inner_op.qubits]
+                    meas_op = op[1]
+                    q_idx = meas_op["q_idx"]
                     print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
                     
                 else:
@@ -326,6 +326,7 @@ class MrAndersonSimulator(object):
         for i, op in enumerate(raw_data):
             op_name = op.operation.name
             
+                
             # ---------------------- MEASUREMENT ----------------------
             if op_name == "measure":
                 # Is this a mid measurement? (any quantum op after it)
@@ -366,21 +367,16 @@ class MrAndersonSimulator(object):
 
             # ---------------------- RESET ----------------------
             elif op_name == "reset":
+                q_idx = [q2i[q] for q in op.qubits]      # flat qubit indices
+                
                 if current_chunk:
-                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                    data.append((current_chunk, 0))
                     current_chunk = []
-                q = op.qubits[0]._index
-                
-                if q in qubits_layout:
-                    data.append((("reset_qubits", op), 1))
+
+                # Expand multi-qubit reset into separate entries.
+                # Use the PHYSICAL/flat index from Qiskit (._index) for consistency.
+                data.append((("reset_qubits", {"op": op, "q_idx": q_idx}), 1))
             
-                
-            elif op_name == "ecr" or op_name == "cx":
-                q_ctr = op.qubits[0]._index
-                q_trg = op.qubits[1]._index
-                if q_ctr in qubits_layout and q_trg in qubits_layout:
-                    current_chunk.append(op)
-        
             
             elif op_name == "statevector_readout":
                 print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
@@ -701,6 +697,10 @@ def _single_shot(args: dict) -> np.array:
     add_bitflip = True
     psi = psi0
     results = []  # mid results
+    
+    print("Layout mapping (phys→virt):", qubit_layout)
+    phys_to_logical = {phys: log for log, phys in enumerate(qubit_layout)}
+
 
     for idx, (d, flag) in enumerate(data):
         if flag == 0:
@@ -736,10 +736,13 @@ def _single_shot(args: dict) -> np.array:
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
                 print("Reset qubits operation", d[0])
+                
                 op = d[1]
-                qubits_r = [q._index for q in op.qubits]          # physical indices from data
-                qubits_v = [qubit_layout.index(qr) for qr in qubits_r]  # map phys→logical
-
+                qubits_r = op["q_idx"]  # physical indices from preprocessing
+                qubits_v = [phys_to_logical[qr] for qr in qubits_r] # map phys→logical
+                print(f"Physical reset targets: {qubits_r}")
+                print(f"Mapped logical targets: {qubits_v}")
+                
                 # 1) collapse on LOGICAL indices that we will correct
                 collapsed, outcomes = circ.mid_measurement(
                     psi, device_param, add_bitflip=False, qubit_list=qubits_v
