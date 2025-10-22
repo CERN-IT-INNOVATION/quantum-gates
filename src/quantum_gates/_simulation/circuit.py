@@ -636,10 +636,12 @@ class AlternativeCircuit(object):
         self.reset_circuit()
 
         return psi
+    
 
 
     def statevector_readout(self, psi0) -> np.array:
         return psi0
+    
     
     def I(self, i: int):
         """Apply identity gate on qubit i
@@ -720,6 +722,7 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
+        print("\n X -GATE on qubit", i, "with p =", p, ", T1 =", T1, ", T2 =", T2)
         self.apply(gate=self.gates.X(-self.phi[i], p, T1, T2), i=i)
 
     def SX(self, i: int, p: float, T1: float, T2: float):

@@ -102,8 +102,11 @@ class MrAndersonSimulator(object):
         # Process layout circuit
         used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
         
+        # is this needed??
+        '''
         if not q_meas_list:
             raise ValueError("No measured qubits found in the circuit.")
+        '''
 
         # Get total classical bits (for Aer-style output)
         num_clbits = len(t_qiskit_circ.clbits)
@@ -361,11 +364,13 @@ class MrAndersonSimulator(object):
                     c_idx = op.clbits[0]._index
                     data_measure.append((q, (c_reg, c_idx)))
 
+            # ---------------------- RESET ----------------------
             elif op_name == "reset":
                 if current_chunk:
                     data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                     current_chunk = []
                 q = op.qubits[0]._index
+                
                 if q in qubits_layout:
                     data.append((("reset_qubits", op), 1))
             
@@ -710,7 +715,8 @@ def _single_shot(args: dict) -> np.array:
                 qubits  = op["q_idx"]
                 clbits  = op["c_idx"]
                 # Perform the mid-circuit measurement
-                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = True, qubit_list=qubits, cbit_list = clbits)
+                # TODO add_bitflip can be parameterized per measurement
+                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip = False, qubit_list=qubits, cbit_list = clbits)
                 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
@@ -729,20 +735,45 @@ def _single_shot(args: dict) -> np.array:
                 })
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
+                print("Reset qubits operation", d[0])
                 op = d[1]
-                qubits = [q._index for q in op.qubits]
-        
-                # Perform the noisy reset operation
-                psi = circ.reset_qubits(
-                    psi, device_param, add_bitflip, qubit_list=qubits
+                qubits_r = [q._index for q in op.qubits]          # physical indices from data
+                qubits_v = [qubit_layout.index(qr) for qr in qubits_r]  # map phys→logical
+
+                # 1) collapse on LOGICAL indices that we will correct
+                collapsed, outcomes = circ.mid_measurement(
+                    psi, device_param, add_bitflip=False, qubit_list=qubits_v
                 )
 
-                # Normalize again (defensive) TODO: is this needed?
+                # 2) device params (PHYSICAL)
+                T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
+
+                # 3) enqueue corrective gates on the LOGICAL wires (params from PHYSICAL)
+                touched: set[int] = set()
+                for q_r, q_v, outcome in zip(qubits_r, qubits_v, outcomes):
+                    touched.add(q_v)
+                    if outcome == 1:
+                        print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
+                        circ.X(i=q_v, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
+                    else:
+                        print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
+                        circ.I(i=q_v)
+
+                # 4) COMPLETE THE LAYER: identities on all wires not touched
+                #    (your engine only applies when every slot in the layer is filled)
+                for k in range(circ.nqubit):
+                    if k not in touched:
+                        circ.I(i=k)
+
+                # 5) now apply the pending layer to the *collapsed* state, then clear
+                psi = circ.statevector(collapsed)
+                circ.reset_circuit()
+
+                # 6) normalize (defensive)
                 norm = np.linalg.norm(psi)
                 if norm > 0:
                     psi /= norm
-                
-                 
+
                 print("Reset qubits, new statevector:", psi)
 
             else:
@@ -757,6 +788,8 @@ def _single_shot(args: dict) -> np.array:
                 else:
                     raise ValueError(f"Unknown fancy gate: {op_name}")
 
+    
+    # --- Final Measurements ---
     # Born rule → probability distribution
     shot_result = np.square(np.abs(psi))
 
