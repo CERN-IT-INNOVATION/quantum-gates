@@ -167,7 +167,6 @@ class Circuit(object):
 
         return collapsed, result
     
-    import numpy as np
 
     def reset(self, psi0: np.ndarray, p: float, T1: float, T2: float, qubit_list=None) -> np.ndarray:
         collapsed, outcomes = self.mid_measurement(psi0, qubit_list)

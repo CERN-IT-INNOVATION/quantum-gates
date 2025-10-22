@@ -696,7 +696,7 @@ def _single_shot(args: dict) -> np.array:
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
                 
-                # normalize just in case
+                # Normalize again (defensive) TODO: is this needed?
                 norm = np.linalg.norm(psi)
                 if norm > 0:
                     psi /= norm
@@ -719,13 +719,12 @@ def _single_shot(args: dict) -> np.array:
                 )
 
                 # Normalize again (defensive) TODO: is this needed?
-                '''
                 norm = np.linalg.norm(psi)
                 if norm > 0:
                     psi /= norm
-                '''
+                
                  
-                print("Reset qubits:", qubits, "Outcomes:", reset_outcomes)
+                print("Reset qubits, new statevector:", psi)
 
             else:
                 op_name = d.operation.name
@@ -748,7 +747,7 @@ def _single_shot(args: dict) -> np.array:
         probs = np.square(np.abs(psi))
         if probs.sum() == 0:
             raise ValueError("Statevector collapsed to zero norm after circuit execution.")
-        probs = probs / probs.sum()   # ✅ normalize before sampling
+        probs = probs / probs.sum()   # normalize before sampling
 
         outcome_index = np.random.choice(len(probs), p=probs)
 
