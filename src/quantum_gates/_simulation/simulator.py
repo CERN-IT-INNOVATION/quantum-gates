@@ -100,7 +100,8 @@ class MrAndersonSimulator(object):
         """
 
         # Process layout circuit
-        qubits_layout_t, q_meas_list, n_qubit_t = self._process_layout(t_qiskit_circ)
+        used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
+        
         if not q_meas_list:
             raise ValueError("No measured qubits found in the circuit.")
 
@@ -115,17 +116,28 @@ class MrAndersonSimulator(object):
         # Choose simulation width = state width (ensures shape consistency)
         nqubit = nqubit_state
     
-        # Validate input pass original qubit layout not transpilled one for unused qubit support
+        # strong validation against the FULL layout (not the used subset)
         self._validate_input_of_run(t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit)
+        
+        # optional: warn if there are idle qubits (kept in simulation; correct but may cost perf)
+        if n_qubit_used < nqubit and hasattr(self, "_logger"):
+            self._logger.warning(
+                f"{nqubit - n_qubit_used} qubit(s) are idle (no operations). They will be simulated as idling qubits."
+            )
+        # build ACTIVE physical layout for only the used logicals
+        #    e.g., qubits_layout = [3,0,2,5], used_logicals=[0,1]  => active_layout=[3,0]
+        active_layout = [qubits_layout[q] for q in used_logicals]
 
         # Count rz gates, construct swap lookup, generate data (representation of circuit compatible with simulation)
+        # preprocess circuit with the ACTIVE layout; nqubit is the full simulated width
         n_rz, swap_detector, data, data_measure = self._preprocess_circuit(
-            t_qiskit_circ, qubits_layout_t, nqubit
+            t_qiskit_circ, active_layout, nqubit
         )
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
+        #  perform simulation (psi0 spans full width nqubit; active_layout routes gates)
         probs, all_results = self._perform_simulation(
-            shots, data, n_rz, nqubit, device_param, psi0, qubits_layout_t, data_measure
+            shots, data, n_rz, nqubit, device_param, psi0, active_layout, data_measure
         )
 
         # Normalize final probabilities
@@ -135,12 +147,17 @@ class MrAndersonSimulator(object):
             raise ValueError(f"Unphysical probability vector: sum={total_prob}.")
         final_arr = reordered_arr / total_prob
         
-        # Convert final probabilities into counts-style readout for final measurements
+        #    this keeps things correct whether 'probs' is over all qubits or only the used subset
+        prob_width = int(round(np.log2(final_arr.size)))
+        if 2**prob_width != final_arr.size:
+            raise ValueError("Internal error: probability vector length is not a power of two.")
+
+        # 10) produce final counts-style readout
         counts_ng = self._measurament(
             prob=final_arr,
             q_meas_list=q_meas_list,
-            n_qubit=n_qubit_t,
-            qubits_layout=qubits_layout_t,
+            n_qubit=prob_width,       # if your simulator always returns full width, this equals nqubit
+            qubits_layout=active_layout,
         )
         
         # --- Build mid-circuit bitstrings directly from circuit output ---
@@ -172,7 +189,7 @@ class MrAndersonSimulator(object):
 
     
 
-    def _process_layout(self, circ : QuantumCircuit) -> Tuple[List, List, int]:
+    def _process_layout(self, circ : QuantumCircuit) -> Tuple[List[int], List[Tuple[int, int]], int]:
         """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
         information is stored
 
@@ -184,27 +201,21 @@ class MrAndersonSimulator(object):
             measure_qc(list): List of tuples, each tuples contain the measured virtual qubit and the classical bit in which is stored the information
             n_qubit(int): number of used qubits in the circuit
         """
-        used_q = []
-        measure_qc = []
-
-        for x in circ.data:
-            if x.operation.name != 'delay':
-                if len(x.qubits) == 1:
-                    q = x.qubits[0]._index
-                    if q not in used_q:
-                        used_q.append(q)
-                elif len(x.qubits) == 2:
-                    q1 = x.qubits[0]._index
-                    q2 = x.qubits[1]._index
-                    if q1 not in used_q:
-                        used_q.append(q1)
-                    if q2 not in used_q:
-                        used_q.append(q2)
-                if x.operation.name == 'measure':
-                    measure_qc.append((x.qubits[0]._index, x.clbits[0]._index))
-        n_qubit = len(used_q)
-        
-        return used_q, measure_qc, n_qubit
+        used_logicals: list[int] = []
+        measure_qc: list[tuple[int,int]] = []
+        for instr in circ.data:
+            op = instr.operation
+            if op.name == 'delay':
+                continue
+            # support any arity
+            for qb in instr.qubits:
+                q = qb._index
+                if q not in used_logicals:
+                    used_logicals.append(q)
+            if op.name == 'measure':
+                measure_qc.append((instr.qubits[0]._index, instr.clbits[0]._index))
+        return used_logicals, measure_qc, len(used_logicals)
+    
     
     def _validate_input_of_run(self, t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit):
         """ Performs sanity checks on the input of the run() method. Raises an Exception if any mistakes are found. """
