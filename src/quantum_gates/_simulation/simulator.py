@@ -314,6 +314,7 @@ class MrAndersonSimulator(object):
         for reg in t_qiskit_circ.cregs:
             for local_i, bit in enumerate(reg):   # <- get local index safely
                 clbit_to_reg[bit] = (reg.name, local_i)
+        
 
         # define which gates are considered "fancy"
         ## fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
@@ -329,25 +330,15 @@ class MrAndersonSimulator(object):
                     (future_op.operation.name not in {"measure", "barrier"}) 
                     for future_op in remaining_ops
                 )
-
-                # Build flat index lists for ALL qubits/clbits in this instruction
-                q_idx = [q2i[q] for q in op.qubits]      # flat qubit indices
-                c_idx = [c2i[c] for c in op.clbits]      # flat clbit indices
                 
                 if has_future_quantum:
                     # mid-circuit → treat as fancy gate
                     if current_chunk:
                         data.append((current_chunk, 0))
                         current_chunk = []
-                    # instead of mutating, just store a tuple with a tag
-                    data.append((
-                        ("mid_measurement", {
-                            "op": op,       # keep original CircuitInstruction for debugging if you like
-                            "q_idx": q_idx, # flat qubit indices (aligned with op.qubits)
-                            "c_idx": c_idx, # flat clbit indices (aligned with op.clbits)
-                        }),
-                        1
-                    ))
+                    q = op.qubits[0]._index
+                    if q in qubits_layout:
+                        data.append((("mid_measurement", op), 1))
 
                 else:
                     # final measurement → store for later
@@ -361,15 +352,15 @@ class MrAndersonSimulator(object):
 
             # ---------------------- RESET ----------------------
             elif op_name == "reset":
-                q_idx = [q2i[q] for q in op.qubits]      # flat qubit indices
-                
                 if current_chunk:
-                    data.append((current_chunk, 0))
+                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                     current_chunk = []
-
-                # Expand multi-qubit reset into separate entries.
-                # Use the PHYSICAL/flat index from Qiskit (._index) for consistency.
-                data.append((("reset_qubits", {"op": op, "q_idx": q_idx}), 1))
+                q = op.qubits[0]._index
+                print("Reset on qubit: ", q)
+                print("===========================\n")
+                if q in qubits_layout:
+                    data.append((("reset_qubits", op), 1))
+            
             
             
             elif op_name == "statevector_readout":
@@ -695,16 +686,14 @@ def _single_shot(args: dict) -> np.array:
             
             if isinstance(d, tuple) and d[0] == "mid_measurement":
                 op = d[1]
-                qubits  = op["q_idx"]
-                clbits  = op["c_idx"]
-                # Perform the mid-circuit measurement
-                # TODO add_bitflip can be parameterized per measurement
-                psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
-                
+                qubits = [q._index for q in op.qubits]
+                clbits = [c._index for c in op.clbits]
+                psi, outcome = circ.mid_measurement(psi, device_param, bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
+
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
                 
-                # Normalize again (defensive) TODO: is this needed?
+                # normalize just in case
                 norm = np.linalg.norm(psi)
                 if norm > 0:
                     psi /= norm
@@ -717,24 +706,24 @@ def _single_shot(args: dict) -> np.array:
                     "outcome": outcome,
                 })
 
+
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
                 print("Reset qubits operation", d[0])
 
                 op = d[1]
-                qubits_r = op["q_idx"]  # physical indices from preprocessing
-                qubits_v = [phys_to_logical[qr] for qr in qubits_r]  # map phys→logical
-
-                print(f"Physical reset targets: {qubits_r}")
-                print(f"Mapped logical targets: {qubits_v}")
-
-                # Call circuit's unified reset function
-                psi, outcomes = circ.reset_qubits(
-                    psi0=psi,
-                    device_param=device_param,
-                    add_bitflip=bit_flip_bool,
-                    qubit_list=qubits_v,
-                    phys_to_logical=phys_to_logical,
+                qubits = [q._index for q in op.qubits]
+                print(f"Found reset on qubits {qubits}")
+                # Perform the noisy reset operation
+                psi, outcome = circ.reset_qubits(
+                    psi, device_param, bit_flip_bool, qubit_list=qubits
                 )
+
+                # Normalize again (defensive)
+                norm = np.linalg.norm(psi)
+                if norm > 0:
+                    psi /= norm
+
+
 
             else:
                 op_name = d.operation.name
