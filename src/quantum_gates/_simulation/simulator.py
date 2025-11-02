@@ -131,7 +131,7 @@ class MrAndersonSimulator(object):
 
         # Count rz gates, construct swap lookup, generate data (representation of circuit compatible with simulation)
         # preprocess circuit with the ACTIVE layout; nqubit is the full simulated width
-        n_rz, swap_detector, data, data_measure = self._preprocess_circuit(
+        n_rz, data, data_measure = self._preprocess_circuit(
             t_qiskit_circ, active_layout, nqubit
         )
 
@@ -257,28 +257,34 @@ class MrAndersonSimulator(object):
 
         
     def _pretty_print_data(self, data):
-        """Print human-readable view of preprocessed circuit data."""
-        for idx, (chunk, flag) in enumerate(data):
+        """Print a human-readable view of the preprocessed circuit data."""
+        for idx, (chunk, flag, swap_map) in enumerate(data):
             if flag == 0:
+                # normal chunk
                 ops_str = " , ".join(
                     f"{op.operation.name}[{', '.join(str(q._index) for q in op.qubits)}]"
                     for op in chunk
                 )
-                print(f"Chunk {idx}: {ops_str}")
+                n_swaps = sum(1 for op in chunk if op.operation.name == "swap")
+                if n_swaps:
+                    print(f"Chunk {idx}: {ops_str}    (SWAPs={n_swaps}, map={swap_map})")
+                else:
+                    print(f"Chunk {idx}: {ops_str}")
+
             else:
+                # fancy gate (mid_measurement, reset, etc.)
                 op = chunk
-                # handle mid_measurement tuple
                 if isinstance(op, tuple) and op[0] == "mid_measurement":
                     meas_op = op[1]
-                    q_idx = meas_op["q_idx"]
-                    c_idx = meas_op["c_idx"]
+                    q_idx = [q._index for q in meas_op.qubits]
+                    c_idx = [c._index for c in meas_op.clbits]
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
-                    
+
                 elif isinstance(op, tuple) and op[0] == "reset_qubits":
-                    meas_op = op[1]
-                    q_idx = meas_op["q_idx"]
+                    reset_op = op[1]
+                    q_idx = [q._index for q in reset_op.qubits]
                     print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
-                    
+
                 else:
                     # normal fancy gate (Instruction)
                     print(
@@ -286,6 +292,7 @@ class MrAndersonSimulator(object):
                         f"qubits={[q._index for q in op.qubits]} "
                         f"clbits={[c._index for c in op.clbits]}"
                     )
+
 
     
     def _preprocess_circuit(self, t_qiskit_circ, qubits_layout: list, nqubit: int,) -> tuple:
@@ -301,19 +308,32 @@ class MrAndersonSimulator(object):
         data = []
         data_measure = []
         current_chunk = []
-        swap_detector = [a for a in range(nqubit)]
+        #swap_detector = [a for a in range(nqubit)]
         raw_data = t_qiskit_circ.data
         
-        #  Build lookup: Clbit → register name
-        # --- NEW: flat index maps (circuit-wide ordering) ---
-        q2i = {q: i for i, q in enumerate(t_qiskit_circ.qubits)}     # Qubit  -> flat index
-        c2i = {c: i for i, c in enumerate(t_qiskit_circ.clbits)}     # Clbit  -> flat index
+    
 
         # Optional: map clbit -> (register_name, index_in_that_register)
         clbit_to_reg = {}
         for reg in t_qiskit_circ.cregs:
             for local_i, bit in enumerate(reg):   # <- get local index safely
                 clbit_to_reg[bit] = (reg.name, local_i)
+
+        
+        # helper to compute the net permutation for a chunk
+        def flush_chunk(chunk_ops):
+            """Compute net SWAP permutation for this chunk and return (chunk_ops, 0, swap_map)."""
+            swap_map_chunk = {q: q for q in range(nqubit)}
+            for op in chunk_ops:
+                if op.operation.name == "swap":
+                    q1, q2 = [q._index for q in op.qubits]
+                    if q1 in qubits_layout and q2 in qubits_layout:
+                        swap_map_chunk[q1], swap_map_chunk[q2] = swap_map_chunk[q2], swap_map_chunk[q1]
+            if any(k != v for k, v in swap_map_chunk.items()):
+                print(f"Nontrivial swap map in chunk: {swap_map_chunk}")
+            else:
+                print(f"No swaps detected in chunk")
+            return (chunk_ops, 0, swap_map_chunk)
         
 
         # define which gates are considered "fancy"
@@ -334,11 +354,12 @@ class MrAndersonSimulator(object):
                 if has_future_quantum:
                     # mid-circuit → treat as fancy gate
                     if current_chunk:
-                        data.append((current_chunk, 0))
+                        data.append(flush_chunk(current_chunk))
                         current_chunk = []
+
                     q = op.qubits[0]._index
                     if q in qubits_layout:
-                        data.append((("mid_measurement", op), 1))
+                        data.append((("mid_measurement", op), 1, None))
 
                 else:
                     # final measurement → store for later
@@ -353,22 +374,23 @@ class MrAndersonSimulator(object):
             # ---------------------- RESET ----------------------
             elif op_name == "reset":
                 if current_chunk:
-                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                    data.append(flush_chunk(current_chunk))  # flush accumulated chunk before fancy gate
                     current_chunk = []
                 q = op.qubits[0]._index
                 print("Reset on qubit: ", q)
                 print("===========================\n")
                 if q in qubits_layout:
-                    data.append((("reset_qubits", op), 1))
+                    data.append((("reset_qubits", op), 1, None))
             
             
             
             elif op_name == "statevector_readout":
                 print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
-                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
-                current_chunk = []
-                #TO DO: if q in qubits_layout:
-                data.append((op,1))  # fancy gate goes as standalone
+                if current_chunk:
+                    data.append(flush_chunk(current_chunk))
+                    current_chunk = []
+                data.append((op, 1, None))
+                
             elif op_name == "barrier":
                 continue
 
@@ -385,14 +407,9 @@ class MrAndersonSimulator(object):
 
         # flush final chunk if non-empty
         if current_chunk:
-            data.append((current_chunk,0))
+            data.append(flush_chunk(current_chunk))
 
-        # update swap detector using measurements
-        for q, c in data_measure:
-            if q >= len(swap_detector):
-                print(f"Skipping measurement update for qubit {q} (only {len(swap_detector)} qubits)")
-                continue
-            swap_detector[q] = c
+        
 
         #print("Data after preprocessing:")
         #print(data)
@@ -401,7 +418,7 @@ class MrAndersonSimulator(object):
         self._pretty_print_data(data)
         print("---------------------------")
 
-        return n_rz, swap_detector, data, data_measure
+        return n_rz, data, data_measure
 
 
     
@@ -673,14 +690,20 @@ def _single_shot(args: dict) -> np.array:
     psi = psi0
     results = []  # mid results
     
-    print("Layout mapping (phys→virt):", qubit_layout)
-    phys_to_logical = {phys: log for log, phys in enumerate(qubit_layout)}
+    # Initialize the current logical → physical mapping
+    swap_detector = list(range(circ.nqubit))
 
-    for idx, (d, flag) in enumerate(data):
+
+    for idx, (d, flag, swap_map) in enumerate(data):
         if flag == 0:
             _apply_gates_on_circuit(d, circ, device_param, qubit_layout)
             psi = circ.statevector(psi)
             circ.reset_circuit()  # reset internal state for next chunk
+
+            # Apply the swap permutation
+        if swap_map:
+            swap_detector = [swap_detector[swap_map[q]] for q in range(len(swap_detector))]
+
 
         elif flag == 1:
             
@@ -688,7 +711,9 @@ def _single_shot(args: dict) -> np.array:
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
                 clbits = [c._index for c in op.clbits]
-                psi, outcome = circ.mid_measurement(psi, device_param, bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
+                physical_qubits = [swap_detector[q] for q in qubits]
+                print(f"Mid-circuit measurement on qubits {qubits} (physical: {physical_qubits}) into clbits {clbits}")
+                psi, outcome = circ.mid_measurement(psi, device_param, bit_flip_bool, qubit_list=physical_qubits, cbit_list = clbits)
 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
@@ -714,8 +739,10 @@ def _single_shot(args: dict) -> np.array:
                 qubits = [q._index for q in op.qubits]
                 print(f"Found reset on qubits {qubits}")
                 # Perform the noisy reset operation
+                physical_qubits = [swap_detector[q] for q in qubits]
+                print(f"Reset on qubits {qubits} (physical: {physical_qubits})")
                 psi, outcome = circ.reset_qubits(
-                    psi, device_param, bit_flip_bool, qubit_list=qubits
+                    psi, device_param, bit_flip_bool, qubit_list=physical_qubits
                 )
 
                 # Normalize again (defensive)
