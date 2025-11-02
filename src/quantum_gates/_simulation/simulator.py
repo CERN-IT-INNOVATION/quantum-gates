@@ -2,6 +2,7 @@
 """
 import numpy as np
 import copy
+import inspect
 from typing import List, Tuple
 from collections import Counter
 
@@ -67,7 +68,7 @@ class MrAndersonSimulator(object):
     """
 
     def __init__(self, gates: Gates=standard_gates, CircuitClass=BinaryCircuit, parallel: bool=False):
-        self.gates = gates  # Contains the information about the pulses.
+        self.gates = gates() if inspect.isclass(gates) else gates  # Contains the information about the pulses.
         self.CircuitClass = CircuitClass
         self.parallel = parallel
         
