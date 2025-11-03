@@ -719,22 +719,16 @@ def _single_shot(args: dict) -> np.array:
                 })
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
-                print("Reset qubits operation", d[0])
-
                 op = d[1]
-                qubits_r = op["q_idx"]  # physical indices from preprocessing
-                qubits_v = [phys_to_logical[qr] for qr in qubits_r]  # map phys→logical
+                qubits_r = op["q_idx"]  # physical from preprocessing
+                print("Reset (physical) targets:", qubits_r)
 
-                print(f"Physical reset targets: {qubits_r}")
-                print(f"Mapped logical targets: {qubits_v}")
-
-                # Call circuit's unified reset function
                 psi, outcomes = circ.reset_qubits(
                     psi0=psi,
                     device_param=device_param,
                     add_bitflip=bit_flip_bool,
-                    qubit_list=qubits_v,
-                    phys_to_logical=phys_to_logical,
+                    qubit_list=qubits_r,          # pass PHYSICAL directly
+                    phys_to_logical=None          # <- disable remap inside
                 )
 
             else:
