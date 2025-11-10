@@ -670,6 +670,17 @@ def _apply_gates_on_circuit(
 
         return
 
+def _expZ(psi: np.ndarray, q: int) -> float:
+    """Return ⟨Z_q⟩ using BIG-endian: bit position = (n-1-q)."""
+    n = int(np.log2(psi.size))
+    pos = n - 1 - q
+    p0 = 0.0
+    for idx, amp in enumerate(psi):
+        bit = (idx >> pos) & 1
+        if bit == 0:
+            p0 += (amp.real*amp.real + amp.imag*amp.imag)
+    return 2.0*p0 - 1.0  # ⟨Z⟩ = P(0) - P(1) = 2P(0)-1
+
 
 def _single_shot(args: dict) -> np.array:
     circ = args["circ"]
@@ -700,6 +711,8 @@ def _single_shot(args: dict) -> np.array:
                 clbits  = op["c_idx"]
                 # Perform the mid-circuit measurement
                 # TODO add_bitflip can be parameterized per measurement
+                print("Mid-circuit measurement (physical) targets:", qubits)
+                print()
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
                 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
@@ -720,16 +733,64 @@ def _single_shot(args: dict) -> np.array:
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
                 op = d[1]
-                qubits_r = op["q_idx"]  # physical from preprocessing
-                print("Reset (physical) targets:", qubits_r)
+                qubits = op["q_idx"]   # already flat (transpiled indices)
 
-                psi, outcomes = circ.reset_qubits(
+                print("\n========== RESET BEGIN ==========")
+                print(f"Reset called on qubits (transpiled indices): {qubits}")
+
+                # --- 1) Collapse without classical writes ---
+                psi, outcomes = circ.mid_measurement(
                     psi0=psi,
                     device_param=device_param,
                     add_bitflip=bit_flip_bool,
-                    qubit_list=qubits_r,          # pass PHYSICAL directly
-                    phys_to_logical=None          # <- disable remap inside
+                    qubit_list=qubits,
+                    cbit_list=None,
                 )
+
+                print(f"Reset measurement outcomes: {outcomes}")
+
+                # Extract noise params *once*
+                T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
+
+                # --- 2) Apply X/I layer ---
+                # 2) BEFORE-correction sanity (what is ⟨Z⟩ after collapse?)
+                for q in qubits:
+                    print(f"  ⟨Z_{q}⟩ before correction: { _expZ(psi, q): .3f}")
+                print("Applying reset correction layer:")
+                touched = set()
+                for q, res in zip(qubits, outcomes):
+                    touched.add(q)
+                    if res == 1:
+                        print(f"  • Applying X on qubit {q}")
+                        circ.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
+                    else:
+                        print(f"  • Applying I on qubit {q} (already |0⟩)")
+                        circ.I(i=q)
+
+                for k in range(circ.nqubit):
+                    if k not in touched:
+                        circ.I(i=k)   # maintain full layer (no gaps)
+
+                # --- 3) Apply layer to state and reset builder ---
+                psi_before = psi.copy()
+                print("Statevector before reset correction layer:")
+                print(psi_before)
+                psi = circ.statevector(psi)
+                circ.reset_circuit()
+                print("Statevector after reset correction layer:")
+                print(psi)
+
+                # --- 4) Defensive normalize ---
+                norm = np.linalg.norm(psi)
+                if norm > 0:
+                    psi /= norm
+
+                # 5) AFTER-correction: ⟨Z⟩ should be ~+1 for each target
+                print("Post-reset expectation ⟨Z⟩ check:")
+                for q in qubits:
+                    ez = _expZ(psi, q)
+                    print(f"  ⟨Z_{q}⟩ ≈ {ez: .3f}  (≈ +1 means reset successful)")
+                print("=========== RESET END ===========\n")
 
             else:
                 op_name = d.operation.name
