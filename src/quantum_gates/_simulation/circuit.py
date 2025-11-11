@@ -912,8 +912,8 @@ class AlternativeCircuit(object):
             mask_pos = n - 1 - target_qubit  # big-endian position
             for idx in range(dim):
                 if ((idx >> mask_pos) & 1) != outcome:
-                    #psi[idx] = 0.0 + 0.0j
-                    psi[idx] = 0.0 
+                    psi[idx] = 0.0 + 0.0j
+                    #psi[idx] = 0.0 
                     
 
             # 3) Renormalize
