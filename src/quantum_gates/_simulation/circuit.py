@@ -931,7 +931,7 @@ class AlternativeCircuit(object):
         # - If cbit_list provided: outcomes ordered by the *given* cbit_list sequence
         # - If None: outcomes in the same order as qubit_list; NO classical writes implied
         if write_cb:
-            print('classical measure output ', cbit_results)
+            print('classical measure output {clbit , res} ', cbit_results)
             # preserve provided order (no sorting surprises)
             result = [cbit_results[c] for c in cbit_list]
             

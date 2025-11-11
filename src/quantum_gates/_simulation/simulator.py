@@ -74,39 +74,33 @@ class MrAndersonSimulator(object):
         
     
     def run(self,
-            t_qiskit_circ,
-            qubits_layout: list,
-            psi0: np.array,
-            shots: int,
-            device_param: dict,
-            nqubit: int,
-            bit_flip_bool=True,) -> dict:
+        t_qiskit_circ,
+        qubits_layout: list,
+        psi0: np.array,
+        shots: int,
+        device_param: dict,
+        nqubit: int,
+        bit_flip_bool=True,) -> dict:
         """
-            Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
-            and runs noisy quantum gates.
-            Args:
-                t_qiskit_circ: transpiled qiskit circuit (QuantumCircuit)
-                qubits_layout: qubits layout with linear topology (list)
-                psi0: initial state (array)
-                shots: number of realizations (int)
-                device_param: noise and device configurations as dict with the keys specified by DeviceParameters (dict)
-                nqubit: number of qubits used in the circuit, must be compatible with psi0 (int)
+        Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
+        and runs noisy quantum gates.
+        Args:
+            t_qiskit_circ: transpiled qiskit circuit (QuantumCircuit)
+            qubits_layout: qubits layout with linear topology (list)
+            psi0: initial state (array)
+            shots: number of realizations (int)
+            device_param: noise and device configurations as dict with the keys specified by DeviceParameters (dict)
+            nqubit: number of qubits used in the circuit, must be compatible with psi0 (int)
 
-            Returns:
-                dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
-            
-            Note: The output follow the Big Endian order for the bit strings
-                    
+        Returns:
+            dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
+        
+        Note: The output follow the Big Endian order for the bit strings
+                
         """
         # Process layout circuit
         used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
         
-        # is this needed??
-        '''
-        if not q_meas_list:
-            raise ValueError("No measured qubits found in the circuit.")
-        '''
-
         # Get total classical bits (for Aer-style output)
         num_clbits = len(t_qiskit_circ.clbits)
         
@@ -117,7 +111,7 @@ class MrAndersonSimulator(object):
 
         # Choose simulation width = state width (ensures shape consistency)
         nqubit = nqubit_state
-    
+
         # strong validation against the FULL layout (not the used subset)
         self._validate_input_of_run(t_qiskit_circ, qubits_layout, psi0, shots, device_param, nqubit)
         
@@ -162,7 +156,7 @@ class MrAndersonSimulator(object):
             qubits_layout=active_layout,
         )
         
-        # --- Build mid-circuit bitstrings directly from circuit output ---
+        # --- FIXED: Build mid-circuit bitstrings with chronological processing ---
         combined_mid_strings = []
         mid_results = all_results
 
@@ -170,8 +164,11 @@ class MrAndersonSimulator(object):
             # initialize all clbits to '0' (Aer default for unused)
             clbit_values = ['0'] * num_clbits
 
-            # fill in the clbits that *were* measured
-            for event in shot["mid"]:
+            # FIX: Sort events by step in ascending order (chronological)
+            sorted_events = sorted(shot["mid"], key=lambda x: x["step"])
+            
+            # Process events in chronological order (later measurements overwrite earlier ones)
+            for event in sorted_events:
                 for c, val in zip(event["clbits"], event["outcome"]):
                     clbit_values[c] = str(val)
 
@@ -711,7 +708,7 @@ def _single_shot(args: dict) -> np.array:
                 clbits  = op["c_idx"]
                 # Perform the mid-circuit measurement
                 # TODO add_bitflip can be parameterized per measurement
-                print("Mid-circuit measurement (physical) targets:", qubits)
+                print("------ Mid-circuit measurement (physical) targets:", qubits, '-------------')
                 print()
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
                 
@@ -723,6 +720,7 @@ def _single_shot(args: dict) -> np.array:
                 if norm > 0:
                     psi /= norm
 
+                print(f"-------------------Mid-measurement END-----------")
                 # record debug info
                 results.append({
                     "step": idx,
