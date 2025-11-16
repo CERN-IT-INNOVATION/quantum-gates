@@ -978,25 +978,20 @@ class AlternativeCircuit(object):
         self.reset_circuit()
 
         # --- 3. Map physical → logical (if provided) ---
-        if phys_to_logical is not None:
-            qubits_r = [list(phys_to_logical.keys())[list(phys_to_logical.values()).index(q)]
-                        if q in phys_to_logical.values() else q
-                        for q in qubit_list]
-        else:
-            qubits_r = qubit_list
+        qubits_r = qubit_list
 
         # --- 4. Apply noisy X for measured '1's, build full layer with identities ---
         touched = []
-        for q_r, q_v, outcome in zip(qubits_r, qubit_list, outcomes):
-            touched.append(q_v)
+        for q_r, outcome in zip(qubits_r, outcomes):
+            touched.append(q_r)
             if outcome == 1:
                 #print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
-                print("ALT - CIRCUIT: Applying X on ", q_v)
-                self.X(i=q_v, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
+                print("ALT - CIRCUIT: Applying X on ", q_r)
+                self.X(i=q_r, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
             else:
                 #print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
-                print("Applying I on ", q_v)
-                self.I(i=q_v)
+                print("Applying I on ", q_r)
+                self.I(i=q_r)
                 
         print("Touched qubits:", touched)
         
