@@ -100,7 +100,7 @@ class MrAndersonSimulator(object):
         """
         # Process layout circuit
         used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
-        
+
         # Get total classical bits (for Aer-style output)
         num_clbits = len(t_qiskit_circ.clbits)
         
