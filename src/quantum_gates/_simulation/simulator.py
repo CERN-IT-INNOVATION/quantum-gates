@@ -299,7 +299,7 @@ class MrAndersonSimulator(object):
     def _preprocess_circuit(self, t_qiskit_circ, n_qubit_used: int, used_logicals) -> tuple:
         """ Preprocess QuantumCircuit.data:
         - Count number of RZ gates (n_rz).
-        - Track swaps (swap_detector).
+        - Track swaps (swap_detector). TODO: currently not used.
         - Structure data into chunks split around 'fancy-gates':
         - bring the circuit in a format (data) that is compatible with the rest of the simulation.
         data = [ [ops until first fancy], fancy_gate, [ops until next fancy], fancy_gate, ... ]
@@ -309,7 +309,7 @@ class MrAndersonSimulator(object):
         data = []
         data_measure = []
         current_chunk = []
-        swap_detector = [a for a in range(n_qubit_used)]
+        #swap_detector = [a for a in range(n_qubit_used)]
         raw_data = t_qiskit_circ.data
         print("---- Preprocessing circuit ----")
         print("Raw data:", raw_data)
@@ -324,10 +324,11 @@ class MrAndersonSimulator(object):
             for local_i, bit in enumerate(reg):
                 clbit_to_reg[bit] = (reg.name, local_i)
             
-            
         # define which gates are considered "fancy"
         ## fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
 
+        # loop through the raw data, circuit representation from Qiskit
+        # each op is a CircuitInstruction, each i is the compilation step
         for i, op in enumerate(raw_data):
             op_name = op.operation.name
             
@@ -336,15 +337,15 @@ class MrAndersonSimulator(object):
             c_idx = [t_qiskit_circ.find_bit(c).index for c in op.clbits]
 
             
-            print('Processing operation:', op_name)
-            print(f"  on qubits {q_idx} and clbits {c_idx}")
-            
+           # print('Processing operation:', op_name)
+            #print(f"  on qubits {q_idx} and clbits {c_idx}, index {i} in circuit")
+            # Fancy gates processing
             # ---------------------- MEASUREMENT ----------------------
             if op_name == "measure":
                 # Is this a mid measurement? (any quantum op after it)
                 remaining_ops = raw_data[i+1:]
                 has_future_quantum = any(
-                    (future_op.operation.name not in {"measure", "barrier"}) 
+                    (future_op.operation.name not in {"measure", "barrier", "delay"}) 
                     for future_op in remaining_ops
                 )
                 
@@ -388,18 +389,16 @@ class MrAndersonSimulator(object):
                 print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
                 data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                 current_chunk = []
-                #TO DO: if q in :
                 data.append((op,1))  # fancy gate goes as standalone
-            elif op_name == "barrier":
+            elif op_name == "barrier" or op_name == "delay":
                 continue
 
+            # non -fancy gates appending to current chunk
             elif op_name == "rz":
-                q = op.qubits[0]._index
                 n_rz += 1  # track rz count
                 current_chunk.append(op)  # probably you also want to keep it
             else:
                 # normal operation (only if in layout)
-                q = op.qubits[0]._index
                 current_chunk.append(op)
 
         # flush final chunk if non-empty

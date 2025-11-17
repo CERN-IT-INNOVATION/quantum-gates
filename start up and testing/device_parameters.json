@@ -85,7 +85,7 @@
         5e-10
     ],
     "metadata": {
-        "version": "20251116",
+        "version": "20251117",
         "device": "fake_brisbane",
         "qubits": 127,
         "qubits_layout": [
