@@ -706,9 +706,13 @@ class AlternativeCircuit(object):
             return psi0
         return self._backend.statevector(self._mp_list, psi0)
     
-    def reset_circuit(self):
+    def reset_circuit(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
-        self.phi = [0 for i in range(self.nqubit)]
+        if phase_reset: 
+            print("Resetting circuit and phases.")
+            self.phi = [0 for i in range(self.nqubit)]
+        else:
+            print("Resetting circuit but keeping phases.")
         self._s = 0
         self._backend = self._BackendClass(self.nqubit)
         self._mp = [1 for i in range(self.nqubit)]
@@ -881,10 +885,10 @@ class AlternativeCircuit(object):
 
         for target_qubit_idx, target_qubit in enumerate(qubit_list):
             if add_bitflip:
-                self.reset_circuit()
+                self.reset_circuit(phase_reset=False)
                 self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
                 psi = self.statevector(psi)
-                self.reset_circuit()
+                self.reset_circuit(phase_reset=False)
 
             # 1) Born probabilities (big-endian: qubit 0 = most significant)
             p0 = 0.0
@@ -912,7 +916,7 @@ class AlternativeCircuit(object):
             mask_pos = n - 1 - target_qubit  # big-endian position
             for idx in range(dim):
                 if ((idx >> mask_pos) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
+                    psi[idx] = 0.0 
                     #psi[idx] = 0.0 
                     
 
@@ -975,7 +979,7 @@ class AlternativeCircuit(object):
         T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
 
         n = self.nqubit
-        self.reset_circuit()
+        self.reset_circuit(phase_reset=False)
 
         # --- 3. Map physical → logical (if provided) ---
         qubits_r = qubit_list
@@ -1005,7 +1009,7 @@ class AlternativeCircuit(object):
 
         # --- 5. Apply this layer to collapsed state ---
         psi = self.statevector(collapsed)
-        self.reset_circuit()
+        self.reset_circuit(phase_reset=False)
 
         # --- 6. Normalize defensively ---
         norm = np.linalg.norm(psi)

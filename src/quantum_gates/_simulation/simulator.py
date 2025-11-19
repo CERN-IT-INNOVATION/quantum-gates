@@ -434,6 +434,7 @@ class MrAndersonSimulator(object):
         r_square_sum = np.zeros(2**nqubit)
 
         # Constants
+        # depth is the number of gates / ops in the circuit (excluding rz's) +1
         depth = len(data) - n_rz + 1
 
         # Create list of args
@@ -688,12 +689,17 @@ def _single_shot(args: dict) -> np.array:
     results = []  # mid results
     
     
-
+    circ.reset_circuit(phase_reset=True)  # reset internal state before starting
+    
     for idx, (d, flag) in enumerate(data):
         if flag == 0:
+            print(f"\n--- Applying normal chunk {idx} ---")
+            print('psi in: ',psi)        
             _apply_gates_on_circuit(d, circ, device_param)
             psi = circ.statevector(psi)
-            circ.reset_circuit()  # reset internal state for next chunk
+            print(f"--- psi After normal chunk {idx} ---")
+            print(psi)
+            circ.reset_circuit(phase_reset=False)  # reset internal state for next chunk
 
         elif flag == 1:
             
@@ -705,6 +711,7 @@ def _single_shot(args: dict) -> np.array:
                 # TODO add_bitflip can be parameterized per measurement
                 print("------ Mid-circuit measurement (physical) targets:", qubits, '-------------')
                 print()
+                
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
                 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
@@ -769,14 +776,14 @@ def _single_shot(args: dict) -> np.array:
                 print("Statevector before reset correction layer:")
                 print(psi_before)
                 psi = circ.statevector(psi)
-                circ.reset_circuit()
+                circ.reset_circuit(phase_reset=False)  # reset internal state for next chunk
                 print("Statevector after reset correction layer:")
                 print(psi)
 
                 # --- 4) Defensive normalize ---
-                norm = np.linalg.norm(psi)
-                if norm > 0:
-                    psi /= norm
+                #norm = np.linalg.norm(psi)
+                #if norm > 0:
+                #    psi /= norm
 
                 # 5) AFTER-correction: ⟨Z⟩ should be ~+1 for each target
                 print("Post-reset expectation ⟨Z⟩ check:")
