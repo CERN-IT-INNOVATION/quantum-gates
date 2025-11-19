@@ -138,7 +138,7 @@ class MrAndersonSimulator(object):
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         #  perform simulation (psi0 spans full width nqubit; active_layout routes gates)
-        probs, all_results = self._perform_simulation(
+        probs, all_results, saved_statevectors = self._perform_simulation(
             shots, data, n_rz, nqubit, device_param, psi0, active_layout, data_measure, bit_flip_bool
         )
 
@@ -164,9 +164,9 @@ class MrAndersonSimulator(object):
         
         # --- Build mid-circuit bitstrings directly from circuit output ---
         combined_mid_strings = []
-        mid_results = all_results
+        statevector_readout = []
 
-        for shot in mid_results:
+        for shot in all_results:
             # initialize all clbits to '0' (Aer default for unused)
             clbit_values = ['0'] * num_clbits
 
@@ -174,6 +174,8 @@ class MrAndersonSimulator(object):
             for event in shot["mid"]:
                 for c, val in zip(event["clbits"], event["outcome"]):
                     clbit_values[c] = str(val)
+                
+                statevector_readout.append(event["statevector"])
 
             # sort descending by clbit index (Aer display order)
             bitstring = ''.join(clbit_values[::-1])
@@ -187,6 +189,7 @@ class MrAndersonSimulator(object):
             "results": all_results, # mid-circuit measurement results
             "num_clbits": num_clbits, # number of classical bits in circuit
             "mid_counts": dict(mid_counts), # mid-circuit measurement counts
+            "statevector_readout": statevector_readout, # saved statevectors if any
         }
     
 
@@ -360,8 +363,6 @@ class MrAndersonSimulator(object):
                     data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                     current_chunk = []
                 q = op.qubits[0]._index
-                print("Reset on qubit: ", q)
-                print("===========================\n")
                 if q in qubits_layout:
                     data.append((("reset_qubits", op), 1))
             
@@ -475,13 +476,13 @@ class MrAndersonSimulator(object):
         else:
             for arg in arg_list:
                 # Compute
-                results, shot_result, final_outcomes = _single_shot(arg)
+                results_mid_measure, shot_result, final_outcomes, saved_statevectors = _single_shot(arg)
 
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
 
                 all_results.append({
-                    "mid": results,
+                    "mid": results_mid_measure,
                     "final": final_outcomes
                 })
 
@@ -495,7 +496,7 @@ class MrAndersonSimulator(object):
             print(f"Shot {i}: mid={res['mid']}, final={res['final']}")
         print("---------------------------------")
         '''
-        return r_mean, all_results
+        return r_mean, all_results, saved_statevectors
     
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int, qubits_layout: list) -> dict: 
@@ -676,6 +677,7 @@ def _single_shot(args: dict) -> np.array:
     bit_flip_bool =  args["bit_flip_bool"]
     psi = psi0
     results = []  # mid results
+    saved_statevectors = []  # Store saved statevectors if needed
     
     print("Layout mapping (phys→virt):", qubit_layout)
 
@@ -707,14 +709,13 @@ def _single_shot(args: dict) -> np.array:
                     "qubits": qubits,
                     "clbits": clbits,
                     "outcome": outcome,
+                    "statevector": psi.copy(),
                 })
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
-                print("Reset qubits operation", d[0])
 
                 op = d[1]
                 qubits = [q._index for q in op.qubits]
-                print(f"Found reset on qubits {qubits}")
                 # Perform the noisy reset operation
                 psi, outcome = circ.reset_qubits(
                     psi, device_param, bit_flip_bool, qubit_list=qubits
@@ -730,6 +731,7 @@ def _single_shot(args: dict) -> np.array:
                 if op_name == "statevector_readout":
                     print("Statevector readout not tested!!")
                     print("Statevector readout:", psi.copy())
+                    saved_statevectors.append(psi.copy())
 
                 elif op_name == "if_else":
                     raise NotImplementedError("if_else not implemented yet")
@@ -756,4 +758,4 @@ def _single_shot(args: dict) -> np.array:
         for q, (c_reg, c_idx) in data_measure:
             final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])
 
-    return results[::-1], shot_result, final_outcomes
+    return results[::-1], shot_result, final_outcomes, saved_statevectors

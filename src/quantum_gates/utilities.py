@@ -13,4 +13,5 @@ from ._utility.simulations_utility import (
     transpile_qiskit_circuit
 )
 from ._utility.surface_code import SurfaceCode
+from ._utility.rotated_surface_code import RotatedSurfaceCode
 from ._utility.circ_optimizer import Optimizer

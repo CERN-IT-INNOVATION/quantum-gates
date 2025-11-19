@@ -663,7 +663,7 @@ class AlternativeCircuit(object):
             # 3. Collapse the state
             for idx in range(dim):
                 if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
+                    psi[idx] = 0.0 
 
             # 4. Renormalize
             norm = np.linalg.norm(psi)
@@ -856,7 +856,6 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
-        print("\n X -GATE on qubit", i, "with p =", p, ", T1 =", T1, ", T2 =", T2)
         self.apply(gate=self._gate_call(self.gates.X, -self.phi[i], p, T1, T2), i=i)
 
     def SX(self, i: int, p: float, T1: float, T2: float):
