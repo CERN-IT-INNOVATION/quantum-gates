@@ -1,3 +1,4 @@
+import math
 from qiskit import QuantumCircuit, transpile
 
 from quantum_gates.simulators import MrAndersonSimulator
@@ -26,25 +27,26 @@ from copy import deepcopy
 from scipy.linalg import sqrtm
 
 
-
-class SurfaceCode:
+class RotatedSurfaceCode:
     def __init__(self, distance=3, cycles = 1):
         self.d = distance
+        self.n_rows = 2 * distance + 1
         self.cycles = cycles
         self.shots = 1
-        self.n_data = distance**2 + (distance - 1)**2
-        self.n_stabilizers = 2*(distance-1)* distance
+        self.n_data = distance**2 
+        self.n_stabilizers = distance**2 - 1 
         self.n_clbits = self.n_stabilizers * cycles
-        self.width = 2*distance-1
+        #self.width = 
         self.qc = QuantumCircuit(self.n_data + self.n_stabilizers, self.n_clbits)
 
         # define data and stabilizer indices based on even/odd parity
 
         self.stabilizers = [i for i in range((self.n_data + self.n_stabilizers)) if i % 2 == 1]
-        data_qubits, x_stabilizers, z_stabilizers = self._get_surface_code_layout()
+        data_qubits, x_stabilizers, z_stabilizers,  neighbors = self._get_surface_code_layout()
         self.data = data_qubits
         self.x_stabilizers = x_stabilizers
         self.z_stabilizers = z_stabilizers
+        self.neighbors = neighbors
 
         # maps stabilizer index -> list of classical bit indices (one per cycle)
         self.stabilizer_to_clbits = {
@@ -61,73 +63,144 @@ class SurfaceCode:
         
     def _get_surface_code_layout(self):
         """
-        Return indices of X stabilizers, Z stabilizers, and data qubits
-        for a planar surface code of given distance.
-        Layout follows the checkerboard pattern on a (2d-1) x (2d-1) grid.
+        Construct the rotated surface code layout following user rules:
+
+        Row structure:
+        - Row 0: floor(d/2) Z stabilizers, then d Z stabilizers, then floor(d/2) Z stabilizers
+        - Rows 1,3,... : d data qubits centered
+        - Rows 2,4,... : d alternating X/Z stabilizers centered, starting with X
+        - Last row (2d-2): same as row 0
         """
-        grid_size = 2*self.d - 1
 
-        def index(r, c):
-            return r * grid_size + c
+        d = self.d
+        n_rows = self.n_rows
+        half = d // 2
 
-        # create coordinate grid
-        rows, cols = np.meshgrid(np.arange(grid_size), np.arange(grid_size), indexing="ij")
+        data = []
+        stab_x = []
+        stab_z = []
+        neighbors = {} 
 
-        # checkerboard masks
-        mask_data = (rows + cols) % 2 == 0
-        mask_x    = (rows % 2 == 0) & (cols % 2 == 1)
-        mask_z    = (rows % 2 == 1) & (cols % 2 == 0)
+        index = 0  # simple linear indexing
 
-        # collect indices
-        data_qubits   = [index(r, c) for r, c in zip(rows[mask_data], cols[mask_data])]
-        x_stabilizers = [index(r, c) for r, c in zip(rows[mask_x], cols[mask_x])]
-        z_stabilizers = [index(r, c) for r, c in zip(rows[mask_z], cols[mask_z])]
+        for r in range(n_rows):
 
-        return data_qubits, x_stabilizers, z_stabilizers
+            # ---- Row 0 (top) and last row: Z boundary stabilizers ----
+            if r == 0 or r == n_rows-1:
+                if r == 0: factor = +1 * math.ceil(d/2)
+                else: factor = -1 * d
+                index_neighbor = 0
+                for k in range(half):
+                    stab_z.append((r, index)); 
+                    neighbor = []
+                    neighbor.append(index + factor  + index_neighbor )
+                    neighbor.append(index + factor + 1  + index_neighbor )
+                    neighbors[index] = neighbor
+                    index_neighbor += 1
+                    index += 1
+                
+                continue
 
-    def _qubit_index(self, r, c):
-            return r * self.width + c
+            # ---- Data row (odd rows) ----
+            if r % 2 == 1:
+                for _ in range(d):
+                    data.append((r, index))
+                    index += 1
+                continue
+
+            # ---- Stabilizer row (even rows except boundary) ----
+            if r % 2 == 0:
+                # Alternating X/Z, starting with X
+                for k in range(d):
+                    if k % 2 == 0 :
+                        stab_x.append((r, index))
+                        if r %4 == 2:
+                            if k == 0:
+                                neighbor = []
+                                neighbor.append(index - d)
+                                neighbor.append(index + d)
+                                neighbors[index] = neighbor
+                            else:
+                                neighbor = []
+                                neighbor.append(index - d -1)
+                                neighbor.append(index - d )
+                                neighbor.append(index + d -1)
+                                neighbor.append(index + d )
+                                neighbors[index] = neighbor
+
+                        else: 
+                            if k == d -1:
+                                neighbor = []
+                                neighbor.append(index - d)
+                                neighbor.append(index + d)
+                                neighbors[index] = neighbor
+                            else:
+                                neighbor = []
+                                neighbor.append(index - d )
+                                neighbor.append(index - d +1)
+                                neighbor.append(index + d )
+                                neighbor.append(index + d +1)
+                                neighbors[index] = neighbor
+                    else:
+                        stab_z.append((r, index))
+                        if r % 4 == 2:
+                            neighbor = []
+                            neighbor.append(index - d -1)
+                            neighbor.append(index - d )
+                            neighbor.append(index + d -1)
+                            neighbor.append(index + d )
+                            neighbors[index] = neighbor
+                        else: 
+                            neighbor = []
+                            neighbor.append(index - d)
+                            neighbor.append(index - d +1)
+                            neighbor.append(index + d)
+                            neighbor.append(index + d +1)
+                            neighbors[index] = neighbor
+                    index += 1
+                continue
+
+
+
+        return data, stab_x, stab_z, neighbors
+
+
     
-    def _get_neighbors(self, r, c):
-            """Return indices of data qubits adjacent to stabilizer at (r,c)."""
-            neighbors = []
-            for dr, dc in [(-1,0),(1,0),(0,-1),(0,1)]:
-                rr, cc = r+dr, c+dc
-                if 0 <= rr < self.width and 0 <= cc < self.width:
-                    neighbors.append(self._qubit_index(rr, cc))
-            return neighbors
+    
 
     def _build_stabilizer_layer(self):
         """Build one stabilizer measurement cycle for a distance-n surface code."""
 
-        qubits = self.width
+        qubits = self.d
         cycles = self.cycles
 
         # repeat the stabilizer-measurement process for all cycles
         for cycle in range(cycles):
             # --- Reset all stabilizers at the beginning of the cycle ---
-            for anc in self.x_stabilizers + self.z_stabilizers:
+            for stabilizer in self.x_stabilizers + self.z_stabilizers:
+                anc = stabilizer[1]
                 self.qc.reset(anc)
                 
             # --- X stabilizers ---
-            for anc in self.x_stabilizers:
-                r, c = divmod(anc, qubits) # converts a 1D index into a (row, col) pair
-                
+            for stabilizer in self.x_stabilizers:
+                anc = stabilizer[1]
                 self.qc.h(anc)  # prepare X stabilizer in |+>
                 self.qc.barrier()
 
                 # entangle with data qubits (ancilla is control)
-                for nb in self._get_neighbors(r, c):
+                neighbor = self.neighbors[anc]
+                for nb in neighbor:
                     self.qc.cx(anc, nb)
 
                 self.qc.barrier()
                 self.qc.h(anc)  # rotate back before measurement
 
             # --- Z stabilizers ---
-            for anc in self.z_stabilizers:
-                r, c = divmod(anc, qubits)
+            for stabilizer in self.z_stabilizers:
+                anc = stabilizer[1]
                 # entangle with data qubits (data is control, ancilla target)
-                for nb in self._get_neighbors(r, c):
+                neighbor = self.neighbors[anc]
+                for nb in neighbor:
                     self.qc.cx(nb, anc)
 
                 self.qc.barrier()
@@ -137,7 +210,8 @@ class SurfaceCode:
             # --- Measure all stabilizers for this cycle --- 
             classical_offset = cycle * self.n_stabilizers
             stab_list = sorted(self.x_stabilizers + self.z_stabilizers)
-            for i, anc in enumerate(stab_list):
+            for i, stabilizer in enumerate(stab_list):
+                anc = stabilizer[1]
                 self.qc.measure(anc, classical_offset + i)
 
             self.qc.barrier()
@@ -168,7 +242,6 @@ class SurfaceCode:
             scheduling_method=needs_controlflow,           # no scheduling
 
         )
-        t_circ.draw('mpl')
 
         # Check which qubits are actually used in transpiled circuit
         used_qubits: list[int] = []
@@ -213,7 +286,7 @@ class SurfaceCode:
         num_clbits = res["num_clbits"]
         mid_counts = res["mid_counts"]
         statevector_readout = res["statevector_readout"]
-
+        """
         #Calucate Fidelity per cycle
 
         # extract only the final statevector of each cycle
@@ -224,13 +297,13 @@ class SurfaceCode:
         print("Decoder output Z:", decoder_z)
         print("Measurement results:", mid_counts)
         # XOR over cycles → net correction
-        """
+        
         for cycle in range(1, self.cycles):
             U_map = self._create_U_map(decoder_x[cycle], decoder_z[cycle])
             print(f"U map after cycle {cycle}:", U_map)
             #apply U to the statevector of the dataqubits only and save as statevctor list where statevector[c] 
             #is the error corrected statevector after cycle c 
-        """
+
         # now compute fidelity of statevector[c-1] and statevector[c] for each cycle c and plot it 
 
 
@@ -244,6 +317,7 @@ class SurfaceCode:
         print("U map (data qubit corrections):", U_map)
 
         #return statevector on dataqubits
+        """
         return mid_counts
     
     def extract_statevectors_per_cycle(self, statevector_readout):
@@ -297,45 +371,37 @@ class SurfaceCode:
         rho_data : np.ndarray
             2**|data_qubits| × 2**|data_qubits| reduced density matrix.
         """
+
+
+
         total_qubits = self.n_data + self.n_stabilizers
-        # Sort to get consistent ordering
-        data_qubits = sorted(self.data)
-        stab_qubits = self.stabilizers
-        # reshape full statevector into tensor form
+
         psi = statevector.reshape([2] * total_qubits)
 
-        # axes order: data qubits first, stabilizers last
+        # --- Helper to get the global qubit index ---
+        def _extract_pos(q):
+            if isinstance(q, tuple):     # (row, pos)
+                return q[1]
+            else:                        # int (old stabilizers)
+                return q
+
+        # Extract only flat qubit positions
+        data_qubits = sorted(_extract_pos(q) for q in self.data)
+        stab_qubits = [_extract_pos(q) for q in self.stabilizers]
+
         perm = data_qubits + stab_qubits
+
         psi_perm = np.transpose(psi, axes=perm)
 
         nd = len(data_qubits)
         ns = len(stab_qubits)
 
-        # reshape to matrix form: (2**nd) × (2**ns)
         psi_matrix = psi_perm.reshape(2**nd, 2**ns)
 
-        # density matrix on full register
-        rho_full = psi_matrix @ psi_matrix.conj().T  # trace over stabilizers
-
+        rho_full = psi_matrix @ psi_matrix.conj().T
         return rho_full
 
-    def _fix_density_matrix(self, rho, eps=1e-12):
-        # Enforce Hermiticity
-        rho = 0.5 * (rho + rho.conj().T)
 
-        # Diagonalize
-        vals, vecs = np.linalg.eigh(rho)
-
-        # Clamp negative eigenvalues (due to rounding)
-        vals = np.maximum(vals, eps)
-
-        # Rebuild PSD matrix
-        rho = vecs @ np.diag(vals) @ vecs.conj().T
-
-        # Normalize trace
-        rho /= np.trace(rho)
-
-        return rho
 
 
     def _fidelity_per_cycle(self, statevector_readout, bitstring):
@@ -383,8 +449,8 @@ class SurfaceCode:
                     rho_copy = np.kron(np.eye(2**i), np.kron(Z, np.eye(2**(n_data - i - 1)))) @ rho_copy @ np.kron(np.eye(2**i), np.kron(Z, np.eye(2**(n_data - i - 1))))
             # Compute fidelity
             # Compute Uhlmann fidelity with logical |0_L>
-            A = sqrtm(self._fix_density_matrix(rho_full_last_corrected))
-            F = np.real(np.trace(sqrtm(A @ self._fix_density_matrix(rho_copy) @ A)))**2
+            A = sqrtm(rho_full_last_corrected)
+            F = np.real(np.trace(sqrtm(A @ rho_copy @ A)))**2
             fidelities.append(F)
 
 
@@ -578,16 +644,16 @@ class SurfaceCode:
         connections = {}
         
         for stab in self.x_stabilizers + self.z_stabilizers:
-            r, c = divmod(stab, self.width)
-            neighbors = self._get_neighbors(r, c)
+            anc = stab[1]
+                # entangle with data qubits (data is control, ancilla target)
+            neighbors = self.neighbors[anc]
             # Filter to only include data qubits
             data_neighbors = [nb for nb in neighbors if nb in self.data]
             connections[stab] = data_neighbors
             
             # Debug print
             stab_type = 'X' if stab in self.x_stabilizers else 'Z'
-            print(f"{stab_type}-stab at qubit {stab} (r={r}, c={c}) -> neighbors {neighbors} -> data: {data_neighbors}")
-        
+            print(f"Stabilizer {stab} ({stab_type}) measures data qubits: {data_neighbors}")
         return connections
 
 # ========================================================================

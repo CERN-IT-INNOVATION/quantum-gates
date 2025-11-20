@@ -126,7 +126,7 @@ class MrAndersonSimulator(object):
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         #  perform simulation (psi0 spans full width nqubit; active_layout routes gates)
-        probs, all_results = self._perform_simulation(
+        probs, all_results, saved_statevectors = self._perform_simulation(
             shots, data, n_rz, nqubit, device_param, psi0, data_measure, bit_flip_bool
         )
 
@@ -151,9 +151,9 @@ class MrAndersonSimulator(object):
         
         # --- FIXED: Build mid-circuit bitstrings with chronological processing ---
         combined_mid_strings = []
-        mid_results = all_results
+        statevector_readout = []
 
-        for shot in mid_results:
+        for shot in all_results:
             # initialize all clbits to '0' (Aer default for unused)
             clbit_values = ['0'] * num_clbits
 
@@ -164,6 +164,8 @@ class MrAndersonSimulator(object):
             for event in sorted_events:
                 for c, val in zip(event["clbits"], event["outcome"]):
                     clbit_values[c] = str(val)
+                
+                statevector_readout.append(event["statevector"])
 
             # sort descending by clbit index (Aer display order)
             bitstring = ''.join(clbit_values[::-1])
@@ -177,6 +179,7 @@ class MrAndersonSimulator(object):
             "results": all_results, # mid-circuit measurement results
             "num_clbits": num_clbits, # number of classical bits in circuit
             "mid_counts": dict(mid_counts), # mid-circuit measurement counts
+            "statevector_readout": statevector_readout, # saved statevectors if any
         }
     
     '''
@@ -265,28 +268,30 @@ class MrAndersonSimulator(object):
 
         
     def _pretty_print_data(self, data):
-        """Print human-readable view of preprocessed circuit data."""
+        """Print a human-readable view of the preprocessed circuit data."""
         for idx, (chunk, flag) in enumerate(data):
             if flag == 0:
+                # normal chunk
                 ops_str = " , ".join(
                     f"{op.operation.name}[{', '.join(str(q._index) for q in op.qubits)}]"
                     for op in chunk
                 )
                 print(f"Chunk {idx}: {ops_str}")
+
             else:
+                # fancy gate (mid_measurement, reset, etc.)
                 op = chunk
-                # handle mid_measurement tuple
                 if isinstance(op, tuple) and op[0] == "mid_measurement":
                     meas_op = op[1]
-                    q_idx = meas_op["q_idx"]
-                    c_idx = meas_op["c_idx"]
+                    q_idx = [q._index for q in meas_op.qubits]
+                    c_idx = [c._index for c in meas_op.clbits]
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
-                    
+
                 elif isinstance(op, tuple) and op[0] == "reset_qubits":
-                    meas_op = op[1]
-                    q_idx = meas_op["q_idx"]
+                    reset_op = op[1]
+                    q_idx = [q._index for q in reset_op.qubits]
                     print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
-                    
+
                 else:
                     # normal fancy gate (Instruction)
                     print(
@@ -354,15 +359,10 @@ class MrAndersonSimulator(object):
                     if current_chunk:
                         data.append((current_chunk, 0))
                         current_chunk = []
-                    # instead of mutating, just store a tuple with a tag
-                    data.append((
-                        ("mid_measurement", {
-                            "op": op,       # keep original CircuitInstruction for debugging if you like
-                            "q_idx": q_idx, # flat qubit indices (aligned with op.qubits)
-                            "c_idx": c_idx, # flat clbit indices (aligned with op.clbits)
-                        }),
-                        1
-                    ))
+
+                    q = op.qubits[0]._index
+                    if q in qubits_layout:
+                        data.append((("mid_measurement", op), 1))
 
                 else:
                     # final measurement → store for later
@@ -377,12 +377,11 @@ class MrAndersonSimulator(object):
             elif op_name == "reset":
                 
                 if current_chunk:
-                    data.append((current_chunk, 0))
+                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
                     current_chunk = []
-
-                # Expand multi-qubit reset into separate entries.
-                # Use the PHYSICAL/flat index from Qiskit (._index) for consistency.
-                data.append((("reset_qubits", {"op": op, "q_idx": q_idx}), 1))
+                q = op.qubits[0]._index
+                if q in qubits_layout:
+                    data.append((("reset_qubits", op), 1))
             
             
             elif op_name == "statevector_readout":
@@ -484,13 +483,13 @@ class MrAndersonSimulator(object):
         else:
             for arg in arg_list:
                 # Compute
-                results, shot_result, final_outcomes = _single_shot(arg)
+                results_mid_measure, shot_result, final_outcomes, saved_statevectors = _single_shot(arg)
 
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
 
                 all_results.append({
-                    "mid": results,
+                    "mid": results_mid_measure,
                     "final": final_outcomes
                 })
 
@@ -504,7 +503,7 @@ class MrAndersonSimulator(object):
             print(f"Shot {i}: mid={res['mid']}, final={res['final']}")
         print("---------------------------------")
         '''
-        return r_mean, all_results
+        return r_mean, all_results, saved_statevectors
     
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int) -> dict: 
@@ -687,6 +686,7 @@ def _single_shot(args: dict) -> np.array:
     bit_flip_bool =  args["bit_flip_bool"]
     psi = psi0
     results = []  # mid results
+    saved_statevectors = []  # Store saved statevectors if needed
     
     
     circ.reset_circuit(phase_reset=True)  # reset internal state before starting
@@ -717,7 +717,7 @@ def _single_shot(args: dict) -> np.array:
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
                 assert len(outcome1) == len(clbits), "Outcome/clbits length mismatch"
                 
-                # Normalize again (defensive) TODO: is this needed?
+                # normalize just in case
                 norm = np.linalg.norm(psi)
                 if norm > 0:
                     psi /= norm
@@ -729,6 +729,7 @@ def _single_shot(args: dict) -> np.array:
                     "qubits": qubits,
                     "clbits": clbits,
                     "outcome": outcome,
+                    "statevector": psi.copy(),
                 })
 
             elif isinstance(d, tuple) and d[0] == "reset_qubits":
@@ -797,6 +798,7 @@ def _single_shot(args: dict) -> np.array:
                 if op_name == "statevector_readout":
                     print("Statevector readout not tested!!")
                     print("Statevector readout:", psi.copy())
+                    saved_statevectors.append(psi.copy())
 
                 elif op_name == "if_else":
                     raise NotImplementedError("if_else not implemented yet")
@@ -823,4 +825,4 @@ def _single_shot(args: dict) -> np.array:
         for q, (c_reg, c_idx) in data_measure:
             final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])
 
-    return results[::-1], shot_result, final_outcomes
+    return results[::-1], shot_result, final_outcomes, saved_statevectors

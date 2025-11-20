@@ -321,8 +321,7 @@ class Circuit(object):
 
         return psi, result
     
-    
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None, phys_to_logical=None):
+    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None):
         """
         Perform a noisy reset on one or more qubits.
 
@@ -353,24 +352,15 @@ class Circuit(object):
         n = self.nqubit
         self.reset_circuit()
 
-        # --- 3. Map physical → logical (if provided) ---
-        if phys_to_logical is not None:
-            qubits_r = [list(phys_to_logical.keys())[list(phys_to_logical.values()).index(q)]
-                        if q in phys_to_logical.values() else q
-                        for q in qubit_list]
-        else:
-            qubits_r = qubit_list
 
-        # --- 4. Apply noisy X for measured '1's, build full layer with identities ---
+        # --- 3. For each qubit with outcome=1, apply X ---
         touched: set[int] = set()
-        for q_r, q_v, outcome in zip(qubits_r, qubit_list, outcomes):
-            touched.add(q_v)
+        for q, outcome in zip(qubit_list, outcomes):
+            touched.add(q)
             if outcome == 1:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
-                self.X(i=q_v, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
-            else:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
-                self.I(i=q_v)
+                print(f"Resetting qubit {q} from |1> to |0> with noisy X gate.")
+                self.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
+            else: self.I(i=q)
 
         # Fill identities for untouched wires (complete layer)
         for k in range(n):
@@ -810,7 +800,7 @@ class AlternativeCircuit(object):
             # 3. Collapse the state
             for idx in range(dim):
                 if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
+                    psi[idx] = 0.0 
 
             # 4. Renormalize
             norm = np.linalg.norm(psi)
@@ -1084,6 +1074,28 @@ class AlternativeCircuit(object):
 
     def statevector_readout(self, psi0) -> np.array:
         return psi0
+    
+    def _gate_call(self, fn, *args, **kwargs):
+        """
+        Call a gate constructor with a 'noisy' signature if available.
+        If the gate is noise-free (fewer params), progressively trim
+        trailing positional args until the call succeeds.
+        """
+        # try full signature first
+        try:
+            return fn(*args, **kwargs)
+        except TypeError:
+            pass
+
+        # progressively trim trailing args
+        for cut in range(len(args) - 1, -1, -1):
+            try:
+                return fn(*args[:cut], **kwargs)
+            except TypeError:
+                continue
+
+        # last resort: try with no args (some gates may be nullary)
+        return fn()
     
     
     def I(self, i: int):
