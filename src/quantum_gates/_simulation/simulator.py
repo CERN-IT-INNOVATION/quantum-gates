@@ -268,30 +268,28 @@ class MrAndersonSimulator(object):
 
         
     def _pretty_print_data(self, data):
-        """Print a human-readable view of the preprocessed circuit data."""
+        """Print human-readable view of preprocessed circuit data."""
         for idx, (chunk, flag) in enumerate(data):
             if flag == 0:
-                # normal chunk
                 ops_str = " , ".join(
                     f"{op.operation.name}[{', '.join(str(q._index) for q in op.qubits)}]"
                     for op in chunk
                 )
                 print(f"Chunk {idx}: {ops_str}")
-
             else:
-                # fancy gate (mid_measurement, reset, etc.)
                 op = chunk
+                # handle mid_measurement tuple
                 if isinstance(op, tuple) and op[0] == "mid_measurement":
                     meas_op = op[1]
-                    q_idx = [q._index for q in meas_op.qubits]
-                    c_idx = [c._index for c in meas_op.clbits]
+                    q_idx = meas_op["q_idx"]
+                    c_idx = meas_op["c_idx"]
                     print(f"Fancy {idx}: mid_measurement qubits={q_idx} clbits={c_idx}")
-
+                    
                 elif isinstance(op, tuple) and op[0] == "reset_qubits":
-                    reset_op = op[1]
-                    q_idx = [q._index for q in reset_op.qubits]
+                    meas_op = op[1]
+                    q_idx = meas_op["q_idx"]
                     print(f"Fancy {idx}: reset_qubits qubits={q_idx}")
-
+                    
                 else:
                     # normal fancy gate (Instruction)
                     print(
@@ -359,10 +357,15 @@ class MrAndersonSimulator(object):
                     if current_chunk:
                         data.append((current_chunk, 0))
                         current_chunk = []
-
-                    q = op.qubits[0]._index
-                    if q in qubits_layout:
-                        data.append((("mid_measurement", op), 1))
+                    # instead of mutating, just store a tuple with a tag
+                    data.append((
+                        ("mid_measurement", {
+                            "op": op,       # keep original CircuitInstruction for debugging if you like
+                            "q_idx": q_idx, # flat qubit indices (aligned with op.qubits)
+                            "c_idx": c_idx, # flat clbit indices (aligned with op.clbits)
+                        }),
+                        1
+                    ))
 
                 else:
                     # final measurement → store for later
@@ -373,15 +376,17 @@ class MrAndersonSimulator(object):
                     c_idx = op.clbits[0]._index
                     data_measure.append((q, (c_reg, c_idx)))
 
-            # ---------------------- RESET ----------------------
+             # ---------------------- RESET ----------------------
             elif op_name == "reset":
                 
                 if current_chunk:
-                    data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
+                    data.append((current_chunk, 0))
                     current_chunk = []
-                q = op.qubits[0]._index
-                if q in qubits_layout:
-                    data.append((("reset_qubits", op), 1))
+
+                # Expand multi-qubit reset into separate entries.
+                # Use the PHYSICAL/flat index from Qiskit (._index) for consistency.
+                data.append((("reset_qubits", {"op": op, "q_idx": q_idx}), 1))
+            
             
             
             elif op_name == "statevector_readout":

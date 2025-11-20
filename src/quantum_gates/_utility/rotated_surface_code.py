@@ -10,10 +10,14 @@ from quantum_gates.utilities import setup_backend
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import pymatching
 from qiskit.transpiler import InstructionProperties  
 from qiskit.circuit.library import XGate, YGate, ZGate
-import pymatching
+try:
+    import pymatching
+except ImportError as e:
+    raise ImportError(
+        "The 'SurfaceCode' feature requires pymatching.\n"
+    ) from e
 from scipy.sparse import csr_matrix, lil_matrix
 from qiskit.circuit.controlflow import ControlFlowOp 
 
