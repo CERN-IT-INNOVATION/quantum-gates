@@ -1,8 +1,13 @@
 """
 This module implements the base class to perform noisy quantum simulations with noisy gates approach
 """
+<<<<<<< HEAD
 import numpy as np
 import itertools
+=======
+
+import numpy as np
+>>>>>>> main
 import functools as ft
 
 from .._gates.gates import Gates
@@ -103,6 +108,7 @@ class Circuit(object):
             matrix_prod = ft.reduce(np.kron, self.circuit[:, i]) @ matrix_prod
         psi = matrix_prod @ psi0
         return psi
+<<<<<<< HEAD
     
     
     def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
@@ -222,6 +228,8 @@ class Circuit(object):
 
         return psi, result
     
+=======
+>>>>>>> main
 
     def I(self, i: int):
         """
@@ -431,6 +439,7 @@ class Circuit(object):
                 )
                 
 
+<<<<<<< HEAD
     def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
         # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
@@ -441,6 +450,16 @@ class Circuit(object):
         self._backend = self._BackendClass(self.nqubit)
         self._mp = [1 for i in range(self.nqubit)]
         self._mp_list = []
+=======
+    def reset(self):
+        """ Reset the circuit to the initial state. """
+        self.j = 0
+        self.s = 0
+        self.circuit = [[1 for i in range(self.depth)] for j in range(self.nqubit)]
+
+        # TODO: The last line was originally not there. Check if it should and whether it has a positive effect.
+        self.phi = [0 for i in range(self.nqubit)]
+>>>>>>> main
 
 
 class AlternativeCircuit(object):
@@ -504,6 +523,7 @@ class AlternativeCircuit(object):
         # Case: All gates in this gatetime have been applied
         if self._s == self.nqubit:
             self._update_mp_list()
+<<<<<<< HEAD
             
     def _gate_call(self, fn, *args, **kwargs):
         """
@@ -526,6 +546,8 @@ class AlternativeCircuit(object):
 
         # last resort: try with no args (some gates may be nullary)
         return fn()
+=======
+>>>>>>> main
 
     def statevector(self, psi0) -> np.array:
         """Compute the output statevector of the noisy quantum circuit, psi1 = U psi0.
@@ -535,6 +557,7 @@ class AlternativeCircuit(object):
             return psi0
         return self._backend.statevector(self._mp_list, psi0)
 
+<<<<<<< HEAD
 
     def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
                     qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
@@ -680,6 +703,8 @@ class AlternativeCircuit(object):
         return fn()
     
     
+=======
+>>>>>>> main
     def I(self, i: int):
         """Apply identity gate on qubit i
 
@@ -716,7 +741,11 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
+<<<<<<< HEAD
         self.apply(gate=self._gate_call(self.gates.bitflip, tm, rout), i=i)
+=======
+        self.apply(gate=self.gates.bitflip(tm, rout), i=i)
+>>>>>>> main
 
     def relaxation(self, i: int, Dt: float, T1: float, T2: float):
         """Apply relaxation noise gate on qubit i. Add on idle-qubits.
@@ -730,8 +759,13 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
+<<<<<<< HEAD
         self.apply(gate=self._gate_call(self.gates.relaxation, Dt, T1, T2), i=i)
         
+=======
+        self.apply(gate=self.gates.relaxation(Dt, T1, T2), i=i)
+
+>>>>>>> main
     def depolarizing(self, i: int, Dt: float, p: float):
         """Apply depolarizing noise gate on qubit i. Add on idle-qubits.
 
@@ -743,7 +777,11 @@ class AlternativeCircuit(object):
         Returns:
              None
         """
+<<<<<<< HEAD
         self.apply(gate=self._gate_call(self.gates.depolarizing, Dt, p), i=i)
+=======
+        self.apply(gate=self.gates.depolarizing(Dt, p), i=i)
+>>>>>>> main
 
     def X(self, i: int, p: float, T1: float, T2: float) -> np.array:
         """
@@ -759,8 +797,12 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
+<<<<<<< HEAD
         #print("\n X -GATE on qubit", i, "with p =", p, ", T1 =", T1, ", T2 =", T2)
         self.apply(gate=self._gate_call(self.gates.X, -self.phi[i], p, T1, T2), i=i)
+=======
+        self.apply(gate=self.gates.X(-self.phi[i], p, T1, T2), i=i)
+>>>>>>> main
 
     def SX(self, i: int, p: float, T1: float, T2: float):
         """
@@ -776,7 +818,11 @@ class AlternativeCircuit(object):
         Returns:
               None
         """
+<<<<<<< HEAD
         self.apply(gate=self._gate_call(self.gates.SX, -self.phi[i], p, T1, T2), i=i)
+=======
+        self.apply(gate=self.gates.SX(-self.phi[i], p, T1, T2), i=i)
+>>>>>>> main
 
     def CNOT(self, i: int, k: int, t_int: float, p_i_k: float, p_i: float, p_k: float, T1_ctr: float,
              T2_ctr: float, T1_trg: float, T2_trg: float):
@@ -803,15 +849,23 @@ class AlternativeCircuit(object):
         # Add two qubit gate to circuit snippet
         if i < k:
             # Control i
+<<<<<<< HEAD
             self._mp[i] = self._gate_call(
                 self.gates.CNOT,
+=======
+            self._mp[i] = self.gates.CNOT(
+>>>>>>> main
                 self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
             self.phi[i] = self.phi[i] - np.pi/2
         else:
             # Control i
+<<<<<<< HEAD
             self._mp[i] = self._gate_call(
                 self.gates.CNOT_inv,
+=======
+            self._mp[i] = self.gates.CNOT_inv(
+>>>>>>> main
                 self.phi[i], self.phi[k], t_int, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
@@ -853,14 +907,22 @@ class AlternativeCircuit(object):
         # Add two qubit gate to circuit snippet
         if i < k:
             # Control i
+<<<<<<< HEAD
             self._mp[i] = self._gate_call(
                 self.gates.ECR,
+=======
+            self._mp[i] = self.gates.ECR(
+>>>>>>> main
                 self.phi[i], self.phi[k], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
         else:
             # Control i
+<<<<<<< HEAD
             self._mp[i] = self._gate_call(
                 self.gates.ECR_inv,
+=======
+            self._mp[i] = self.gates.ECR_inv(
+>>>>>>> main
                 self.phi[k], self.phi[i], t_ecr, p_i_k, p_i, p_k, T1_ctr, T2_ctr, T1_trg, T2_trg
             )
 
@@ -877,16 +939,26 @@ class AlternativeCircuit(object):
         self._mp = [1 for i in range(self.nqubit)]
         self._s = 0
 
+<<<<<<< HEAD
     def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
         # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
         if phase_reset: 
             self.phi = [0 for i in range(self.nqubit)]
             
+=======
+    def reset(self):
+        """ Reset the circuit to the initial state. """
+        self.phi = [0 for i in range(self.nqubit)]
+>>>>>>> main
         self._s = 0
         self._backend = self._BackendClass(self.nqubit)
         self._mp = [1 for i in range(self.nqubit)]
         self._mp_list = []
+<<<<<<< HEAD
+=======
+        self.phi = [0 for i in range(self.nqubit)]
+>>>>>>> main
 
 
 class BinaryCircuit(object):
@@ -976,6 +1048,7 @@ class BinaryCircuit(object):
             qubit_layout=self.qubit_layout,
         )
     
+<<<<<<< HEAD
     def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
                     qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
         """
@@ -1094,6 +1167,8 @@ class BinaryCircuit(object):
         return psi, result
 
     
+=======
+>>>>>>> main
     def I(self, i: int):
         """Apply identity gate on qubit i
 
@@ -1278,6 +1353,7 @@ class BinaryCircuit(object):
 
         return
 
+<<<<<<< HEAD
     def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
         # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
@@ -1288,6 +1364,14 @@ class BinaryCircuit(object):
         self._backend = self._BackendClass(self.nqubit)
         self._mp = [1 for i in range(self.nqubit)]
         self._mp_list = []
+=======
+    def reset(self):
+        """ Reset the circuit to the initial state. """
+        self.phi = [0 for i in range(self.nqubit)]
+        self._backend = self._BackendClass(self.nqubit)
+        self._info_gates_list = []
+        self.phi = [0 for i in range(self.nqubit)]
+>>>>>>> main
 
 
 class StandardCircuit(AlternativeCircuit):
