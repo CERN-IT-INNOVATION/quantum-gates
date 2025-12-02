@@ -94,7 +94,6 @@ class RelaxationFactory(object):
             ep = 0
         else:
             e2 = np.sqrt(tg/T2)
-<<<<<<< HEAD
             ep_squared = (1/2) * (e2**2 - e1**2/2) #updated to handel T2 > 2T1
             
             # Handle case where T2 > 2*T1 (physical constraint violated)
@@ -103,9 +102,6 @@ class RelaxationFactory(object):
                 ep = 0
             else:
                 ep = np.sqrt(ep_squared)
-=======
-            ep = np.sqrt((1/2) * (e2**2 - e1**2/2))
->>>>>>> main
 
         W = np.random.normal(0, np.sqrt(Dt))
         I = np.random.normal(0, np.sqrt(V(Dt)))
@@ -160,16 +156,11 @@ class SingleQubitGateFactory(object):
         else:
             e1 = np.sqrt(tg/T1)
 
-<<<<<<< HEAD
-        # Around line 97 - replace the ep calculation:
-=======
         # Dephasing time is zero
->>>>>>> main
         if T2 == 0:
             ep = 0
         else:
             e2 = np.sqrt(tg/T2)
-<<<<<<< HEAD
             ep_squared = (1/2) * (e2**2 - e1**2/2) #updated to handel T2 > 2T1
             
             # Handle case where T2 > 2*T1 (physical constraint violated)
@@ -178,9 +169,6 @@ class SingleQubitGateFactory(object):
                 ep = 0
             else:
                 ep = np.sqrt(ep_squared)
-=======
-            ep = np.sqrt((1/2) * (e2**2 - e1**2/2))
->>>>>>> main
 
         """ 1) UNITARY CONTRIBUTION """
 
@@ -465,7 +453,6 @@ class CRFactory(object):
             ep_ctr = 0
         else:
             e2_ctr = np.sqrt(tg/T2_ctr)
-<<<<<<< HEAD
             ep_ctr_squared = (1/2) * (e2_ctr**2 - e1_ctr**2/2)
                 
             if ep_ctr_squared < 0:
@@ -473,9 +460,6 @@ class CRFactory(object):
                 ep_ctr = 0
             else:
                 ep_ctr = np.sqrt(ep_ctr_squared)
-=======
-            ep_ctr = np.sqrt((1/2) * (e2_ctr**2 - e1_ctr**2/2))
->>>>>>> main
 
         if T1_trg == 0:
             e1_trg = 0
@@ -486,7 +470,6 @@ class CRFactory(object):
             ep_trg = 0
         else:
             e2_trg = np.sqrt(tg/T2_trg)
-<<<<<<< HEAD
             ep_trg_squared = (1/2) * (e2_trg**2 - e1_trg**2/2)
             
             if ep_trg_squared < 0:
@@ -494,9 +477,6 @@ class CRFactory(object):
                 ep_trg = 0
             else:
                 ep_trg = np.sqrt(ep_trg_squared)
-=======
-            ep_trg = np.sqrt((1/2) * (e2_trg**2 - e1_trg**2/2))
->>>>>>> main
 
         U = np.array(
             [[np.cos(theta/2), -1J*np.sin(theta/2) * np.exp(-1J * phi), 0, 0],
