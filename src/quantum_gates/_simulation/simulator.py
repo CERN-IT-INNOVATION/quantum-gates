@@ -14,57 +14,61 @@ from .._simulation.circuit import Circuit, StandardCircuit
 
 
 class MrAndersonSimulator(object):
-    """Simulates a noisy quantum circuit, extracting the gate instructions from a transpiled qiskit QuantumCircuit.
+    """
+    Simulates a noisy quantum circuit by extracting gate instructions from a
+    transpiled Qiskit ``QuantumCircuit`` and executing them with a custom backend.
 
-    Note that the shots can be parallelized, but this comes with a large overhead. Thus, we recommend to parallelize
-    the usage of the simulator instead. This can be done with the function
-    src.utility.simulation_utility.perform_parallel_simulation.
+    Shots may be parallelized, though this typically introduces overhead.
+    For large workloads, consider parallelizing multiple simulator calls instead
+    via ``src.utility.simulation_utility.perform_parallel_simulation``.
 
     Args:
-        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
-        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
-        parallel (bool): Whether or not the shots should be run in parallel. False by default.
+        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]):
+            Gate set to be used, including pulse/noise definitions.
+        CircuitClass (Union[Circuit, EfficientCircuit]):
+            Backend computation class.
+        parallel (bool):
+            Whether to execute shots in parallel (default: False).
 
     Note:
-        You must use the BinaryCircuit for non linear topologies, the other Circuit classes don't support non linear topologies.
-        If you use the BinaryCircuit for non-linear topologies, make sure to import the parameters of all qubits up to the one with the maximum index, even if some qubits are not used, when importing device parameters.
+        Use ``BinaryCircuit`` for non-linear qubit topologies. When doing so,
+        ensure device parameters include all qubits up to the maximum index.
 
     Example:
         .. code:: python
 
-           from quantum_gates.simulators import MrAndersonSimulator
-           from quantum_gates.gates import standard_gates
-           from quantum_gates.circuits import EfficientCircuit
+            sim = MrAndersonSimulator(
+                gates=standard_gates,
+                CircuitClass=EfficientCircuit,
+                parallel=False
+            )
 
-           sim = MrAndersonSimulator(
-               gates==standard_gates,
-               CircuitClass=EfficientCircuit,
-               parallel=False
-           )
+            out = sim.run(
+                t_qiskit_circ=...,
+                psi0=...,
+                shots=1000,
+                device_param=...,
+                nqubit=2
+            )
 
-           probs = sim.run(t_qiskit_circ=...,
-                        =...,
-                        psi0=np.array([1.0, 0.0, 0.0, 0.0]),
-                        shots=1000,
-                        device_param=...,
-                        nqubit=2)
-        
-            print(probs)
+            print(out["probs"])
 
-        Expected output:
+        Example output structure:
 
         .. code-block:: text
 
-           {'00': 0.014743599038964704,
-            '01': 0.000334214280332552,
-            '10': 0.9612000084536643,
-            '11': 0.02372217822703839}
-
+            {
+                "probs": {...},               # final probability distribution
+                "results": [...],             # per-shot mid/final measurement data
+                "num_clbits": int,            # number of classical bits
+                "mid_counts": {...},          # aggregated mid-circuit results
+                "statevector_readout": [...]  # saved statevectors (if any)
+            }
 
     Attributes:
-        gates (Union[Gates, ScaledNoiseGates, NoiseFreeGates]): Gateset to be used, contains the pulse information.
-        CircuitClass (Union[Circuit, EfficientCircuit]): Performs the computations with the backend.
-        parallel (bool): Whether or not the shots should be run in parallel. False by default.
+        gates: Gate definitions including pulse/noise data.
+        CircuitClass: Backend circuit evaluator.
+        parallel: Whether shots run in parallel.
     """
 
     def __init__(self, gates: Gates=standard_gates, CircuitClass=BinaryCircuit, parallel: bool=False):
@@ -79,28 +83,35 @@ class MrAndersonSimulator(object):
         shots: int,
         device_param: dict,
         nqubit: int,
+        qubit_layout=None,
         bit_flip_bool=True,) -> dict:
         """
-        Takes as input a transpiled qiskit circuit on a given backend with a given qubits layout
-        and runs noisy quantum gates.
+        Execute a noisy simulation of a transpiled Qiskit circuit on the given
+        device model, starting from state ``psi0`` and running ``shots`` realizations.
+
         Args:
-            t_qiskit_circ: transpiled qiskit circuit (QuantumCircuit)
-            : qubits layout with linear topology (list)
-            psi0: initial state (array)
-            shots: number of realizations (int)
-            device_param: noise and device configurations as dict with the keys specified by DeviceParameters (dict)
-            nqubit: number of qubits used in the circuit, must be compatible with psi0 (int)
+            t_qiskit_circ (QuantumCircuit): Transpiled circuit to simulate.
+            psi0 (np.ndarray): Initial state vector.
+            shots (int): Number of Monte-Carlo realizations.
+            device_param (dict): Noise/device configuration.
+            nqubit (int): Number of qubits implied by ``psi0``.
+            qubit_layout: Deprecated; must be ``None``.
+            bit_flip_bool (bool): Apply bit-flip correction during measurement.
 
         Returns:
-            dictionary of probabilities: the keys are the binary strings and the values the probabilities (dict)
-        
-        Note: The output follow the Big Endian order for the bit strings
-                
+            dict containing:
+                • **"probs"** – final measurement probabilities (big-endian).
+                • **"results"** – per-shot mid/final measurement data.
+                • **"num_clbits"** – number of classical bits in the circuit.
+                • **"mid_counts"** – aggregated mid-circuit measurement bitstrings.
+                • **"statevector_readout"** – saved statevectors, if present.
         """
+        if qubit_layout is not None:
+            raise NotImplementedError("qubit_layout argument is deprecated; please use transpiled circuits instead.")
+        
         # Process layout circuit
         used_logicals, q_meas_list, n_qubit_used = self._process_layout(t_qiskit_circ)
-        print("Used logical qubits:", used_logicals)
-        print("N-qubit used:", n_qubit_used)
+        
         # Get total classical bits (for Aer-style output)
         num_clbits = len(t_qiskit_circ.clbits)
         
@@ -137,19 +148,19 @@ class MrAndersonSimulator(object):
             raise ValueError(f"Unphysical probability vector: sum={total_prob}.")
         final_arr = reordered_arr / total_prob
         
-        #    this keeps things correct whether 'probs' is over all qubits or only the used subset
+        # this keeps things correct whether 'probs' is over all qubits or only the used subset
         prob_width = int(round(np.log2(final_arr.size)))
         if 2**prob_width != final_arr.size:
             raise ValueError("Internal error: probability vector length is not a power of two.")
 
-        # 10) produce final counts-style readout
+        # produce final counts-style readout
         counts_ng = self._measurament(
             prob=final_arr,
             q_meas_list=q_meas_list,
             n_qubit=prob_width,       # if your simulator always returns full width, this equals nqubit
         )
         
-        # --- FIXED: Build mid-circuit bitstrings with chronological processing ---
+        # --- Build mid-circuit bitstrings with chronological processing ---
         combined_mid_strings = []
         statevector_readout = []
 
@@ -157,7 +168,7 @@ class MrAndersonSimulator(object):
             # initialize all clbits to '0' (Aer default for unused)
             clbit_values = ['0'] * num_clbits
 
-            # FIX: Sort events by step in ascending order (chronological)
+            # Sort events by step in ascending order (chronological)
             sorted_events = sorted(shot["mid"], key=lambda x: x["step"])
             
             # Process events in chronological order (later measurements overwrite earlier ones)
@@ -182,36 +193,7 @@ class MrAndersonSimulator(object):
             "statevector_readout": statevector_readout, # saved statevectors if any
         }
     
-    '''
-    def _process_layout(self, circ : QuantumCircuit) -> Tuple[List[int], List[Tuple[int, int]], int]:
-        """Take a (transpiled) circuit in input and get in output the list of used qubit and which qubit are measured and in which classical bits the
-        information is stored
-
-        Args:
-            circ (QuantumCircuit): A quantum circuit, possibly transpiled
-
-        Returns:
-            used_q (list): List of real used qubit in this circuit
-            measure_qc(list): List of tuples, each tuples contain the measured virtual qubit and the classical bit in which is stored the information
-            n_qubit(int): number of used qubits in the circuit
-        """
-        used_logicals: list[int] = []
-        measure_qc: list[tuple[int,int]] = []
-        for instr in circ.data:
-            op = instr.operation
-            if op.name == 'delay':
-                continue
-            # support any arity
-            for qb in instr.qubits:
-                q = qb._index
-                if q not in used_logicals:
-                    used_logicals.append(q)
-            if op.name == 'measure':
-                measure_qc.append((instr.qubits[0]._index, instr.clbits[0]._index))
-        return used_logicals, measure_qc, len(used_logicals)
     
-    '''
-    # faster ver for later
     def _process_layout(self, circ: QuantumCircuit) -> Tuple[List[int], List[Tuple[int, int]], int]:
         """
         Returns:
@@ -266,7 +248,7 @@ class MrAndersonSimulator(object):
 
         return
 
-        
+    # helper for pretty-printing preprocessed data (for debugging)
     def _pretty_print_data(self, data):
         """Print human-readable view of preprocessed circuit data."""
         for idx, (chunk, flag) in enumerate(data):
@@ -312,23 +294,17 @@ class MrAndersonSimulator(object):
         data = []
         data_measure = []
         current_chunk = []
-        #swap_detector = [a for a in range(n_qubit_used)]
+
         raw_data = t_qiskit_circ.data
-        print("---- Preprocessing circuit ----")
-        print("Raw data:", raw_data)
-        print("num used qubits:", n_qubit_used, "used_logicals:", used_logicals)
+    
         #  Build lookup: Clbit → register name
         used_set = set(used_logicals)
 
-
-        # Optional: clbit -> (register_name, local_idx) (keep if you need it later) TODO: check if used
+        # Optional: clbit -> (register_name, local_idx) (keep if you need it later) 
         clbit_to_reg = {}
         for reg in t_qiskit_circ.cregs:
             for local_i, bit in enumerate(reg):
                 clbit_to_reg[bit] = (reg.name, local_i)
-            
-        # define which gates are considered "fancy"
-        ## fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
 
         # loop through the raw data, circuit representation from Qiskit
         # each op is a CircuitInstruction, each i is the compilation step
@@ -339,10 +315,8 @@ class MrAndersonSimulator(object):
             if any(q not in used_set for q in q_idx): continue
             c_idx = [t_qiskit_circ.find_bit(c).index for c in op.clbits]
 
-            
-           # print('Processing operation:', op_name)
-            #print(f"  on qubits {q_idx} and clbits {c_idx}, index {i} in circuit")
-            # Fancy gates processing
+            # ---- Fancy Gates Processing ----
+            ## fancy_gates = {"reset_qubits","mid_measurement", "statevector_readout", "if_else"}
             # ---------------------- MEASUREMENT ----------------------
             if op_name == "measure":
                 # Is this a mid measurement? (any quantum op after it)
@@ -376,7 +350,7 @@ class MrAndersonSimulator(object):
                     c_idx = op.clbits[0]._index
                     data_measure.append((q, (c_reg, c_idx)))
 
-             # ---------------------- RESET ----------------------
+            # ---------------------- RESET ----------------------
             elif op_name == "reset":
                 
                 if current_chunk:
@@ -387,13 +361,17 @@ class MrAndersonSimulator(object):
                 # Use the PHYSICAL/flat index from Qiskit (._index) for consistency.
                 data.append((("reset_qubits", {"op": op, "q_idx": q_idx}), 1))
             
-            
-            
-            elif op_name == "statevector_readout":
-                print("Warning: statevector_readout found in circuit, which is not implemented yet. Ignoring.")
-                data.append((current_chunk,0))  # flush accumulated chunk before fancy gate
-                current_chunk = []
-                data.append((op,1))  # fancy gate goes as standalone
+           # ---- Not yet implemented fancy gates ----
+            elif op_name in ("if_else", "if_test", "control_flow", "switch_case"):
+                raise NotImplementedError("if condition found in circuit, which is not implemented yet.")
+
+            elif op_name in ("statevector_readout", "save_statevector", "save_state"):
+                raise NotImplementedError("saving statevector(s) operation found in circuit, which is not implemented yet.")
+
+            elif op_name in ("while_loop", "for_loop", "loop"):
+                raise NotImplementedError("loop operation found in circuit, which is not implemented yet.")
+                
+            # ---------------------- BARRIER / DELAY ----------------------
             elif op_name == "barrier" or op_name == "delay":
                 continue
 
@@ -409,17 +387,9 @@ class MrAndersonSimulator(object):
         if current_chunk:
             data.append((current_chunk,0))
 
-        print('---------------------------------')
-        print("Data after preprocessing:")
-        print(data)
-        print('---------------------------------')
-
-        print("---- Preprocessed data ----")
-        self._pretty_print_data(data)
-        print("---------------------------")
-
+        #self._pretty_print_data(data) # debug print
+       
         return n_rz, data, data_measure
-
 
     
     def _perform_simulation(self,
@@ -472,13 +442,13 @@ class MrAndersonSimulator(object):
 
             # Compute
             p = multiprocessing.Pool(n_processes)
-            for results, shot_result, final_outcomes in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
+            for results_mid_measure, shot_result, final_outcomes, saved_statevectors in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
                 # Add shot
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
 
                 all_results.append({
-                    "mid": results,
+                    "mid": results_mid_measure,
                     "final": final_outcomes
                 })
             # Shut down pool
@@ -502,12 +472,6 @@ class MrAndersonSimulator(object):
         r_mean = r_sum / shots
         r_var = r_square_sum / shots - np.square(r_mean)
         
-        ''' Debug print 
-        print("---- Simulation shot results ----")
-        for i, res in enumerate(all_results):
-            print(f"Shot {i}: mid={res['mid']}, final={res['final']}")
-        print("---------------------------------")
-        '''
         return r_mean, all_results, saved_statevectors
     
     
@@ -667,17 +631,6 @@ def _apply_gates_on_circuit(
 
         return
 
-def _expZ(psi: np.ndarray, q: int) -> float:
-    """Return ⟨Z_q⟩ using BIG-endian: bit position = (n-1-q)."""
-    n = int(np.log2(psi.size))
-    pos = n - 1 - q
-    p0 = 0.0
-    for idx, amp in enumerate(psi):
-        bit = (idx >> pos) & 1
-        if bit == 0:
-            p0 += (amp.real*amp.real + amp.imag*amp.imag)
-    return 2.0*p0 - 1.0  # ⟨Z⟩ = P(0) - P(1) = 2P(0)-1
-
 
 def _single_shot(args: dict) -> np.array:
     circ = args["circ"]
@@ -685,26 +638,19 @@ def _single_shot(args: dict) -> np.array:
     data_measure = args.get("data_measure", [])  # <--- added
     device_param = args["device_param"]
     psi0 = args["psi0"]
-    #qubit_layout = args["qubit_layout"]
-    num_qubits = args["num_qubit"]
     
     bit_flip_bool =  args["bit_flip_bool"]
     psi = psi0
-    results = []  # mid results
+    mid_results = []  # mid results
     saved_statevectors = []  # Store saved statevectors if needed
     
-    
-    circ.reset_circuit(phase_reset=True)  # reset internal state before starting
+    circ.reset(phase_reset=True)  # reset internal state before starting
     
     for idx, (d, flag) in enumerate(data):
-        if flag == 0:
-            print(f"\n--- Applying normal chunk {idx} ---")
-            print('psi in: ',psi)        
+        if flag == 0:       
             _apply_gates_on_circuit(d, circ, device_param)
             psi = circ.statevector(psi)
-            print(f"--- psi After normal chunk {idx} ---")
-            print(psi)
-            circ.reset_circuit(phase_reset=False)  # reset internal state for next chunk
+            circ.reset(phase_reset=False)  # reset internal state for next chunk
 
         elif flag == 1:
             
@@ -713,10 +659,6 @@ def _single_shot(args: dict) -> np.array:
                 qubits  = op["q_idx"]
                 clbits  = op["c_idx"]
                 # Perform the mid-circuit measurement
-                # TODO add_bitflip can be parameterized per measurement
-                print("------ Mid-circuit measurement (physical) targets:", qubits, '-------------')
-                print()
-                
                 psi, outcome = circ.mid_measurement(psi, device_param, add_bitflip=bit_flip_bool, qubit_list=qubits, cbit_list = clbits)
                 
                 outcome1 = [int(x) for x in np.atleast_1d(outcome)]
@@ -727,9 +669,8 @@ def _single_shot(args: dict) -> np.array:
                 if norm > 0:
                     psi /= norm
 
-                print(f"-------------------Mid-measurement END-----------")
                 # record debug info
-                results.append({
+                mid_results.append({
                     "step": idx,
                     "qubits": qubits,
                     "clbits": clbits,
@@ -741,10 +682,7 @@ def _single_shot(args: dict) -> np.array:
                 op = d[1]
                 qubits = op["q_idx"]   # already flat (transpiled indices)
 
-                print("\n========== RESET BEGIN ==========")
-                print(f"Reset called on qubits (transpiled indices): {qubits}")
-
-                # --- 1) Collapse without classical writes ---
+                # --- Collapse without classical writes ---
                 psi, outcomes = circ.mid_measurement(
                     psi0=psi,
                     device_param=device_param,
@@ -753,63 +691,40 @@ def _single_shot(args: dict) -> np.array:
                     cbit_list=None,
                 )
 
-                print(f"Reset measurement outcomes: {outcomes}")
-
                 # Extract noise params *once*
                 T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
 
-                # --- 2) Apply X/I layer ---
-                # 2) BEFORE-correction sanity (what is ⟨Z⟩ after collapse?)
-                for q in qubits:
-                    print(f"  ⟨Z_{q}⟩ before correction: { _expZ(psi, q): .3f}")
-                print("Applying reset correction layer:")
+                # --- Apply X/I layer ---
                 touched = set()
                 for q, res in zip(qubits, outcomes):
                     touched.add(q)
                     if res == 1:
-                        print(f"  • Applying X on qubit {q}")
                         circ.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
                     else:
-                        print(f"  • Applying I on qubit {q} (already |0⟩)")
                         circ.I(i=q)
 
                 for k in range(circ.nqubit):
                     if k not in touched:
                         circ.I(i=k)   # maintain full layer (no gaps)
 
-                # --- 3) Apply layer to state and reset builder ---
+                # --- Apply layer to state and reset builder ---
                 psi_before = psi.copy()
-                print("Statevector before reset correction layer:")
-                print(psi_before)
                 psi = circ.statevector(psi)
-                circ.reset_circuit(phase_reset=False)  # reset internal state for next chunk
-                print("Statevector after reset correction layer:")
-                print(psi)
-
-                # --- 4) Defensive normalize ---
-                #norm = np.linalg.norm(psi)
-                #if norm > 0:
-                #    psi /= norm
-
-                # 5) AFTER-correction: ⟨Z⟩ should be ~+1 for each target
-                print("Post-reset expectation ⟨Z⟩ check:")
-                for q in qubits:
-                    ez = _expZ(psi, q)
-                    print(f"  ⟨Z_{q}⟩ ≈ {ez: .3f}  (≈ +1 means reset successful)")
-                print("=========== RESET END ===========\n")
+                circ.reset(phase_reset=False)  # reset internal state for next chunk
 
             else:
                 op_name = d.operation.name
                 if op_name == "statevector_readout":
-                    print("Statevector readout not tested!!")
-                    print("Statevector readout:", psi.copy())
                     saved_statevectors.append(psi.copy())
 
                 elif op_name == "if_else":
                     raise NotImplementedError("if_else not implemented yet")
 
                 else:
-                    raise ValueError(f"Unknown fancy gate: {op_name}")
+                    raise ValueError(f"Unknown / not yet implemented gate: {op_name}")
+    
+    # mid_measurement results in Qiskit clbit order
+    qiskit_order_mid_results = mid_results[::-1]  
 
     # --- Final Measurements ---
     # Born rule → probability distribution
@@ -828,6 +743,6 @@ def _single_shot(args: dict) -> np.array:
         bitstring = format(outcome_index, f"0{circ.nqubit}b")
         final_outcomes = {}
         for q, (c_reg, c_idx) in data_measure:
-            final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])
-
-    return results[::-1], shot_result, final_outcomes, saved_statevectors
+            final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])  # big-endian bit order
+    
+    return qiskit_order_mid_results, shot_result, final_outcomes, saved_statevectors

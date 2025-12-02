@@ -90,7 +90,6 @@ class RelaxationFactory(object):
         else:
             e1 = np.sqrt(tg/T1)
 
-        # Around line 97 - replace the ep calculation:
         if T2 == 0:
             ep = 0
         else:

@@ -104,112 +104,6 @@ class Circuit(object):
         psi = matrix_prod @ psi0
         return psi
     
-    ### NEW CODE HERE ###
-    '''
-    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False, qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
-        """
-        Perform a projective mid-circuit measurement on the given qubits.
-
-        Args:
-            psi0 (np.ndarray): Initial statevector of shape (2^n,).
-            qubit_list (list[int] or None): List of qubit indices (0 = least significant).
-                - None → measure all qubits
-                - [i1, i2, ...] → measure only those qubits
-                - [] or invalid input → raises ValueError
-            cbit_list (list[int] or None): List of classical bit indices for storing results.
-                - None → map qubit i to classical bit i
-                - [j1, j2, ...] → assign result of qubit_list[k] to cbit_list[k]
-                - Invalid input → raises ValueError
-
-        Returns:
-            psi (np.ndarray): Collapsed and renormalized statevector.
-            result (list[int]): Measurement outcomes mapped to classical bits.
-        """
-        #print("ALT - CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
-
-        dim = psi0.shape[0]
-        n = int(np.log2(dim))
-
-        # Unpack device parameters
-        T1, T2, p, rout, p_int, t_int, tm, dt = (
-            device_param["T1"],
-            device_param["T2"],
-            device_param["p"],
-            device_param["rout"],
-            device_param["p_int"],
-            device_param["t_int"],
-            device_param["tm"],
-            device_param["dt"][0]
-        )
-
-        # --- Handle qubit_list ---
-        if qubit_list is None:
-            qubit_list = list(range(n))   # measure all qubits if not specified
-        elif not isinstance(qubit_list, (list, tuple)):
-            raise ValueError("qubit_list must be a list of qubit indices or None.")
-        elif len(qubit_list) == 0:
-            raise ValueError("qubit_list cannot be empty. Use None to measure all qubits.")
-        elif any((not isinstance(q, int)) or (q < 0) or (q >= n) for q in qubit_list):
-            raise ValueError(f"qubit_list must contain valid qubit indices in [0, {n-1}].")
-        elif len(set(qubit_list)) != len(qubit_list):
-            raise ValueError("qubit_list contains duplicate qubit indices.")
-
-        # --- Handle cbit_list ---
-        if cbit_list is None:
-            cbit_list = list(range(len(qubit_list)))  # default mapping
-        elif not isinstance(cbit_list, (list, tuple)):
-            raise ValueError("cbit_list must be a list of classical bit indices or None.")
-        elif len(cbit_list) != len(qubit_list):
-            raise ValueError("cbit_list must have the same length as qubit_list.")
-        elif any((not isinstance(c, int)) or (c < 0) for c in cbit_list):
-            raise ValueError("cbit_list must contain valid non-negative integer indices.")
-        elif len(set(cbit_list)) != len(cbit_list):
-            raise ValueError("cbit_list contains duplicate classical bit indices.")
-
-        # --- Perform measurement ---
-        psi = psi0.copy()
-        raw_results = {}
-
-        for target_qubit, target_cbit in zip(qubit_list, cbit_list):
-            if add_bitflip:
-                self.reset_circuit()
-                
-                #print(f"Applying bitflip noise on qubit {target_qubit} before measurement.")
-                self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
-                psi = self.statevector(psi)
-                self.reset_circuit()
-
-            # 1. Compute Born probabilities
-            probs = [0.0, 0.0]
-            for idx, amp in enumerate(psi):
-                bit = (idx >> (n - 1 - target_qubit)) & 1
-                probs[bit] += abs(amp) ** 2
-                
-            probs = np.array(probs) / sum(probs)
-            #print("Born probabilities for qubit", target_qubit, ":", probs)
-            
-            # 2. Sample measurement outcome
-            outcome = np.random.choice([0, 1], p=probs)
-            raw_results[target_cbit] = outcome
-
-            # 3. Collapse the state
-            for idx in range(dim):
-                if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
-
-            # 4. Renormalize
-            norm = np.linalg.norm(psi)
-            if norm > 0:
-                psi /= norm
-
-
-        # Sort by classical bit index for final output
-        result = [raw_results[c] for c in sorted(raw_results.keys())]
-
-        #print("Statevector before mid-circuit measurement:", psi0)
-        #print("Collapsed statevector after mid-circuit measurement:", psi)
-        #print("Measurement outcomes (mapped to cbits):", result)
-        return psi, result'''
     
     def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
                     qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
@@ -227,7 +121,7 @@ class Circuit(object):
         """
         dim = psi0.shape[0]
         n = int(np.log2(dim))
-
+        
         # Device params (kept for optional noise hooks)
         T1, T2, p, rout, p_int, t_int, tm, dt = (
             device_param["T1"],
@@ -263,49 +157,55 @@ class Circuit(object):
                 raise ValueError("cbit_list contains duplicate indices.")
 
         # --- perform measurements sequentially (collapse after each) ---
-        psi = psi0.copy()
-        outcomes_in_q_order: list[int] = []
+        psi = psi0.copy() # copy input psi0 to avoid modifying it
+        outcomes_in_q_order: list[int] = [] 
         cbit_results = {}  # only used if write_cb is True
-
+        
+        # loop over qubits to measure sequentially
         for target_qubit_idx, target_qubit in enumerate(qubit_list):
-            if add_bitflip:
-                self.reset_circuit()
+            # optional bitflip noise before measurement
+            if add_bitflip: 
+                self.reset(phase_reset=False)
                 self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
                 psi = self.statevector(psi)
-                self.reset_circuit()
+                self.reset(phase_reset=False)
 
-            # 1) Born probabilities (big-endian: qubit 0 = most significant)
+            # Born probabilities (big-endian: qubit 0 = most significant)
             p0 = 0.0
+            # compute probability of measuring 0 on target_qubit
             for idx, amp in enumerate(psi):
                 bit = (idx >> (n - 1 - target_qubit)) & 1
                 if bit == 0:
                     p0 += (amp.real * amp.real + amp.imag * amp.imag)
             p1 = 1.0 - p0
-            # numerical guard
+            # numerical guard 
             if p0 < 0.0: p0 = 0.0
             if p1 < 0.0: p1 = 0.0
+            
             s = p0 + p1
-            if s == 0.0:
+            # sampling outcome if probabilities are well-defined
+            if s == 0.0: 
                 # fully zero (shouldn't happen), keep psi as-is and pick 0 deterministically
                 outcome = 0
+            # normal case
             else:
                 p0 /= s; p1 /= s
                 outcome = np.random.choice([0, 1], p=[p0, p1])
-
+            # record outcome in qubit order
             outcomes_in_q_order.append(outcome)
 
-            # 2) Collapse on outcome
+            # Collapse on outcome onto psi
             mask_pos = n - 1 - target_qubit  # big-endian position
             for idx in range(dim):
                 if ((idx >> mask_pos) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
+                    psi[idx] = 0.0 
 
-            # 3) Renormalize
+            # Renormalize
             norm = np.linalg.norm(psi)
             if norm > 0.0:
                 psi /= norm
-
-            # 4) Optionally record to classical map
+            
+            # Optionally record to classical bit mapping
             if write_cb:
                 cbit_idx = cbit_list[target_qubit_idx]
                 cbit_results[cbit_idx] = outcome
@@ -316,76 +216,13 @@ class Circuit(object):
         if write_cb:
             # preserve provided order (no sorting surprises)
             result = [cbit_results[c] for c in cbit_list]
+            
         else:
             result = outcomes_in_q_order
 
         return psi, result
     
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None):
-        """
-        Perform a noisy reset on one or more qubits.
 
-        - Measures specified qubits (mid-measurement collapse)
-        - Applies a noisy X gate to any qubit measured as 1
-        - Completes the layer with identity gates on untouched wires
-
-        Args:
-            psi0 (np.ndarray): Input statevector (length 2^n).
-            device_param (dict): Device parameters with T1, T2, p, etc.
-            add_bitflip (bool): Whether to include bit-flip in measurement.
-            qubit_list (list[int] or None): Logical qubits to reset. None → all qubits.
-            phys_to_logical (dict or None): Optional mapping from physical→logical indices.
-                                            If None, assumes 1-to-1 mapping.
-
-        Returns:
-            psi (np.ndarray): Statevector after reset.
-            outcomes (list[int]): Measurement outcomes for each qubit.
-        """
-        # --- 1. Collapse (mid-measure) on the specified logical qubits ---
-        collapsed, outcomes = self.mid_measurement(
-            psi0, device_param, add_bitflip, qubit_list
-        )
-
-        # --- 2. Unpack device parameters ---
-        T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
-
-        n = self.nqubit
-        self.reset_circuit()
-
-
-        # --- 3. For each qubit with outcome=1, apply X ---
-        touched: set[int] = set()
-        for q, outcome in zip(qubit_list, outcomes):
-            touched.add(q)
-            if outcome == 1:
-                print(f"Resetting qubit {q} from |1> to |0> with noisy X gate.")
-                self.X(i=q, p=p[q], T1=T1[q], T2=T2[q])
-            else: self.I(i=q)
-
-        # Fill identities for untouched wires (complete layer)
-        for k in range(n):
-            if k not in touched:
-                self.I(i=k)
-
-        # --- 5. Apply this layer to collapsed state ---
-        psi = self.statevector(collapsed)
-        self.reset_circuit()
-
-        # --- 6. Normalize defensively ---
-        norm = np.linalg.norm(psi)
-        if norm > 0:
-            psi /= norm
-
-        #print("Reset qubits completed. New statevector:", psi)
-        return psi, outcomes
-    
-
-    def statevector_readout(self, psi0) -> np.array:
-        #print("Readout statevector.")
-        #print(psi0)
-        return psi0
-    
-    
     def I(self, i: int):
         """
         Apply identity gate on qubit i 
@@ -594,14 +431,16 @@ class Circuit(object):
                 )
                 
 
-    def reset(self):
+    def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
-        self.j = 0
-        self.s = 0
-        self.circuit = [[1 for i in range(self.depth)] for j in range(self.nqubit)]
-
-        # TODO: The last line was originally not there. Check if it should and whether it has a positive effect.
-        self.phi = [0 for i in range(self.nqubit)]
+        # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
+        if phase_reset: 
+            self.phi = [0 for i in range(self.nqubit)]
+            
+        self._s = 0
+        self._backend = self._BackendClass(self.nqubit)
+        self._mp = [1 for i in range(self.nqubit)]
+        self._mp_list = []
 
 
 class AlternativeCircuit(object):
@@ -695,128 +534,8 @@ class AlternativeCircuit(object):
         if len(self._mp_list) == 0:
             return psi0
         return self._backend.statevector(self._mp_list, psi0)
-    
-    def reset_circuit(self, phase_reset: bool = True):
-        """ Reset the circuit to the initial state. """
-        if phase_reset: 
-            print("Resetting circuit and phases.")
-            self.phi = [0 for i in range(self.nqubit)]
-        else:
-            print("Resetting circuit but keeping phases.")
-        self._s = 0
-        self._backend = self._BackendClass(self.nqubit)
-        self._mp = [1 for i in range(self.nqubit)]
-        self._mp_list = []
-
-    
-    # --- New Mid Measurement Method ---  
-    '''  
-    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False, qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
-        """
-        Perform a projective mid-circuit measurement on the given qubits.
-
-        Args:
-            psi0 (np.ndarray): Initial statevector of shape (2^n,).
-            qubit_list (list[int] or None): List of qubit indices (0 = least significant).
-                - None → measure all qubits
-                - [i1, i2, ...] → measure only those qubits
-                - [] or invalid input → raises ValueError
-            cbit_list (list[int] or None): List of classical bit indices for storing results.
-                - None → map qubit i to classical bit i
-                - [j1, j2, ...] → assign result of qubit_list[k] to cbit_list[k]
-                - Invalid input → raises ValueError
-
-        Returns:
-            psi (np.ndarray): Collapsed and renormalized statevector.
-            result (list[int]): Measurement outcomes mapped to classical bits.
-        """
-        #print("ALT - CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
-
-        dim = psi0.shape[0]
-        n = int(np.log2(dim))
-
-        # Unpack device parameters
-        T1, T2, p, rout, p_int, t_int, tm, dt = (
-            device_param["T1"],
-            device_param["T2"],
-            device_param["p"],
-            device_param["rout"],
-            device_param["p_int"],
-            device_param["t_int"],
-            device_param["tm"],
-            device_param["dt"][0]
-        )
-
-        # --- Handle qubit_list ---
-        if qubit_list is None:
-            qubit_list = list(range(n))   # measure all qubits if not specified
-        elif not isinstance(qubit_list, (list, tuple)):
-            raise ValueError("qubit_list must be a list of qubit indices or None.")
-        elif len(qubit_list) == 0:
-            raise ValueError("qubit_list cannot be empty. Use None to measure all qubits.")
-        elif any((not isinstance(q, int)) or (q < 0) or (q >= n) for q in qubit_list):
-            raise ValueError(f"qubit_list must contain valid qubit indices in [0, {n-1}].")
-        elif len(set(qubit_list)) != len(qubit_list):
-            raise ValueError("qubit_list contains duplicate qubit indices.")
-
-        # --- Handle cbit_list ---
-        if cbit_list is None:
-            cbit_list = list(range(len(qubit_list)))  # default mapping
-        elif not isinstance(cbit_list, (list, tuple)):
-            raise ValueError("cbit_list must be a list of classical bit indices or None.")
-        elif len(cbit_list) != len(qubit_list):
-            raise ValueError("cbit_list must have the same length as qubit_list.")
-        elif any((not isinstance(c, int)) or (c < 0) for c in cbit_list):
-            raise ValueError("cbit_list must contain valid non-negative integer indices.")
-        elif len(set(cbit_list)) != len(cbit_list):
-            raise ValueError("cbit_list contains duplicate classical bit indices.")
-
-        # --- Perform measurement ---
-        psi = psi0.copy()
-        raw_results = {}
-
-        for target_qubit, target_cbit in zip(qubit_list, cbit_list):
-            if add_bitflip:
-                self.reset_circuit()
-                
-                #print(f"Applying bitflip noise on qubit {target_qubit} before measurement.")
-                self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
-                psi = self.statevector(psi)
-                self.reset_circuit()
-
-            # 1. Compute Born probabilities
-            probs = [0.0, 0.0]
-            for idx, amp in enumerate(psi):
-                bit = (idx >> (n - 1 - target_qubit)) & 1
-                probs[bit] += abs(amp) ** 2
-                
-            probs = np.array(probs) / sum(probs)
-            #print("Born probabilities for qubit", target_qubit, ":", probs)
-            
-            # 2. Sample measurement outcome
-            outcome = np.random.choice([0, 1], p=probs)
-            raw_results[target_cbit] = outcome
-
-            # 3. Collapse the state
-            for idx in range(dim):
-                if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    psi[idx] = 0.0 
-
-            # 4. Renormalize
-            norm = np.linalg.norm(psi)
-            if norm > 0:
-                psi /= norm
 
 
-        # Sort by classical bit index for final output
-        result = [raw_results[c] for c in sorted(raw_results.keys())]
-
-        #print("Statevector before mid-circuit measurement:", psi0)
-        #print("Collapsed statevector after mid-circuit measurement:", psi)
-        #print("Measurement outcomes (mapped to cbits):", result)
-        return psi, result
-    '''
-    
     def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
                     qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
         """
@@ -833,7 +552,7 @@ class AlternativeCircuit(object):
         """
         dim = psi0.shape[0]
         n = int(np.log2(dim))
-
+        
         # Device params (kept for optional noise hooks)
         T1, T2, p, rout, p_int, t_int, tm, dt = (
             device_param["T1"],
@@ -869,55 +588,56 @@ class AlternativeCircuit(object):
                 raise ValueError("cbit_list contains duplicate indices.")
 
         # --- perform measurements sequentially (collapse after each) ---
-        psi = psi0.copy()
-        outcomes_in_q_order: list[int] = []
+        psi = psi0.copy() # copy input psi0 to avoid modifying it
+        outcomes_in_q_order: list[int] = [] 
         cbit_results = {}  # only used if write_cb is True
-
+        
+        # loop over qubits to measure sequentially
         for target_qubit_idx, target_qubit in enumerate(qubit_list):
-            if add_bitflip:
-                self.reset_circuit(phase_reset=False)
+            # optional bitflip noise before measurement
+            if add_bitflip: 
+                self.reset(phase_reset=False)
                 self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
                 psi = self.statevector(psi)
-                self.reset_circuit(phase_reset=False)
+                self.reset(phase_reset=False)
 
-            # 1) Born probabilities (big-endian: qubit 0 = most significant)
+            # Born probabilities (big-endian: qubit 0 = most significant)
             p0 = 0.0
-            print('Calculating probabilities for qubit ', target_qubit)
-            print('Current statevector ', psi)
+            # compute probability of measuring 0 on target_qubit
             for idx, amp in enumerate(psi):
                 bit = (idx >> (n - 1 - target_qubit)) & 1
                 if bit == 0:
                     p0 += (amp.real * amp.real + amp.imag * amp.imag)
             p1 = 1.0 - p0
-            # numerical guard
+            # numerical guard 
             if p0 < 0.0: p0 = 0.0
             if p1 < 0.0: p1 = 0.0
+            
             s = p0 + p1
-            if s == 0.0:
+            # sampling outcome if probabilities are well-defined
+            if s == 0.0: 
                 # fully zero (shouldn't happen), keep psi as-is and pick 0 deterministically
                 outcome = 0
+            # normal case
             else:
                 p0 /= s; p1 /= s
                 outcome = np.random.choice([0, 1], p=[p0, p1])
-
+            # record outcome in qubit order
             outcomes_in_q_order.append(outcome)
 
-            # 2) Collapse on outcome
+            # Collapse on outcome onto psi
             mask_pos = n - 1 - target_qubit  # big-endian position
             for idx in range(dim):
                 if ((idx >> mask_pos) & 1) != outcome:
                     psi[idx] = 0.0 
-                    #psi[idx] = 0.0 
-                    
 
-            # 3) Renormalize
+            # Renormalize
             norm = np.linalg.norm(psi)
             if norm > 0.0:
                 psi /= norm
-            print('Post-measurement statevector ', psi)
-            # 4) Optionally record to classical map
+            
+            # Optionally record to classical bit mapping
             if write_cb:
-                print('classical write')
                 cbit_idx = cbit_list[target_qubit_idx]
                 cbit_results[cbit_idx] = outcome
 
@@ -925,153 +645,15 @@ class AlternativeCircuit(object):
         # - If cbit_list provided: outcomes ordered by the *given* cbit_list sequence
         # - If None: outcomes in the same order as qubit_list; NO classical writes implied
         if write_cb:
-            print('classical measure output {clbit , res} ', cbit_results)
             # preserve provided order (no sorting surprises)
             result = [cbit_results[c] for c in cbit_list]
             
         else:
-            print('no classical write')
             result = outcomes_in_q_order
 
         return psi, result
 
     
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None, phys_to_logical=None):
-        """
-        Perform a noisy reset on one or more qubits.
-
-        - Measures specified qubits (mid-measurement collapse)
-        - Applies a noisy X gate to any qubit measured as 1
-        - Completes the layer with identity gates on untouched wires
-
-        Args:
-            psi0 (np.ndarray): Input statevector (length 2^n).
-            device_param (dict): Device parameters with T1, T2, p, etc.
-            add_bitflip (bool): Whether to include bit-flip in measurement.
-            qubit_list (list[int] or None): Logical qubits to reset. None → all qubits.
-            phys_to_logical (dict or None): Optional mapping from physical→logical indices.
-                                            If None, assumes 1-to-1 mapping.
-
-        Returns:
-            psi (np.ndarray): Statevector after reset.
-            outcomes (list[int]): Measurement outcomes for each qubit.
-        """
-        # --- 1. Collapse (mid-measure) on the specified logical qubits ---
-        # --- 1. Collapse (mid-measure) on the specified logical qubits ---
-        print("ALT - CIRCUIT: Reset qubits called on qubits:", qubit_list)
-        
-        collapsed, outcomes = self.mid_measurement(
-            psi0, device_param, add_bitflip, qubit_list
-        )
-        print("ALT - CIRCUIT: Measurement outcomes:", outcomes)
-
-        # --- 2. Unpack device parameters ---
-        T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
-
-        n = self.nqubit
-        self.reset_circuit(phase_reset=False)
-
-        # --- 3. Map physical → logical (if provided) ---
-        qubits_r = qubit_list
-
-        # --- 4. Apply noisy X for measured '1's, build full layer with identities ---
-        touched = []
-        for q_r, outcome in zip(qubits_r, outcomes):
-            touched.append(q_r)
-            if outcome == 1:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
-                print("ALT - CIRCUIT: Applying X on ", q_r)
-                self.X(i=q_r, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
-            else:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
-                print("Applying I on ", q_r)
-                self.I(i=q_r)
-                
-        print("Touched qubits:", touched)
-        
-        
-
-        # Fill identities for untouched wires (complete layer)
-        for k in range(n):
-            if k not in touched:
-                self.I(i=k)
-                print("Fill: Applying I on ", k)
-
-        # --- 5. Apply this layer to collapsed state ---
-        psi = self.statevector(collapsed)
-        self.reset_circuit(phase_reset=False)
-
-        # --- 6. Normalize defensively ---
-        norm = np.linalg.norm(psi)
-        if norm > 0:
-            psi /= norm
-
-        #print("Reset qubits completed. New statevector:", psi)
-        return psi, outcomes
-    '''
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool,
-                 qubit_list=None, phys_to_logical=None):
-        """
-        Deterministic logical reset to |0⟩ on the given qubits.
-        - Works purely in LOGICAL index space (0..n-1, big-endian).
-        - Ignores classical bits and layout; no X is applied.
-        - No randomness: always projects to 0.
-        Returns (psi, outcomes) with outcomes all zeros for the targets.
-        """
-        if qubit_list is None or len(qubit_list) == 0:
-            raise ValueError("reset_qubits: qubit_list must be a non-empty list of logical indices.")
-
-        psi = psi0.copy()
-        dim = psi.shape[0]
-        n = int(np.log2(dim))
-        if (1 << n) != dim:
-            raise ValueError("reset_qubits: state size is not a power of two.")
-
-        # Validate indices
-        if any((not isinstance(q, int)) or q < 0 or q >= n for q in qubit_list):
-            raise ValueError(f"reset_qubits: qubit_list entries must be integers in [0, {n-1}].")
-
-        # Optionally add bit-flip noise *on the target wires* BEFORE projection
-        # (still in logical space). If you don't want it, just ignore add_bitflip.
-        if add_bitflip:
-            self.reset_circuit()
-            for q in qubit_list:
-                # same noise hook you already use in mid_measurement
-                # tm/rout are indexed by logical here to stay consistent
-                # if your noise tables are physical, DON'T do it here.
-                pass
-            psi = self.statevector(psi)
-            self.reset_circuit()
-
-        # For each target logical qubit q (big-endian):
-        #   zero amplitudes where bit(q) == 1, keep where bit(q) == 0
-        # We do this sequentially to stay simple and robust.
-        for q in qubit_list:
-            pos = n - 1 - q  # big-endian bit position
-            # zero the |1> slice
-            for idx in range(dim):
-                if ((idx >> pos) & 1) == 1:
-                    psi[idx] = 0.0
-
-            # renormalize after each qubit projection (safer numerically)
-            norm = np.linalg.norm(psi)
-            if norm > 0.0:
-                psi /= norm
-
-        # Build a full layer of identities (to match your circuit semantics)
-        self.reset_circuit()
-        touched = set(qubit_list)
-        for k in range(n):
-            self.I(i=k)  # harmless; keeps layer structure consistent
-        psi = self.statevector(psi)
-        self.reset_circuit()
-
-        # Outcomes are deterministically 0 for reset-to-zero
-        outcomes = [0] * len(qubit_list)
-        return psi, outcomes
-    '''
-
-
     def statevector_readout(self, psi0) -> np.array:
         return psi0
     
@@ -1295,14 +877,16 @@ class AlternativeCircuit(object):
         self._mp = [1 for i in range(self.nqubit)]
         self._s = 0
 
-    def reset(self):
+    def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
-        self.phi = [0 for i in range(self.nqubit)]
+        # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
+        if phase_reset: 
+            self.phi = [0 for i in range(self.nqubit)]
+            
         self._s = 0
         self._backend = self._BackendClass(self.nqubit)
         self._mp = [1 for i in range(self.nqubit)]
         self._mp_list = []
-        self.phi = [0 for i in range(self.nqubit)]
 
 
 class BinaryCircuit(object):
@@ -1392,31 +976,24 @@ class BinaryCircuit(object):
             qubit_layout=self.qubit_layout,
         )
     
-    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False, qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
+    def mid_measurement(self, psi0: np.ndarray, device_param, add_bitflip=False,
+                    qubit_list=None, cbit_list=None) -> tuple[np.ndarray, list[int]]:
         """
-        Perform a projective mid-circuit measurement on the given qubits.
+        Projective mid-circuit measurement.
 
-        Args:
-            psi0 (np.ndarray): Initial statevector of shape (2^n,).
-            qubit_list (list[int] or None): List of qubit indices (0 = least significant).
-                - None → measure all qubits
-                - [i1, i2, ...] → measure only those qubits
-                - [] or invalid input → raises ValueError
-            cbit_list (list[int] or None): List of classical bit indices for storing results.
-                - None → map qubit i to classical bit i
-                - [j1, j2, ...] → assign result of qubit_list[k] to cbit_list[k]
-                - Invalid input → raises ValueError
+        If cbit_list is None:
+            - Collapse the specified qubits
+            - DO NOT write to any classical bits
+            - Return outcomes in the same order as qubit_list
 
-        Returns:
-            psi (np.ndarray): Collapsed and renormalized statevector.
-            result (list[int]): Measurement outcomes mapped to classical bits.
+        If cbit_list is provided:
+            - Validate mapping qubit_list[k] -> cbit_list[k]
+            - Return outcomes ordered by the given cbit_list (stable, no auto-reindex)
         """
-        #print("ALT - CIRCUIT: Mid-circuit measurement called on qubits:", qubit_list)
-
         dim = psi0.shape[0]
         n = int(np.log2(dim))
-
-        # Unpack device parameters
+        
+        # Device params (kept for optional noise hooks)
         T1, T2, p, rout, p_int, t_int, tm, dt = (
             device_param["T1"],
             device_param["T2"],
@@ -1425,177 +1002,97 @@ class BinaryCircuit(object):
             device_param["p_int"],
             device_param["t_int"],
             device_param["tm"],
-            device_param["dt"][0]
+            device_param["dt"][0],
         )
 
-        # --- Handle qubit_list ---
+        # --- qubit_list validation ---
         if qubit_list is None:
-            qubit_list = list(range(n))   # measure all qubits if not specified
-        elif not isinstance(qubit_list, (list, tuple)):
-            raise ValueError("qubit_list must be a list of qubit indices or None.")
-        elif len(qubit_list) == 0:
-            raise ValueError("qubit_list cannot be empty. Use None to measure all qubits.")
-        elif any((not isinstance(q, int)) or (q < 0) or (q >= n) for q in qubit_list):
-            raise ValueError(f"qubit_list must contain valid qubit indices in [0, {n-1}].")
-        elif len(set(qubit_list)) != len(qubit_list):
-            raise ValueError("qubit_list contains duplicate qubit indices.")
+            raise ValueError("qubit_list must be specified for mid-measurement (no implicit 'measure all').")
+        if not isinstance(qubit_list, (list, tuple)) or len(qubit_list) == 0:
+            raise ValueError("qubit_list must be a non-empty list/tuple of qubit indices.")
+        if any((not isinstance(q, int)) or (q < 0) or (q >= n) for q in qubit_list):
+            raise ValueError(f"qubit_list entries must be integers in [0, {n-1}].")
+        if len(set(qubit_list)) != len(qubit_list):
+            raise ValueError("qubit_list contains duplicate indices.")
 
-        # --- Handle cbit_list ---
-        if cbit_list is None:
-            cbit_list = list(range(len(qubit_list)))  # default mapping
-            
-        elif not isinstance(cbit_list, (list, tuple)):
-            raise ValueError("cbit_list must be a list of classical bit indices or None.")
-        elif len(cbit_list) != len(qubit_list):
-            raise ValueError("cbit_list must have the same length as qubit_list.")
-        elif any((not isinstance(c, int)) or (c < 0) for c in cbit_list):
-            raise ValueError("cbit_list must contain valid non-negative integer indices.")
-        elif len(set(cbit_list)) != len(cbit_list):
-            raise ValueError("cbit_list contains duplicate classical bit indices.")
+        # --- cbit_list validation (optional) ---
+        write_cb = cbit_list is not None
+        if write_cb:
+            if not isinstance(cbit_list, (list, tuple)):
+                raise ValueError("cbit_list must be a list/tuple of classical bit indices or None.")
+            if len(cbit_list) != len(qubit_list):
+                raise ValueError("cbit_list must have the same length as qubit_list.")
+            if any((not isinstance(c, int)) or (c < 0) for c in cbit_list):
+                raise ValueError("cbit_list must contain non-negative integers.")
+            if len(set(cbit_list)) != len(cbit_list):
+                raise ValueError("cbit_list contains duplicate indices.")
 
-        # --- Perform measurement ---
-        psi = psi0.copy()
-        raw_results = {}
-
-        for target_qubit, target_cbit in zip(qubit_list, cbit_list):
-            if add_bitflip:
-                self.reset_circuit()
-                
-                #print(f"Applying bitflip noise on qubit {target_qubit} before measurement.")
+        # --- perform measurements sequentially (collapse after each) ---
+        psi = psi0.copy() # copy input psi0 to avoid modifying it
+        outcomes_in_q_order: list[int] = [] 
+        cbit_results = {}  # only used if write_cb is True
+        
+        # loop over qubits to measure sequentially
+        for target_qubit_idx, target_qubit in enumerate(qubit_list):
+            # optional bitflip noise before measurement
+            if add_bitflip: 
+                self.reset(phase_reset=False)
                 self.bitflip(i=target_qubit, tm=tm[target_qubit], rout=rout[target_qubit])
                 psi = self.statevector(psi)
-                self.reset_circuit()
+                self.reset(phase_reset=False)
 
-            # 1. Compute Born probabilities
-            probs = [0.0, 0.0]
+            # Born probabilities (big-endian: qubit 0 = most significant)
+            p0 = 0.0
+            # compute probability of measuring 0 on target_qubit
             for idx, amp in enumerate(psi):
                 bit = (idx >> (n - 1 - target_qubit)) & 1
-                probs[bit] += abs(amp) ** 2
-                
-            probs = np.array(probs) / sum(probs)
-            #print("Born probabilities for qubit", target_qubit, ":", probs)
+                if bit == 0:
+                    p0 += (amp.real * amp.real + amp.imag * amp.imag)
+            p1 = 1.0 - p0
+            # numerical guard 
+            if p0 < 0.0: p0 = 0.0
+            if p1 < 0.0: p1 = 0.0
             
-            # 2. Sample measurement outcome
-            outcome = np.random.choice([0, 1], p=probs)
-            raw_results[target_cbit] = outcome
+            s = p0 + p1
+            # sampling outcome if probabilities are well-defined
+            if s == 0.0: 
+                # fully zero (shouldn't happen), keep psi as-is and pick 0 deterministically
+                outcome = 0
+            # normal case
+            else:
+                p0 /= s; p1 /= s
+                outcome = np.random.choice([0, 1], p=[p0, p1])
+            # record outcome in qubit order
+            outcomes_in_q_order.append(outcome)
 
-            # 3. Collapse the state
+            # Collapse on outcome onto psi
+            mask_pos = n - 1 - target_qubit  # big-endian position
             for idx in range(dim):
-                if ((idx >> (n - 1 - target_qubit)) & 1) != outcome:
-                    psi[idx] = 0.0 + 0.0j
+                if ((idx >> mask_pos) & 1) != outcome:
+                    psi[idx] = 0.0 
 
-            # 4. Renormalize
+            # Renormalize
             norm = np.linalg.norm(psi)
-            if norm > 0:
+            if norm > 0.0:
                 psi /= norm
+            
+            # Optionally record to classical bit mapping
+            if write_cb:
+                cbit_idx = cbit_list[target_qubit_idx]
+                cbit_results[cbit_idx] = outcome
 
+        # Return outcomes:
+        # - If cbit_list provided: outcomes ordered by the *given* cbit_list sequence
+        # - If None: outcomes in the same order as qubit_list; NO classical writes implied
+        if write_cb:
+            # preserve provided order (no sorting surprises)
+            result = [cbit_results[c] for c in cbit_list]
+            
+        else:
+            result = outcomes_in_q_order
 
-        # Sort by classical bit index for final output
-        result = [raw_results[c] for c in sorted(raw_results.keys())]
-
-        #print("Statevector before mid-circuit measurement:", psi0)
-        #print("Collapsed statevector after mid-circuit measurement:", psi)
-        #print("Measurement outcomes (mapped to cbits):", result)
         return psi, result
 
-    
-    def reset_qubits(self, psi0, device_param, add_bitflip, qubit_list=None, phys_to_logical=None):
-        # Ignore phys_to_logical here; indices are PHYSICAL already
-        physical_targets = list(range(self.nqubit)) if qubit_list is None else list(qubit_list)
-
-        # 1) collapse on PHYSICAL
-        collapsed, outcomes = self.mid_measurement(
-            psi0, device_param, add_bitflip, qubit_list=physical_targets, cbit_list=list(range(len(physical_targets)))
-        )
-
-        # 2) conditional X on the SAME PHYSICAL wires
-        T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
-        touched = set()
-        for phys_q, outcome in zip(physical_targets, outcomes):
-            touched.add(phys_q)
-            if outcome == 1:
-                self.X(i=phys_q, p=p[phys_q], T1=T1[phys_q], T2=T2[phys_q])
-            else:
-                self.I(i=phys_q)
-        for k in range(self.nqubit):
-            if k not in touched:
-                self.I(i=k)
-
-        psi = self.statevector(collapsed)
-        self.reset_circuit()
-        norm = np.linalg.norm(psi)
-        if norm > 0: psi /= norm
-        return psi, outcomes
-
-    '''
-    def reset_qubits(self, psi0: np.ndarray, device_param, add_bitflip: bool, qubit_list=None, phys_to_logical=None):
-        """
-        Perform a noisy reset on one or more qubits.
-
-        - Measures specified qubits (mid-measurement collapse)
-        - Applies a noisy X gate to any qubit measured as 1
-        - Completes the layer with identity gates on untouched wires
-
-        Args:
-            psi0 (np.ndarray): Input statevector (length 2^n).
-            device_param (dict): Device parameters with T1, T2, p, etc.
-            add_bitflip (bool): Whether to include bit-flip in measurement.
-            qubit_list (list[int] or None): Logical qubits to reset. None → all qubits.
-            phys_to_logical (dict or None): Optional mapping from physical→logical indices.
-                                            If None, assumes 1-to-1 mapping.
-
-        Returns:
-            psi (np.ndarray): Statevector after reset.
-            outcomes (list[int]): Measurement outcomes for each qubit.
-        """
-        # --- 1. Collapse (mid-measure) on the specified logical qubits ---
-        print("reset qubits called on qubits:", qubit_list)
-        collapsed, outcomes = self.mid_measurement(
-            psi0, device_param, add_bitflip, qubit_list
-        )
-
-        # --- 2. Unpack device parameters ---
-        T1, T2, p = device_param["T1"], device_param["T2"], device_param["p"]
-
-        n = self.nqubit
-        self.reset_circuit()
-
-        # --- 3. Map physical → logical (if provided) ---
-        if phys_to_logical is not None:
-            qubits_r = [list(phys_to_logical.keys())[list(phys_to_logical.values()).index(q)]
-                        if q in phys_to_logical.values() else q
-                        for q in qubit_list]
-        else:
-            qubits_r = qubit_list
-
-        # --- 4. Apply noisy X for measured '1's, build full layer with identities ---
-        touched: set[int] = set()
-        for q_r, q_v, outcome in zip(qubits_r, qubit_list, outcomes):
-            touched.add(q_v)
-            if outcome == 1:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=1 → X")
-                self.X(i=q_v, p=p[q_r], T1=T1[q_r], T2=T2[q_r])
-            else:
-                #print(f"[RESET] phys {q_r} → log {q_v}: outcome=0 → I")
-                self.I(i=q_v)
-
-        # Fill identities for untouched wires (complete layer)
-        for k in range(n):
-            if k not in touched:
-                self.I(i=k)
-
-        # --- 5. Apply this layer to collapsed state ---
-        psi = self.statevector(collapsed)
-        self.reset_circuit()
-
-        # --- 6. Normalize defensively ---
-        norm = np.linalg.norm(psi)
-        if norm > 0:
-            psi /= norm
-
-        #print("Reset qubits completed. New statevector:", psi)
-        return psi, outcomes
-    '''
     
     def I(self, i: int):
         """Apply identity gate on qubit i
@@ -1781,12 +1278,16 @@ class BinaryCircuit(object):
 
         return
 
-    def reset(self):
+    def reset(self, phase_reset: bool = True):
         """ Reset the circuit to the initial state. """
-        self.phi = [0 for i in range(self.nqubit)]
+        # need to only reset phases if specified, avoids transpiled gate phase accumulation issues
+        if phase_reset: 
+            self.phi = [0 for i in range(self.nqubit)]
+            
+        self._s = 0
         self._backend = self._BackendClass(self.nqubit)
-        self._info_gates_list = []
-        self.phi = [0 for i in range(self.nqubit)]
+        self._mp = [1 for i in range(self.nqubit)]
+        self._mp_list = []
 
 
 class StandardCircuit(AlternativeCircuit):
