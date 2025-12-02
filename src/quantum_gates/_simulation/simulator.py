@@ -104,7 +104,7 @@ class MrAndersonSimulator(object):
                 • **"results"** – per-shot mid/final measurement data.
                 • **"num_clbits"** – number of classical bits in the circuit.
                 • **"mid_counts"** – aggregated mid-circuit measurement bitstrings.
-                • **"statevector_readout"** – saved statevectors, if present.
+                • **"statevector_readout"** – measured statevectors, from mid measure.
         """
         if qubit_layout is not None:
             raise NotImplementedError("qubit_layout argument is deprecated; please use transpiled circuits instead.")
@@ -137,7 +137,7 @@ class MrAndersonSimulator(object):
 
         # Read data and apply Noisy Quantum gates for many shots to get preliminary probabilities
         #  perform simulation (psi0 spans full width nqubit; active_layout routes gates)
-        probs, all_results, saved_statevectors = self._perform_simulation(
+        probs, all_results = self._perform_simulation(
             shots, data, n_rz, nqubit, device_param, psi0, data_measure, bit_flip_bool
         )
 
@@ -442,7 +442,7 @@ class MrAndersonSimulator(object):
 
             # Compute
             p = multiprocessing.Pool(n_processes)
-            for results_mid_measure, shot_result, final_outcomes, saved_statevectors in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
+            for results_mid_measure, shot_result, final_outcomes in p.imap_unordered(func=_single_shot, iterable=arg_list, chunksize=chunksize):
                 # Add shot
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
@@ -458,7 +458,7 @@ class MrAndersonSimulator(object):
         else:
             for arg in arg_list:
                 # Compute
-                results_mid_measure, shot_result, final_outcomes, saved_statevectors = _single_shot(arg)
+                results_mid_measure, shot_result, final_outcomes = _single_shot(arg)
 
                 r_sum += shot_result
                 r_square_sum += np.square(shot_result)
@@ -472,7 +472,7 @@ class MrAndersonSimulator(object):
         r_mean = r_sum / shots
         r_var = r_square_sum / shots - np.square(r_mean)
         
-        return r_mean, all_results, saved_statevectors
+        return r_mean, all_results
     
     
     def _measurament(self, prob : np.array, q_meas_list : list, n_qubit: int) -> dict: 
@@ -715,7 +715,7 @@ def _single_shot(args: dict) -> np.array:
             else:
                 op_name = d.operation.name
                 if op_name == "statevector_readout":
-                    saved_statevectors.append(psi.copy())
+                    raise NotImplementedError("statevector_readout not implemented yet")
 
                 elif op_name == "if_else":
                     raise NotImplementedError("if_else not implemented yet")
@@ -745,4 +745,4 @@ def _single_shot(args: dict) -> np.array:
         for q, (c_reg, c_idx) in data_measure:
             final_outcomes[(c_reg, c_idx)] = int(bitstring[-(q+1)])  # big-endian bit order
     
-    return qiskit_order_mid_results, shot_result, final_outcomes, saved_statevectors
+    return qiskit_order_mid_results, shot_result, final_outcomes
