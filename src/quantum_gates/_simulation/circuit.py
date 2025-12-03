@@ -86,6 +86,7 @@ class Circuit(object):
             self.s = 1
             self.j = self.j+1
             self.circuit[i][self.j] = gate
+   
 
     def statevector(self, psi0) -> np.array:
         """
@@ -656,28 +657,6 @@ class AlternativeCircuit(object):
     
     def statevector_readout(self, psi0) -> np.array:
         return psi0
-    
-    def _gate_call(self, fn, *args, **kwargs):
-        """
-        Call a gate constructor with a 'noisy' signature if available.
-        If the gate is noise-free (fewer params), progressively trim
-        trailing positional args until the call succeeds.
-        """
-        # try full signature first
-        try:
-            return fn(*args, **kwargs)
-        except TypeError:
-            pass
-
-        # progressively trim trailing args
-        for cut in range(len(args) - 1, -1, -1):
-            try:
-                return fn(*args[:cut], **kwargs)
-            except TypeError:
-                continue
-
-        # last resort: try with no args (some gates may be nullary)
-        return fn()
     
     
     def I(self, i: int):
