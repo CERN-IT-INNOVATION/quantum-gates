@@ -214,7 +214,7 @@ class RotatedSurfaceCode:
                 anc = stabilizer[1]
                 self.qc.measure(anc, classical_offset + i)
 
-            self.qc.save_statevector(label=f"save_sv_{cycle}")
+            #self.qc.save_statevector(label=f"save_sv_{cycle}")
             self.qc.barrier(label=f"save_sv_{cycle}")
 
 
